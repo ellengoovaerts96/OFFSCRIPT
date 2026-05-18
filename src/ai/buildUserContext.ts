@@ -25,16 +25,16 @@ const intentSchema = z.enum([
 
 const userContextSchema = z.object({
   language: z.string().min(2),
-  currentLocation: z.string().optional(),
-  targetRegion: z.string().optional(),
-  travellerType: travellerTypeSchema.optional(),
-  hasChildren: z.boolean().optional(),
-  childrenAges: z.string().optional(),
-  intent: intentSchema.optional(),
-  timing: z.string().optional(),
-  budget: z.string().optional(),
-  vibe: z.string().optional(),
-  safetyConcern: z.boolean().optional()
+  currentLocation: z.string().nullable(),
+  targetRegion: z.string().nullable(),
+  travellerType: travellerTypeSchema.nullable(),
+  hasChildren: z.boolean().nullable(),
+  childrenAges: z.string().nullable(),
+  intent: intentSchema.nullable(),
+  timing: z.string().nullable(),
+  budget: z.string().nullable(),
+  vibe: z.string().nullable(),
+  safetyConcern: z.boolean().nullable()
 });
 
 const buildUserContextSchema = z.object({
@@ -47,7 +47,14 @@ export type BuildUserContextInput = {
   previousContext?: UserContext | null;
 };
 
-export type BuildUserContextResult = z.infer<typeof buildUserContextSchema>;
+export type BuildUserContextResult = {
+  context: UserContext;
+  confidence: number;
+};
+
+function nullToUndefined<T>(value: T | null | undefined): T | undefined {
+  return value ?? undefined;
+}
 
 function inferTravellerType(message: string): TravellerType | undefined {
   const lower = message.toLowerCase();
@@ -135,11 +142,17 @@ Rules:
 
   return {
     context: {
-      ...parsed.context,
-      targetRegion: normalizeRegion(parsed.context.targetRegion),
-      currentLocation: normalizeRegion(parsed.context.currentLocation),
-      travellerType: parsed.context.travellerType as TravellerType | undefined,
-      intent: parsed.context.intent as UserIntent | undefined
+      language: parsed.context.language,
+      currentLocation: normalizeRegion(nullToUndefined(parsed.context.currentLocation)),
+      targetRegion: normalizeRegion(nullToUndefined(parsed.context.targetRegion)),
+      travellerType: nullToUndefined(parsed.context.travellerType) as TravellerType | undefined,
+      hasChildren: nullToUndefined(parsed.context.hasChildren),
+      childrenAges: nullToUndefined(parsed.context.childrenAges),
+      intent: nullToUndefined(parsed.context.intent) as UserIntent | undefined,
+      timing: nullToUndefined(parsed.context.timing),
+      budget: nullToUndefined(parsed.context.budget),
+      vibe: nullToUndefined(parsed.context.vibe),
+      safetyConcern: nullToUndefined(parsed.context.safetyConcern)
     },
     confidence: parsed.confidence
   };
