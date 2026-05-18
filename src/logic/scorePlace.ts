@@ -1,6 +1,43 @@
-import type { Place, PlaceCategory } from "../types/place.js";
+import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
+
+const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
+  food: ["food", "restaurant", "lunch", "dinner", "brunch", "local food", "local"],
+  drink: ["drink", "bar", "cocktail", "drinks"],
+  culture: ["culture", "market", "museum", "craft", "crafts"],
+  shopping: ["shopping", "shop", "market", "craft", "crafts"],
+  beach: ["beach", "sea", "ocean"],
+  nightlife: ["nightlife", "club", "dance", "bar"]
+};
+
+const TIMING_ALIASES: Record<string, string[]> = {
+  tonight: ["tonight", "evening", "night"],
+  evening: ["evening", "tonight", "night", "sunset"],
+  sunset: ["sunset", "evening"],
+  lunch: ["lunch", "day", "afternoon"],
+  afternoon: ["afternoon", "day", "lunch"],
+  morning: ["morning"]
+};
+
+function normalizeValue(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function matchesAny(value: string, candidates: string[]): boolean {
+  const normalizedValue = normalizeValue(value);
+  return candidates.map(normalizeValue).includes(normalizedValue);
+}
+
+function placeMatchesIntent(place: Place, intent: string): boolean {
+  const aliases = INTENT_CATEGORY_ALIASES[intent] ?? [intent];
+  return place.categories.some((category) => matchesAny(category, aliases));
+}
+
+function placeMatchesTiming(place: Place, timing: string): boolean {
+  const aliases = TIMING_ALIASES[timing] ?? [timing];
+  return place.bestTiming.some((candidate) => matchesAny(candidate, aliases));
+}
 
 export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
@@ -10,10 +47,10 @@ export function scorePlace(place: Place, context: UserContext): number {
   const placeNeighbourhood = normalizeRegion(place.neighbourhood);
 
   if (targetRegion && (placeRegion === targetRegion || placeNeighbourhood === targetRegion)) score += 40;
-  if (context.intent && context.intent !== "unknown" && place.categories.includes(context.intent as PlaceCategory)) {
+  if (context.intent && context.intent !== "unknown" && placeMatchesIntent(place, context.intent)) {
     score += 30;
   }
-  if (context.timing && place.bestTiming.includes(context.timing)) score += 15;
+  if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;
   if (context.hasChildren === true && !place.childFriendly) score -= 50;
