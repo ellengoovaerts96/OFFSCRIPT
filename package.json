@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "db:migrate": "tsx scripts/migrate.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
