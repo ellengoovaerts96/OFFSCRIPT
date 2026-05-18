@@ -30,8 +30,10 @@ function sendTwilioMessage(
   message: string,
   imageUrls: string[] = []
 ): void {
-  const media = imageUrls.map((url) => `<Media>${escapeXml(url)}</Media>`).join("");
-  res.type("text/xml").send(`<Response><Message><Body>${escapeXml(message)}</Body>${media}</Message></Response>`);
+  const textMessage = `<Message><Body>${escapeXml(message)}</Body></Message>`;
+  const mediaMessages = imageUrls.map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`).join("");
+
+  res.type("text/xml").send(`<Response>${textMessage}${mediaMessages}</Response>`);
 }
 
 function escapeXml(value: string): string {
