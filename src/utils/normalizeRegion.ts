@@ -8,8 +8,11 @@ const REGION_ALIASES: Record<string, string> = {
   "médina": "Médina",
   "sacre coeur": "Sacré-Cœur",
   "sacré coeur": "Sacré-Cœur",
+  "sacre cœur": "Sacré-Cœur",
   "sacre-coeur": "Sacré-Cœur",
   "sacré-cœur": "Sacré-Cœur",
+  "sacré-coeur": "Sacré-Cœur",
+  "sacre-cœur": "Sacré-Cœur",
   ouakam: "Ouakam",
   mamelles: "Mamelles",
   goree: "Île de Gorée",
@@ -23,7 +26,13 @@ const REGION_ALIASES: Record<string, string> = {
 };
 
 function normalizeKey(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/œ/g, "oe")
+    .replace(/\s+/g, " ");
 }
 
 export function normalizeRegion(value: string | undefined): string | undefined {

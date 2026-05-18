@@ -108,6 +108,8 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
 }
 
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
+  const explicitRegion = findKnownRegion(input.message);
+
   if (!hasOpenAIKey()) {
     return fallbackBuildUserContext(input);
   }
@@ -144,7 +146,7 @@ Rules:
     context: {
       language: parsed.context.language,
       currentLocation: normalizeRegion(nullToUndefined(parsed.context.currentLocation)),
-      targetRegion: normalizeRegion(nullToUndefined(parsed.context.targetRegion)),
+      targetRegion: normalizeRegion(explicitRegion ?? nullToUndefined(parsed.context.targetRegion)),
       travellerType: nullToUndefined(parsed.context.travellerType) as TravellerType | undefined,
       hasChildren: nullToUndefined(parsed.context.hasChildren),
       childrenAges: nullToUndefined(parsed.context.childrenAges),
