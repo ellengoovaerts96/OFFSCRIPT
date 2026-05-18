@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE places (
+CREATE TABLE IF NOT EXISTS places (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   country TEXT DEFAULT 'Senegal',
@@ -46,7 +46,7 @@ CREATE TABLE places (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE place_images (
+CREATE TABLE IF NOT EXISTS place_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   place_id UUID REFERENCES places(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE place_images (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE contacts (
+CREATE TABLE IF NOT EXISTS contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   role TEXT,
@@ -74,7 +74,7 @@ CREATE TABLE contacts (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE reservations (
+CREATE TABLE IF NOT EXISTS reservations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   place_id UUID REFERENCES places(id),
   user_name TEXT,
@@ -89,7 +89,7 @@ CREATE TABLE reservations (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE conversation_context (
+CREATE TABLE IF NOT EXISTS conversation_context (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_phone TEXT NOT NULL UNIQUE,
   language TEXT,
@@ -106,8 +106,8 @@ CREATE TABLE conversation_context (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX places_region_idx ON places(region);
-CREATE INDEX places_neighbourhood_idx ON places(neighbourhood);
-CREATE INDEX places_category_idx ON places(category);
-CREATE INDEX places_status_idx ON places(status);
-CREATE INDEX conversation_context_user_phone_idx ON conversation_context(user_phone);
+CREATE INDEX IF NOT EXISTS places_region_idx ON places(region);
+CREATE INDEX IF NOT EXISTS places_neighbourhood_idx ON places(neighbourhood);
+CREATE INDEX IF NOT EXISTS places_category_idx ON places(category);
+CREATE INDEX IF NOT EXISTS places_status_idx ON places(status);
+CREATE INDEX IF NOT EXISTS conversation_context_user_phone_idx ON conversation_context(user_phone);
