@@ -40,8 +40,35 @@ function buildNoMatchResponse(context: UserContext): string {
   return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
 }
 
-function selectRecommendationImages(place: Place): string[] {
+const SUBCATEGORY_ALIASES: Record<string, string[]> = {
+  jewellery: ["jewellery", "jewelry", "juwelen", "juweel", "sieraden", "bijoux"],
+  wood: ["wood", "woodwork", "hout", "houten", "bois"],
+  artworks: ["artworks", "art", "kunst", "kunstwerken", "artwork", "oeuvres", "œuvres"],
+  handbags: ["handbags", "bags", "bag", "handtassen", "handtas", "tassen", "sacs", "sac"]
+};
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function subcategoryMatchesMessage(subcategoryName: string, message: string): boolean {
+  const normalizedMessage = normalizeSearchText(message);
+  const normalizedName = normalizeSearchText(subcategoryName);
+  const aliases = SUBCATEGORY_ALIASES[normalizedName] ?? [normalizedName];
+
+  return aliases.some((alias) => normalizedMessage.includes(normalizeSearchText(alias)));
+}
+
+function selectRecommendationImages(place: Place, message: string): string[] {
+  const matchingSubcategoryImages = place.subcategories
+    .filter((subcategory) => subcategoryMatchesMessage(subcategory.name, message))
+    .flatMap((subcategory) => subcategory.images.map((image) => image.url));
+
   const imageUrls = [
+    ...matchingSubcategoryImages,
     ...place.images.map((image) => image.url),
     ...place.subcategories.flatMap((subcategory) => subcategory.images.map((image) => image.url))
   ];
@@ -90,7 +117,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     placeName: selection.place.name,
     score: selection.score,
     message: messageText,
-    imageUrls: selectRecommendationImages(selection.place)
+    imageUrls: selectRecommendationImages(selection.place, message)
   };
 }
 
