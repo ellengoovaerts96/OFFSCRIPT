@@ -9,7 +9,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "offscript" });
+  res.json({
+    ok: true,
+    service: "offscript",
+    version: process.env.RAILWAY_GIT_COMMIT_SHA ?? "local"
+  });
 });
 
 app.use("/webhooks/whatsapp", whatsappRouter);
