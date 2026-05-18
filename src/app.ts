@@ -13,6 +13,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/webhooks/whatsapp", whatsappRouter);
+app.use("/webhooks/twilio/whatsapp", whatsappRouter);
 app.use("/webchat", webchatRouter);
 
 app.post("/chat/test", async (req, res) => {
