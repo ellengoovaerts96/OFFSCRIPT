@@ -7,8 +7,8 @@ type PlaceRow = {
   country: "Senegal";
   region: string;
   neighbourhood: string | null;
-  category: PlaceCategory;
-  subcategory: string | null;
+  categories: PlaceCategory[] | null;
+  subcategories: string[] | null;
   short_description: string;
   long_description: string | null;
   personal_tip: string | null;
@@ -50,8 +50,8 @@ function mapPlace(row: PlaceRow): Place {
     country: row.country,
     region: row.region,
     neighbourhood: row.neighbourhood ?? undefined,
-    category: row.category,
-    subcategory: row.subcategory ?? undefined,
+    categories: row.categories ?? [],
+    subcategories: row.subcategories ?? [],
     shortDescription: row.short_description,
     longDescription: row.long_description ?? undefined,
     personalTip: row.personal_tip ?? undefined,

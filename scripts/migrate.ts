@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import pg from "pg";
 
@@ -16,12 +16,17 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined
 });
 
-const migrationPath = join(process.cwd(), "migrations", "001_initial_schema.sql");
-const sql = await readFile(migrationPath, "utf8");
-
 try {
-  await pool.query(sql);
-  console.log("Migration completed: 001_initial_schema.sql");
+  const migrationsDir = join(process.cwd(), "migrations");
+  const migrationFiles = (await readdir(migrationsDir))
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
+
+  for (const file of migrationFiles) {
+    const sql = await readFile(join(migrationsDir, file), "utf8");
+    await pool.query(sql);
+    console.log(`Migration completed: ${file}`);
+  }
 } finally {
   await pool.end();
 }

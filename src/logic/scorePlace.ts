@@ -1,4 +1,4 @@
-import type { Place } from "../types/place.js";
+import type { Place, PlaceCategory } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 
@@ -10,7 +10,9 @@ export function scorePlace(place: Place, context: UserContext): number {
   const placeNeighbourhood = normalizeRegion(place.neighbourhood);
 
   if (targetRegion && (placeRegion === targetRegion || placeNeighbourhood === targetRegion)) score += 40;
-  if (place.category === context.intent) score += 30;
+  if (context.intent && context.intent !== "unknown" && place.categories.includes(context.intent as PlaceCategory)) {
+    score += 30;
+  }
   if (context.timing && place.bestTiming.includes(context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;

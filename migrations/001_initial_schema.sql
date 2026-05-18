@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS places (
   country TEXT DEFAULT 'Senegal',
   region TEXT NOT NULL,
   neighbourhood TEXT,
-  category TEXT NOT NULL,
-  subcategory TEXT,
+  categories TEXT[] NOT NULL DEFAULT '{}',
+  subcategories TEXT[] DEFAULT '{}',
   short_description TEXT NOT NULL,
   long_description TEXT,
   personal_tip TEXT,
@@ -108,6 +108,10 @@ CREATE TABLE IF NOT EXISTS conversation_context (
 
 CREATE INDEX IF NOT EXISTS places_region_idx ON places(region);
 CREATE INDEX IF NOT EXISTS places_neighbourhood_idx ON places(neighbourhood);
-CREATE INDEX IF NOT EXISTS places_category_idx ON places(category);
+ALTER TABLE places
+  ADD COLUMN IF NOT EXISTS categories TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS subcategories TEXT[] DEFAULT '{}';
+
+CREATE INDEX IF NOT EXISTS places_categories_idx ON places USING GIN(categories);
 CREATE INDEX IF NOT EXISTS places_status_idx ON places(status);
 CREATE INDEX IF NOT EXISTS conversation_context_user_phone_idx ON conversation_context(user_phone);

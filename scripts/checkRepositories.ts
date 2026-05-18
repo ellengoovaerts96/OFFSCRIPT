@@ -27,7 +27,7 @@ try {
           ? {
               name: places[0].name,
               region: places[0].region,
-              category: places[0].category,
+              categories: places[0].categories,
               status: places[0].status
             }
           : null

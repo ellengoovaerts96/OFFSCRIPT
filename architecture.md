@@ -263,8 +263,8 @@ type Place = {
   region: string;
   neighbourhood?: string;
   country: "Senegal";
-  category: "food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other";
-  subcategory?: string;
+  categories: ("food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other")[];
+  subcategories: string[];
   shortDescription: string;
   longDescription?: string;
   personalTip?: string;
@@ -413,7 +413,7 @@ Important matching fields:
 function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
   if (place.region === context.targetRegion || place.neighbourhood === context.targetRegion) score += 40;
-  if (place.category === context.intent) score += 30;
+  if (context.intent && place.categories.includes(context.intent)) score += 30;
   if (context.timing && place.bestTiming.includes(context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;
@@ -631,8 +631,8 @@ CREATE TABLE places (
   country TEXT DEFAULT 'Senegal',
   region TEXT NOT NULL,
   neighbourhood TEXT,
-  category TEXT NOT NULL,
-  subcategory TEXT,
+  categories TEXT[] NOT NULL DEFAULT '{}',
+  subcategories TEXT[] DEFAULT '{}',
   short_description TEXT NOT NULL,
   long_description TEXT,
   personal_tip TEXT,
@@ -759,8 +759,8 @@ CREATE TABLE conversation_context (
   "country": "Senegal",
   "region": "Dakar",
   "neighbourhood": "Ngor",
-  "category": "food",
-  "subcategory": "local café",
+  "categories": ["food", "bar"],
+  "subcategories": ["local café"],
   "shortDescription": "A quiet local courtyard café with simple food and a relaxed atmosphere.",
   "personalTip": "Go just before sunset and sit outside if possible.",
   "whyHiddenGem": "It is not very visible from the street and is mostly known by locals.",

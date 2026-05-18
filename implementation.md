@@ -191,8 +191,8 @@ CREATE TABLE places (
   country TEXT DEFAULT 'Senegal',
   region TEXT NOT NULL,
   neighbourhood TEXT,
-  category TEXT NOT NULL,
-  subcategory TEXT,
+  categories TEXT[] NOT NULL DEFAULT '{}',
+  subcategories TEXT[] DEFAULT '{}',
   short_description TEXT NOT NULL,
   long_description TEXT,
   personal_tip TEXT,
@@ -297,7 +297,7 @@ Add useful indexes:
 ```sql
 CREATE INDEX places_region_idx ON places(region);
 CREATE INDEX places_neighbourhood_idx ON places(neighbourhood);
-CREATE INDEX places_category_idx ON places(category);
+CREATE INDEX places_categories_idx ON places USING GIN(categories);
 CREATE INDEX places_status_idx ON places(status);
 CREATE INDEX conversation_context_user_phone_idx ON conversation_context(user_phone);
 ```
@@ -343,8 +343,8 @@ export type Place = {
   country: "Senegal";
   region: string;
   neighbourhood?: string;
-  category: "food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other";
-  subcategory?: string;
+  categories: ("food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other")[];
+  subcategories: string[];
   shortDescription: string;
   longDescription?: string;
   personalTip?: string;
@@ -594,7 +594,7 @@ export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
 
   if (place.region === context.targetRegion || place.neighbourhood === context.targetRegion) score += 40;
-  if (place.category === context.intent) score += 30;
+  if (context.intent && place.categories.includes(context.intent)) score += 30;
   if (context.timing && place.bestTiming.includes(context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;
@@ -811,7 +811,8 @@ Each place needs:
 
 - name
 - region or neighbourhood
-- category
+- one or more categories
+- optional subcategories
 - short description
 - personal tip
 - traveller types
