@@ -19,6 +19,14 @@ export type PlaceImage = {
   isHeroImage: boolean;
 };
 
+export type PlaceSubcategory = {
+  id: string;
+  name: string;
+  description?: string;
+  displayOrder: number;
+  images: PlaceImage[];
+};
+
 export type Place = {
   id: string;
   name: string;
@@ -26,7 +34,7 @@ export type Place = {
   region: string;
   neighbourhood?: string;
   categories: PlaceCategory[];
-  subcategories: string[];
+  subcategories: PlaceSubcategory[];
   shortDescription: string;
   longDescription?: string;
   personalTip?: string;

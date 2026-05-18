@@ -15,7 +15,11 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     region: place.region,
     neighbourhood: place.neighbourhood,
     categories: place.categories,
-    subcategories: place.subcategories,
+    subcategories: place.subcategories.map((subcategory) => ({
+      name: subcategory.name,
+      description: subcategory.description,
+      imageCount: subcategory.images.length
+    })),
     shortDescription: place.shortDescription,
     personalTip: place.personalTip,
     whyHiddenGem: place.whyHiddenGem,

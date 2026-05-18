@@ -296,6 +296,7 @@ type Place = {
   guidePhone?: string;
   guideLanguages?: string[];
   images: PlaceImage[];
+  subcategories: PlaceSubcategory[];
   source: "field_research" | "local_contact" | "owner" | "personal_visit" | "other";
   verifiedBy?: string;
   lastVerifiedAt?: string;
@@ -307,7 +308,9 @@ type Place = {
 
 ## 10. Image Model
 
-Each place can have multiple images.
+Each place can have up to three general images.
+
+Places can also have structured subcategories. This is useful for craft markets such as Village de Soumbédioune, where one place contains woodwork, jewellery, artworks, handbags and similar buying categories. Each subcategory can have up to three of its own images.
 
 ```ts
 type PlaceImage = {
@@ -320,6 +323,15 @@ type PlaceImage = {
   usageAllowed: boolean;
   isHeroImage: boolean;
   caption?: string;
+};
+
+type PlaceSubcategory = {
+  id: string;
+  placeId: string;
+  name: string;
+  description?: string;
+  displayOrder: number;
+  images: PlaceImage[];
 };
 ```
 

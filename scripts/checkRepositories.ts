@@ -28,6 +28,10 @@ try {
               name: places[0].name,
               region: places[0].region,
               categories: places[0].categories,
+              subcategories: places[0].subcategories.map((subcategory) => ({
+                name: subcategory.name,
+                imageCount: subcategory.images.length
+              })),
               status: places[0].status
             }
           : null

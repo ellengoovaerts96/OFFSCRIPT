@@ -244,6 +244,32 @@ CREATE TABLE place_images (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE place_subcategories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  place_id UUID NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(place_id, name)
+);
+
+CREATE TABLE place_subcategory_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  place_subcategory_id UUID NOT NULL REFERENCES place_subcategories(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  alt_text TEXT,
+  photographer TEXT,
+  copyright_status TEXT,
+  usage_allowed BOOLEAN DEFAULT false,
+  is_hero_image BOOLEAN DEFAULT false,
+  caption TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+The database enforces a maximum of three `place_images` per place and three `place_subcategory_images` per subcategory.
+
 CREATE TABLE contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -344,7 +370,13 @@ export type Place = {
   region: string;
   neighbourhood?: string;
   categories: ("food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other")[];
-  subcategories: string[];
+  subcategories: {
+    id: string;
+    name: string;
+    description?: string;
+    displayOrder: number;
+    images: PlaceImage[];
+  }[];
   shortDescription: string;
   longDescription?: string;
   personalTip?: string;

@@ -1,5 +1,5 @@
 import { pool } from "../integrations/postgres.js";
-import type { Place, PlaceCategory, PlaceImage } from "../types/place.js";
+import type { Place, PlaceCategory, PlaceImage, PlaceSubcategory } from "../types/place.js";
 
 type PlaceRow = {
   id: string;
@@ -8,7 +8,7 @@ type PlaceRow = {
   region: string;
   neighbourhood: string | null;
   categories: PlaceCategory[] | null;
-  subcategories: string[] | null;
+  subcategories: PlaceSubcategory[] | null;
   short_description: string;
   long_description: string | null;
   personal_tip: string | null;
@@ -91,29 +91,64 @@ const placeSelect = `
   SELECT
     p.*,
     COALESCE(
-      json_agg(
-        json_build_object(
-          'id', pi.id,
-          'url', pi.url,
-          'altText', pi.alt_text,
-          'caption', pi.caption,
-          'isHeroImage', pi.is_hero_image
+      (
+        SELECT json_agg(
+          json_build_object(
+            'id', pi.id,
+            'url', pi.url,
+            'altText', pi.alt_text,
+            'caption', pi.caption,
+            'isHeroImage', pi.is_hero_image
+          )
+          ORDER BY pi.is_hero_image DESC, pi.created_at ASC
         )
-        ORDER BY pi.is_hero_image DESC, pi.created_at ASC
-      ) FILTER (WHERE pi.id IS NOT NULL),
+        FROM place_images pi
+        WHERE pi.place_id = p.id
+          AND pi.usage_allowed = true
+      ),
       '[]'
-    ) AS images
+    ) AS images,
+    COALESCE(
+      (
+        SELECT json_agg(
+          json_build_object(
+            'id', ps.id,
+            'name', ps.name,
+            'description', ps.description,
+            'displayOrder', ps.display_order,
+            'images', COALESCE(
+              (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', psi.id,
+                    'url', psi.url,
+                    'altText', psi.alt_text,
+                    'caption', psi.caption,
+                    'isHeroImage', psi.is_hero_image
+                  )
+                  ORDER BY psi.is_hero_image DESC, psi.created_at ASC
+                )
+                FROM place_subcategory_images psi
+                WHERE psi.place_subcategory_id = ps.id
+                  AND psi.usage_allowed = true
+              ),
+              '[]'
+            )
+          )
+          ORDER BY ps.display_order ASC, ps.name ASC
+        )
+        FROM place_subcategories ps
+        WHERE ps.place_id = p.id
+      ),
+      '[]'
+    ) AS subcategories
   FROM places p
-  LEFT JOIN place_images pi
-    ON pi.place_id = p.id
-   AND pi.usage_allowed = true
 `;
 
 export async function listRecommendationPlaces(): Promise<Place[]> {
   const result = await pool.query<PlaceRow>(`
     ${placeSelect}
     WHERE p.status IN ('ready', 'premium')
-    GROUP BY p.id
     ORDER BY p.status DESC, p.name ASC
   `);
 
@@ -126,7 +161,6 @@ export async function getPlaceById(id: string): Promise<Place | null> {
       ${placeSelect}
       WHERE p.id = $1
         AND p.status IN ('ready', 'premium')
-      GROUP BY p.id
       LIMIT 1
     `,
     [id]
