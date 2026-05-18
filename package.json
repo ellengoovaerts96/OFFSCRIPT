@@ -9,6 +9,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:check": "tsx scripts/checkRepositories.ts",
     "logic:check": "tsx scripts/checkLogic.ts",
+    "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },

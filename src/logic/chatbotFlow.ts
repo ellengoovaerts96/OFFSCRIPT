@@ -1,7 +1,8 @@
+import { buildUserContext } from "../ai/buildUserContext.js";
+import { generateAnswer } from "../ai/generateAnswer.js";
 import { getConversationContext, upsertConversationContext } from "../data/conversationContextRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import type { UserContext } from "../types/userContext.js";
-import { findKnownRegion } from "../utils/normalizeRegion.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
 import { needsClarification } from "./needsClarification.js";
 import { selectBestPlace } from "./selectBestPlace.js";
@@ -25,36 +26,24 @@ export type ChatbotFlowResult =
       message: string;
     };
 
-function inferContextFromMessage(message: string, previousContext: UserContext | null): UserContext {
-  const lower = message.toLowerCase();
-  const targetRegion = findKnownRegion(message) ?? previousContext?.targetRegion;
+function buildNoMatchResponse(context: UserContext): string {
+  if (context.language?.startsWith("nl")) {
+    return "Ik heb daar nog geen sterke OFFSCRIPT-match voor. Vertel me waar je bent en welke vibe je zoekt, dan probeer ik met wat ik wel al weet.";
+  }
 
-  return {
-    language: previousContext?.language ?? "en",
-    ...previousContext,
-    targetRegion,
-    travellerType: lower.includes("friends") || lower.includes("vrienden") ? "friends" : previousContext?.travellerType,
-    hasChildren:
-      lower.includes("no children") || lower.includes("geen kinderen")
-        ? false
-        : lower.includes("children") || lower.includes("kinderen")
-          ? true
-          : previousContext?.hasChildren,
-    intent: lower.includes("culture") || lower.includes("cultuur") ? "culture" : previousContext?.intent,
-    timing:
-      lower.includes("morning") || lower.includes("ochtend")
-        ? "morning"
-        : lower.includes("afternoon") || lower.includes("middag")
-          ? "afternoon"
-          : lower.includes("tonight") || lower.includes("vanavond") || lower.includes("evening") || lower.includes("avond")
-            ? "evening"
-            : previousContext?.timing
-  };
+  if (context.language?.startsWith("fr")) {
+    return "Je n’ai pas encore de match OFFSCRIPT vraiment solide pour ça. Dis-moi où tu es et l’ambiance que tu cherches, et j’essaie avec ce que j’ai.";
+  }
+
+  return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
   const previousContext = await getConversationContext(userPhone);
-  const context = inferContextFromMessage(message, previousContext);
+  const { context } = await buildUserContext({
+    message,
+    previousContext
+  });
 
   await upsertConversationContext(userPhone, context);
 
@@ -74,15 +63,26 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "no_match",
       context,
-      message: "I do not have a strong OFFSCRIPT match for that yet. Tell me a bit more and I will try with what I do know."
+      message: buildNoMatchResponse(context)
     };
   }
+
+  const messageText = await generateAnswer({
+    userMessage: message,
+    context,
+    selectedPlace: selection.place
+  });
 
   return {
     type: "recommendation",
     context,
     placeName: selection.place.name,
     score: selection.score,
-    message: `${selection.place.name} fits best here. ${selection.place.shortDescription}\n\nMap: ${selection.place.googleMapsUrl}`
+    message: messageText
   };
+}
+
+export async function handleChatMessage(input: { userPhone: string; message: string }): Promise<{ reply: string }> {
+  const result = await runChatbotFlow(input.userPhone, input.message);
+  return { reply: result.message };
 }
