@@ -2,6 +2,7 @@ import { buildUserContext } from "../ai/buildUserContext.js";
 import { generateAnswer } from "../ai/generateAnswer.js";
 import { getConversationContext, upsertConversationContext } from "../data/conversationContextRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
+import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
 import { needsClarification } from "./needsClarification.js";
@@ -19,6 +20,7 @@ export type ChatbotFlowResult =
       placeName: string;
       score: number;
       message: string;
+      imageUrls: string[];
     }
   | {
       type: "no_match";
@@ -36,6 +38,15 @@ function buildNoMatchResponse(context: UserContext): string {
   }
 
   return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
+}
+
+function selectRecommendationImages(place: Place): string[] {
+  const imageUrls = [
+    ...place.images.map((image) => image.url),
+    ...place.subcategories.flatMap((subcategory) => subcategory.images.map((image) => image.url))
+  ];
+
+  return Array.from(new Set(imageUrls)).slice(0, 2);
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
@@ -78,11 +89,18 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     context,
     placeName: selection.place.name,
     score: selection.score,
-    message: messageText
+    message: messageText,
+    imageUrls: selectRecommendationImages(selection.place)
   };
 }
 
-export async function handleChatMessage(input: { userPhone: string; message: string }): Promise<{ reply: string }> {
+export async function handleChatMessage(input: {
+  userPhone: string;
+  message: string;
+}): Promise<{ reply: string; imageUrls: string[] }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
-  return { reply: result.message };
+  return {
+    reply: result.message,
+    imageUrls: result.type === "recommendation" ? result.imageUrls : []
+  };
 }

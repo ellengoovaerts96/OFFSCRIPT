@@ -33,7 +33,6 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     reservationMethod: place.reservationMethod,
     reservationPhone: place.reservationPhone,
     reservationUrl: place.reservationUrl,
-    googleMapsUrl: place.googleMapsUrl,
     transportNotes: place.transportNotes,
     taxiNotes: place.taxiNotes,
     safetyNotes: place.safetyNotes,
@@ -54,8 +53,7 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
 
   return [
     `I would send you to ${place.name}. ${place.shortDescription}`,
-    ...notes,
-    `Map: ${place.googleMapsUrl}`
+    ...notes
   ].join("\n\n");
 }
 
@@ -69,9 +67,11 @@ export async function generateAnswer(input: GenerateAnswerInput): Promise<string
     model: openaiModel,
     instructions: `${systemPrompt}
 
-Write one warm, concise recommendation.
+Write one warm, concise WhatsApp recommendation.
 Use only the provided selectedPlace facts.
-Include the place name, why it fits, useful tip/reservation/transport/safety notes when present, and the Google Maps URL.
+Maximum 3 short sentences.
+Include the place name, why it fits, and at most one useful tip.
+Do not include a Google Maps link or any URL.
 Omit missing facts. Do not invent anything.`,
     input: JSON.stringify({
       userMessage: input.userMessage,

@@ -13,20 +13,25 @@ whatsappRouter.post("/", async (req, res) => {
       return;
     }
 
-    const { reply } = await handleChatMessage({
+    const { reply, imageUrls } = await handleChatMessage({
       userPhone: from,
       message: incomingMessage
     });
 
-    sendTwilioMessage(res, reply);
+    sendTwilioMessage(res, reply, imageUrls);
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
     sendTwilioMessage(res, "OFFSCRIPT had a small hiccup. Try again in a moment.");
   }
 });
 
-function sendTwilioMessage(res: { type: (value: string) => { send: (body: string) => void } }, message: string): void {
-  res.type("text/xml").send(`<Response><Message>${escapeXml(message)}</Message></Response>`);
+function sendTwilioMessage(
+  res: { type: (value: string) => { send: (body: string) => void } },
+  message: string,
+  imageUrls: string[] = []
+): void {
+  const media = imageUrls.map((url) => `<Media>${escapeXml(url)}</Media>`).join("");
+  res.type("text/xml").send(`<Response><Message><Body>${escapeXml(message)}</Body>${media}</Message></Response>`);
 }
 
 function escapeXml(value: string): string {
