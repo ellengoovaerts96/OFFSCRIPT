@@ -1,4 +1,5 @@
 import express from "express";
+import { inboxRouter } from "./channels/inbox.js";
 import { whatsappRouter } from "./channels/whatsapp.js";
 import { webchatRouter } from "./channels/webchat.js";
 import { handleChatMessage } from "./logic/chatbotFlow.js";
@@ -19,6 +20,7 @@ app.get("/health", (_req, res) => {
 app.use("/webhooks/whatsapp", whatsappRouter);
 app.use("/webhooks/twilio/whatsapp", whatsappRouter);
 app.use("/webchat", webchatRouter);
+app.use(inboxRouter);
 
 app.post("/chat/test", async (req, res) => {
   const message = String(req.body.message ?? "").trim();
