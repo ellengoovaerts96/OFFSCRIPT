@@ -5,6 +5,7 @@ import { listRecommendationPlaces } from "../data/placesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
+import { buildGreetingResponse, isGreetingOnly } from "./greeting.js";
 import { needsClarification } from "./needsClarification.js";
 import { selectBestPlace } from "./selectBestPlace.js";
 
@@ -84,6 +85,14 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   });
 
   await upsertConversationContext(userPhone, context);
+
+  if (isGreetingOnly(message)) {
+    return {
+      type: "clarification",
+      context,
+      message: buildGreetingResponse(context)
+    };
+  }
 
   const missingField = needsClarification(context);
   if (missingField) {
