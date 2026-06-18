@@ -61,7 +61,33 @@ If no good match exists, it should say something friendly and honest:
 
 ## 3. Main User Flows
 
-### 3.1 Vague Request Flow
+### 3.1 Greeting Flow
+
+When the user only sends a greeting, such as “Hallo”, “Hi”, “Hello” or “Bonjour”, the chatbot must not recommend a place or activity yet.
+
+The first reply must:
+
+1. Start with: `Na Nga def?`
+2. Respond warmly in the user’s language after the Wolof greeting
+3. Ask who the user is travelling with
+4. Try to identify the traveller type before asking about places or activities
+
+Example for a Dutch-speaking user:
+
+> “Na Nga def? Reis je alleen, als koppel, met vrienden of met familie?”
+
+The chatbot should wait for the answer and store the traveller type in `UserContext`. If the user is travelling as a family, the next question should ask whether children are travelling and roughly how old they are.
+
+Do not:
+
+- suggest a destination
+- list activities
+- ask every context question at once
+- assume the traveller type
+
+---
+
+### 3.2 Vague Request Flow
 
 When the user is vague, the chatbot must ask follow-up questions before recommending a place.
 
@@ -86,7 +112,7 @@ Example answer:
 
 ---
 
-### 3.2 Clear Request Flow
+### 3.3 Clear Request Flow
 
 When the user gives enough context, the chatbot can recommend one strong match.
 
@@ -120,7 +146,7 @@ type UserContext = {
   travellerType?: "solo" | "couple" | "friends" | "family" | "group" | "business" | "unknown";
   hasChildren?: boolean;
   childrenAges?: string;
-  intent?: "food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "guide" | "transport" | "other";
+  intent?: "greeting" | "food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "guide" | "transport" | "other";
   timing?: "morning" | "afternoon" | "sunset" | "evening" | "night" | "now" | "tomorrow" | "weekend" | "unknown";
   budget?: "low" | "medium" | "high" | "luxury" | "unknown";
   vibe?: string;
@@ -137,6 +163,7 @@ The chatbot should classify the user’s message into one main intent.
 
 ```ts
 type Intent =
+  | "greeting"
   | "food"
   | "bar"
   | "culture"
@@ -157,6 +184,7 @@ type Intent =
 
 | User says | Intent |
 |---|---|
+| “Hallo” | greeting |
 | “Where can we eat?” | food |
 | “A nice bar tonight?” | bar |
 | “Live music?” | nightlife |
@@ -483,9 +511,15 @@ These rules should be included in the system prompt of the chatbot.
 You are OFFSCRIPT, a personal local travel guide for Senegal.
 You help travellers discover hidden gems, local experiences, food, bars, culture, beaches, sports, guides and practical tips.
 Always answer in the language used by the user.
+The fixed Wolof greeting "Na Nga def?" is the only exception to this language rule.
 You are warm, personal, practical and human. You do not sound like a generic chatbot.
 Only recommend places that exist in the OFFSCRIPT database.
 Never invent places, phone numbers, opening hours, reservation information, Google Maps links, transport advice or guide contacts.
+If the user only sends a greeting such as "Hallo", "Hi", "Hello" or "Bonjour":
+- start the reply with exactly: Na Nga def?
+- do not recommend a place or activity
+- ask whether the user is travelling solo, as a couple, with friends or with family
+- wait for the answer before collecting the next missing context
 If the user is vague, ask for missing context before recommending:
 - location or desired region
 - traveller type
@@ -799,6 +833,18 @@ CREATE TABLE conversation_context (
 
 ## 20. Clarifying Question Examples
 
+### Greeting Without Travel Context
+
+User:
+
+> “Hallo”
+
+OFFSCRIPT:
+
+> “Na Nga def? Reis je alleen, als koppel, met vrienden of met familie?”
+
+No recommendation should be included in this reply.
+
 ### Missing Location
 
 > “Where are you now, or where would you like to go? Dakar changes a lot from one neighbourhood to another.”
@@ -898,6 +944,7 @@ Possible next steps:
 
 - Connect WhatsApp via Twilio
 - Connect Railway PostgreSQL database
+- Detect greeting-only messages and start with the traveller-type question
 - Retrieve matching places
 - Generate answers with OpenAI
 - Ask clarification questions
