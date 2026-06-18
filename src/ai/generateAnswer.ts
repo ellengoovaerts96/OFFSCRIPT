@@ -14,8 +14,30 @@ type SupportedAnswerLanguage = "nl" | "fr" | "en";
 const languageNames: Record<SupportedAnswerLanguage, string> = {
   nl: "Dutch (Nederlands)",
   fr: "French (français)",
-  en: "English"
+  en: "British English"
 };
+
+const britishEnglishReplacements: Array<[RegExp, string]> = [
+  [/\btraveler\b/gi, "traveller"],
+  [/\btravelers\b/gi, "travellers"],
+  [/\btraveling\b/gi, "travelling"],
+  [/\btraveled\b/gi, "travelled"],
+  [/\bfavorite\b/gi, "favourite"],
+  [/\bfavorites\b/gi, "favourites"],
+  [/\bflavor\b/gi, "flavour"],
+  [/\bflavors\b/gi, "flavours"],
+  [/\bcolor\b/gi, "colour"],
+  [/\bcolors\b/gi, "colours"],
+  [/\bcenter\b/gi, "centre"],
+  [/\bcenters\b/gi, "centres"],
+  [/\bneighborhood\b/gi, "neighbourhood"],
+  [/\bneighborhoods\b/gi, "neighbourhoods"],
+  [/\borganize\b/gi, "organise"],
+  [/\borganized\b/gi, "organised"],
+  [/\borganizing\b/gi, "organising"],
+  [/\bsavor\b/gi, "savour"],
+  [/\bsavory\b/gi, "savoury"]
+];
 
 const languageMarkers: Record<SupportedAnswerLanguage, string[]> = {
   nl: [
@@ -188,6 +210,20 @@ function matchesLanguage(text: string, expectedLanguage: SupportedAnswerLanguage
   return expectedScore >= 2 && expectedScore >= highestOtherScore;
 }
 
+function normaliseEnglishVariant(text: string, language: SupportedAnswerLanguage): string {
+  if (language !== "en") return text;
+
+  return britishEnglishReplacements.reduce(
+    (normalised, [pattern, replacement]) =>
+      normalised.replace(pattern, (match) =>
+        match[0] === match[0].toUpperCase()
+          ? replacement[0].toUpperCase() + replacement.slice(1)
+          : replacement
+      ),
+    text
+  );
+}
+
 function fallbackAnswer(input: GenerateAnswerInput): string {
   const place = input.selectedPlace;
   const language = answerLanguage(input.context.language);
@@ -223,6 +259,7 @@ export async function generateAnswer(input: GenerateAnswerInput): Promise<string
 
 TARGET LANGUAGE: ${languageNames[language]}.
 Write the complete answer only in ${languageNames[language]}.
+When writing in English, use British spelling and vocabulary throughout, never American English.
 The place name may remain in its original language, but every other sentence must use the target language.
 Write one warm, concise WhatsApp recommendation.
 Use only the provided selectedPlace facts.
@@ -237,6 +274,6 @@ Omit missing facts. Do not invent anything.`,
     })
   });
 
-  const answer = response.output_text.trim();
+  const answer = normaliseEnglishVariant(response.output_text.trim(), language);
   return answer && matchesLanguage(answer, language) ? answer : fallbackAnswer(input);
 }

@@ -44,6 +44,7 @@ Examples:
 - User asks in Spanish → answer in Spanish
 
 The internal data can be stored in English, Dutch or French, but the final user-facing answer must be translated naturally into the user’s language.
+English answers must consistently use British English spelling and vocabulary.
 
 Once the conversation language is known, short replies such as “Solo”, “Vrienden” or “Vanavond” must not change it. The answer generator must explicitly target that stored language and reject an answer generated in another language.
 
