@@ -69,6 +69,12 @@ function inferTravellerType(message: string): TravellerType | undefined {
   return undefined;
 }
 
+function isTravellerTypeOnly(message: string): boolean {
+  return /^(?:solo|alone|alleen|seul|couple|koppel|partner|friends|vrienden|amis|amies|family|familie|famille|group|groep|groupe|business|work|werk|travail)[!,.?\s]*$/i.test(
+    message.trim()
+  );
+}
+
 function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
@@ -96,7 +102,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   return {
     context: {
       ...previous,
-      language: detectLanguage(input.message),
+      language: detectLanguage(input.message, previous?.language),
       targetRegion: normalizeRegion(inferredRegion ?? previous?.targetRegion),
       travellerType: inferTravellerType(input.message) ?? previous?.travellerType,
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
@@ -110,7 +116,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
 
-  if (!hasOpenAIKey()) {
+  if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
     return fallbackBuildUserContext(input);
   }
 
@@ -144,7 +150,7 @@ Rules:
 
   return {
     context: {
-      language: parsed.context.language,
+      language: detectLanguage(input.message, input.previousContext?.language ?? parsed.context.language),
       currentLocation: normalizeRegion(nullToUndefined(parsed.context.currentLocation)),
       targetRegion: normalizeRegion(explicitRegion ?? nullToUndefined(parsed.context.targetRegion)),
       travellerType: nullToUndefined(parsed.context.travellerType) as TravellerType | undefined,

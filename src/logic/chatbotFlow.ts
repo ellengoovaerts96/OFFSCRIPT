@@ -1,4 +1,5 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
+import { detectLanguage } from "../ai/detectLanguage.js";
 import { generateAnswer } from "../ai/generateAnswer.js";
 import { getConversationContext, upsertConversationContext } from "../data/conversationContextRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
@@ -78,6 +79,20 @@ function selectRecommendationImages(place: Place, message: string): string[] {
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
+  if (isGreetingOnly(message)) {
+    const context: UserContext = {
+      language: detectLanguage(message)
+    };
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildGreetingResponse(context)
+    };
+  }
+
   const previousContext = await getConversationContext(userPhone);
   const { context } = await buildUserContext({
     message,
@@ -85,14 +100,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   });
 
   await upsertConversationContext(userPhone, context);
-
-  if (isGreetingOnly(message)) {
-    return {
-      type: "clarification",
-      context,
-      message: buildGreetingResponse(context)
-    };
-  }
 
   const missingField = needsClarification(context);
   if (missingField) {

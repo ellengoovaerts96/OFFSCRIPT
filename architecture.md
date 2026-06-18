@@ -78,6 +78,8 @@ Example for a Dutch-speaking user:
 
 The chatbot should wait for the answer and store the traveller type in `UserContext`. If the user is travelling as a family, the next question should ask whether children are travelling and roughly how old they are.
 
+A greeting-only message starts a fresh travel conversation. Previous location, intent, timing and recommendation context must be cleared. After the traveller type is known, ask what kind of experience the user wants before asking for location and timing.
+
 Do not:
 
 - suggest a destination

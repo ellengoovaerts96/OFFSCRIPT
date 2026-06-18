@@ -1,4 +1,4 @@
-export function detectLanguage(message: string): string {
+export function detectLanguage(message: string, fallback = "en"): string {
   const lower = message.toLowerCase();
 
   if (
@@ -13,5 +13,9 @@ export function detectLanguage(message: string): string {
     return "fr";
   }
 
-  return "en";
+  if (/\b(hello|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)) {
+    return "en";
+  }
+
+  return fallback;
 }
