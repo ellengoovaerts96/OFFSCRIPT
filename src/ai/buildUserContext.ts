@@ -169,11 +169,13 @@ Rules:
       language: detectLanguage(input.message, input.previousContext?.language ?? parsed.context.language),
       currentLocation: normalizeRegion(nullToUndefined(parsed.context.currentLocation)),
       targetRegion: normalizeRegion(explicitRegion ?? nullToUndefined(parsed.context.targetRegion)),
-      travellerType: nullToUndefined(parsed.context.travellerType) as TravellerType | undefined,
+      travellerType:
+        inferTravellerType(input.message) ??
+        (nullToUndefined(parsed.context.travellerType) as TravellerType | undefined),
       hasChildren: nullToUndefined(parsed.context.hasChildren),
       childrenAges: nullToUndefined(parsed.context.childrenAges),
       intent: nullToUndefined(parsed.context.intent) as UserIntent | undefined,
-      timing: nullToUndefined(parsed.context.timing),
+      timing: inferTiming(input.message) ?? input.previousContext?.timing,
       budget: nullToUndefined(parsed.context.budget),
       vibe: mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern)

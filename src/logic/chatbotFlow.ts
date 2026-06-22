@@ -8,7 +8,7 @@ import type { UserContext } from "../types/userContext.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
 import { buildGreetingResponse, isGreetingOnly } from "./greeting.js";
 import { needsClarification } from "./needsClarification.js";
-import { selectBestPlace } from "./selectBestPlace.js";
+import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
 
 export type ChatbotFlowResult =
   | {
@@ -31,15 +31,54 @@ export type ChatbotFlowResult =
     };
 
 function buildNoMatchResponse(context: UserContext): string {
+  const location = context.targetRegion ?? context.currentLocation;
+
   if (context.language?.startsWith("nl")) {
+    if (location) {
+      return `Ik heb nog geen sterke OFFSCRIPT-match in ${location}. Wil je naar een andere buurt in Dakar gaan? Dan kan ik breder zoeken.`;
+    }
+
     return "Ik heb daar nog geen sterke OFFSCRIPT-match voor. Vertel me waar je bent en welke vibe je zoekt, dan probeer ik met wat ik wel al weet.";
   }
 
   if (context.language?.startsWith("fr")) {
+    if (location) {
+      return `Je n’ai pas encore de match OFFSCRIPT vraiment solide à ${location}. Est-ce que tu veux te déplacer dans un autre quartier de Dakar ? Je peux chercher plus largement.`;
+    }
+
     return "Je n’ai pas encore de match OFFSCRIPT vraiment solide pour ça. Dis-moi où tu es et l’ambiance que tu cherches, et j’essaie avec ce que j’ai.";
   }
 
+  if (location) {
+    return `I do not have a strong OFFSCRIPT match in ${location} yet. Would you be open to another Dakar neighbourhood? I can search more broadly.`;
+  }
+
   return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
+}
+
+function placeArea(place: Place): string {
+  return place.neighbourhood ?? place.region;
+}
+
+function buildAlternativeIntro(context: UserContext, place: Place): string {
+  const requestedLocation = context.targetRegion ?? context.currentLocation;
+  const alternativeLocation = placeArea(place);
+
+  if (context.language?.startsWith("nl")) {
+    return requestedLocation
+      ? `Ik heb nog geen sterke OFFSCRIPT-match in ${requestedLocation}, maar wel een goede optie in ${alternativeLocation}: `
+      : "";
+  }
+
+  if (context.language?.startsWith("fr")) {
+    return requestedLocation
+      ? `Je n’ai pas encore de match OFFSCRIPT vraiment solide à ${requestedLocation}, mais j’ai une bonne option à ${alternativeLocation} : `
+      : "";
+  }
+
+  return requestedLocation
+    ? `I do not have a strong OFFSCRIPT match in ${requestedLocation} yet, but I do have a good option in ${alternativeLocation}: `
+    : "";
 }
 
 const SUBCATEGORY_ALIASES: Record<string, string[]> = {
@@ -114,6 +153,25 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const selection = selectBestPlace(places, context);
 
   if (!selection) {
+    const alternativeSelection = selectBestAlternativePlace(places, context);
+
+    if (alternativeSelection) {
+      const messageText = await generateAnswer({
+        userMessage: message,
+        context,
+        selectedPlace: alternativeSelection.place
+      });
+
+      return {
+        type: "recommendation",
+        context,
+        placeName: alternativeSelection.place.name,
+        score: alternativeSelection.score,
+        message: `${buildAlternativeIntro(context, alternativeSelection.place)}${messageText}`,
+        imageUrls: selectRecommendationImages(alternativeSelection.place, message)
+      };
+    }
+
     return {
       type: "no_match",
       context,
