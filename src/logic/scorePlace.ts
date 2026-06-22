@@ -20,8 +20,19 @@ const TIMING_ALIASES: Record<string, string[]> = {
   morning: ["morning"]
 };
 
+const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
+  handbags: ["handbags", "bag", "bags", "handtas", "handtassen", "tas", "tassen", "sac", "sacs"],
+  jewellery: ["jewellery", "jewelry", "jewels", "sieraden", "juwelen", "bijoux"],
+  wood: ["wood", "woodwork", "wooden", "hout", "houtwerk", "bois"],
+  artworks: ["artworks", "artwork", "art", "kunst", "kunstwerken", "oeuvres", "œuvres"]
+};
+
 function normalizeValue(value: string): string {
-  return value.trim().toLowerCase();
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function matchesAny(value: string, candidates: string[]): boolean {
@@ -39,6 +50,27 @@ function placeMatchesTiming(place: Place, timing: string): boolean {
   return place.bestTiming.some((candidate) => matchesAny(candidate, aliases));
 }
 
+function textIncludesAny(value: string | undefined, candidates: string[]): boolean {
+  if (!value) return false;
+  const normalizedValue = normalizeValue(value);
+  return candidates.map(normalizeValue).some((candidate) => normalizedValue.includes(candidate));
+}
+
+function placeMatchesShoppingFocus(place: Place, focus: string | undefined): boolean {
+  if (!focus) return false;
+
+  const normalizedFocus = normalizeValue(focus);
+  const aliases = SHOPPING_FOCUS_ALIASES[normalizedFocus] ?? [normalizedFocus];
+
+  return (
+    place.subcategories.some((subcategory) => matchesAny(subcategory.name, aliases)) ||
+    place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
+    textIncludesAny(place.shortDescription, aliases) ||
+    textIncludesAny(place.longDescription, aliases) ||
+    textIncludesAny(place.personalTip, aliases)
+  );
+}
+
 export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
 
@@ -50,6 +82,7 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.intent && context.intent !== "unknown" && placeMatchesIntent(place, context.intent)) {
     score += 30;
   }
+  if (context.intent === "shopping" && placeMatchesShoppingFocus(place, context.vibe)) score += 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;

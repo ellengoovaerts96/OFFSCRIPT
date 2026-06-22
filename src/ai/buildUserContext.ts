@@ -95,6 +95,21 @@ function inferHasChildren(message: string): boolean | undefined {
   return undefined;
 }
 
+function inferShoppingFocus(message: string): string | undefined {
+  const lower = message.toLowerCase();
+
+  if (/\b(handbag|handbags|bag|bags|handtas|handtassen|tas|tassen|sac|sacs)\b/.test(lower)) return "handbags";
+  if (/\b(jewellery|jewelry|jewel|jewels|sieraden|juwelen|bijoux)\b/.test(lower)) return "jewellery";
+  if (/\b(wood|woodwork|wooden|hout|houtwerk|bois)\b/.test(lower)) return "wood";
+  if (/\b(art|artwork|artworks|kunst|kunstwerk|kunstwerken|oeuvre|oeuvres|œuvre|œuvres)\b/.test(lower)) return "artworks";
+
+  return undefined;
+}
+
+function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string): string | undefined {
+  return inferShoppingFocus(message) ?? parsedVibe ?? previousVibe;
+}
+
 function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContextResult {
   const previous = input.previousContext;
   const inferredRegion = findKnownRegion(input.message);
@@ -107,7 +122,8 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       travellerType: inferTravellerType(input.message) ?? previous?.travellerType,
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: detectIntent(input.message) ?? previous?.intent,
-      timing: inferTiming(input.message) ?? previous?.timing
+      timing: inferTiming(input.message) ?? previous?.timing,
+      vibe: mergeVibe(input.message, previous?.vibe)
     },
     confidence: 0.55
   };
@@ -159,7 +175,7 @@ Rules:
       intent: nullToUndefined(parsed.context.intent) as UserIntent | undefined,
       timing: nullToUndefined(parsed.context.timing),
       budget: nullToUndefined(parsed.context.budget),
-      vibe: nullToUndefined(parsed.context.vibe),
+      vibe: mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern)
     },
     confidence: parsed.confidence
