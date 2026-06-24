@@ -1,7 +1,11 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
 import { detectLanguage } from "../ai/detectLanguage.js";
 import { generateAnswer } from "../ai/generateAnswer.js";
-import { getConversationContext, upsertConversationContext } from "../data/conversationContextRepository.js";
+import {
+  deleteConversationContext,
+  getConversationContext,
+  upsertConversationContext
+} from "../data/conversationContextRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
@@ -49,6 +53,14 @@ function buildNoMatchResponse(context: UserContext): string {
     return "Je n’ai pas encore de match OFFSCRIPT vraiment solide pour ça. Dis-moi où tu es et l’ambiance que tu cherches, et j’essaie avec ce que j’ai.";
   }
 
+  if (context.language?.startsWith("de")) {
+    if (location) {
+      return `Ich habe noch keinen starken OFFSCRIPT-Match in ${location}. Wärst du offen für ein anderes Viertel in Dakar? Dann kann ich breiter suchen.`;
+    }
+
+    return "Ich habe dafür noch keinen starken OFFSCRIPT-Match. Sag mir, wo du bist und welche Stimmung du suchst, dann versuche ich es mit dem, was ich habe.";
+  }
+
   if (location) {
     return `I do not have a strong OFFSCRIPT match in ${location} yet. Would you be open to another Dakar neighbourhood? I can search more broadly.`;
   }
@@ -76,9 +88,21 @@ function buildAlternativeIntro(context: UserContext, place: Place): string {
       : "";
   }
 
+  if (context.language?.startsWith("de")) {
+    return requestedLocation
+      ? `Ich habe noch keinen starken OFFSCRIPT-Match in ${requestedLocation}, aber eine gute Option in ${alternativeLocation}: `
+      : "";
+  }
+
   return requestedLocation
     ? `I do not have a strong OFFSCRIPT match in ${requestedLocation} yet, but I do have a good option in ${alternativeLocation}: `
     : "";
+}
+
+function isResetCommand(message: string): boolean {
+  return /^(?:reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?\s]*$/i.test(
+    message.trim()
+  );
 }
 
 const SUBCATEGORY_ALIASES: Record<string, string[]> = {
@@ -118,8 +142,24 @@ function selectRecommendationImages(place: Place, message: string): string[] {
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
+  if (isResetCommand(message)) {
+    const context: UserContext = {
+      language: detectLanguage(message)
+    };
+
+    await deleteConversationContext(userPhone);
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildGreetingResponse(context)
+    };
+  }
+
   if (isGreetingOnly(message)) {
     const context: UserContext = {
+      ...(await getConversationContext(userPhone)),
       language: detectLanguage(message)
     };
 
@@ -145,7 +185,10 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: buildClarifyingQuestion(missingField, context)
+      message:
+        missingField === "travellerType"
+          ? buildGreetingResponse(context)
+          : buildClarifyingQuestion(missingField, context)
     };
   }
 

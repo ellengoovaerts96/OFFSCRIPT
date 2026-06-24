@@ -9,11 +9,12 @@ export type GenerateAnswerInput = {
   selectedPlace: Place;
 };
 
-type SupportedAnswerLanguage = "nl" | "fr" | "en";
+type SupportedAnswerLanguage = "nl" | "fr" | "de" | "en";
 
 const languageNames: Record<SupportedAnswerLanguage, string> = {
   nl: "Dutch (Nederlands)",
   fr: "French (français)",
+  de: "German (Deutsch)",
   en: "British English"
 };
 
@@ -83,6 +84,27 @@ const languageMarkers: Record<SupportedAnswerLanguage, string[]> = {
     "une",
     "vous"
   ],
+  de: [
+    "aber",
+    "als",
+    "auch",
+    "auf",
+    "das",
+    "dein",
+    "der",
+    "die",
+    "du",
+    "ein",
+    "eine",
+    "für",
+    "ich",
+    "im",
+    "in",
+    "ist",
+    "mit",
+    "und",
+    "wenn"
+  ],
   en: [
     "a",
     "and",
@@ -141,6 +163,7 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
 function answerLanguage(language: string): SupportedAnswerLanguage {
   if (language.startsWith("nl")) return "nl";
   if (language.startsWith("fr")) return "fr";
+  if (language.startsWith("de")) return "de";
   return "en";
 }
 
@@ -173,6 +196,19 @@ function intentLabel(context: UserContext, language: SupportedAnswerLanguage): s
       stay: "un hébergement",
       guide: "un guide",
       reservation: "une réservation"
+    },
+    de: {
+      food: "Essen",
+      drink: "etwas trinken",
+      culture: "Kultur",
+      beach: "den Strand",
+      sports: "Sport",
+      nature: "Natur",
+      nightlife: "Ausgehen",
+      shopping: "Shopping",
+      stay: "eine Unterkunft",
+      guide: "einen Guide",
+      reservation: "eine Reservierung"
     },
     en: {
       food: "food",
@@ -239,6 +275,12 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
     const fit = intent ? `Cet endroit te convient bien si tu cherches ${intent}.` : "Cet endroit correspond bien à ce que tu cherches.";
     const reservation = place.reservationNeeded ? "Je te conseille de réserver à l’avance." : undefined;
     return [`Je t’enverrais à ${place.name}.`, fit, reservation].filter(Boolean).join(" ");
+  }
+
+  if (language === "de") {
+    const fit = intent ? `Dieser Ort passt gut, wenn du Lust auf ${intent} hast.` : "Dieser Ort passt gut zu dem, was du suchst.";
+    const reservation = place.reservationNeeded ? "Ich würde vorher reservieren." : undefined;
+    return [`Ich würde dich zu ${place.name} schicken.`, fit, reservation].filter(Boolean).join(" ");
   }
 
   const fit = intent ? `This place is a good fit if you are looking for ${intent}.` : "This place is a good fit for what you want.";

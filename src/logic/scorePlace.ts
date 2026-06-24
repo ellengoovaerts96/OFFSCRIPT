@@ -7,6 +7,7 @@ const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
   drink: ["drink", "bar", "cocktail", "drinks"],
   culture: ["culture", "market", "museum", "craft", "crafts"],
   shopping: ["shopping", "shop", "market", "craft", "crafts"],
+  sports: ["sports", "sport"],
   beach: ["beach", "sea", "ocean"],
   nightlife: ["nightlife", "club", "dance", "bar"]
 };

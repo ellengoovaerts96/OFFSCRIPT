@@ -46,6 +46,16 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
   return result.rows[0] ? mapContext(result.rows[0]) : null;
 }
 
+export async function deleteConversationContext(userPhone: string): Promise<void> {
+  await pool.query(
+    `
+      DELETE FROM conversation_context
+      WHERE user_phone = $1
+    `,
+    [userPhone]
+  );
+}
+
 export async function upsertConversationContext(userPhone: string, context: UserContext): Promise<void> {
   await pool.query(
     `

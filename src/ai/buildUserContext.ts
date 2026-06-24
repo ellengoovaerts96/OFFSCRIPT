@@ -59,9 +59,9 @@ function nullToUndefined<T>(value: T | null | undefined): T | undefined {
 function inferTravellerType(message: string): TravellerType | undefined {
   const lower = message.toLowerCase();
 
-  if (/\b(solo|alone|alleen|seul)\b/.test(lower)) return "solo";
-  if (/\b(couple|koppel|partner|couple)\b/.test(lower)) return "couple";
-  if (/\b(friends|vrienden|amis|amies)\b/.test(lower)) return "friends";
+  if (/\b(solo|alone|alleen|seul|allein|alleine)\b/.test(lower)) return "solo";
+  if (/\b(couple|koppel|partner|couple|paar)\b/.test(lower)) return "couple";
+  if (/\b(friends|vrienden|amis|amies|freunde|freundinnen)\b/.test(lower)) return "friends";
   if (/\b(family|familie|famille)\b/.test(lower)) return "family";
   if (/\b(group|groep|groupe)\b/.test(lower)) return "group";
   if (/\b(business|work|werk|travail)\b/.test(lower)) return "business";
@@ -70,7 +70,7 @@ function inferTravellerType(message: string): TravellerType | undefined {
 }
 
 function isTravellerTypeOnly(message: string): boolean {
-  return /^(?:solo|alone|alleen|seul|couple|koppel|partner|friends|vrienden|amis|amies|family|familie|famille|group|groep|groupe|business|work|werk|travail)[!,.?\s]*$/i.test(
+  return /^(?:solo|alone|alleen|seul|allein|alleine|couple|koppel|partner|paar|friends|vrienden|amis|amies|freunde|freundinnen|family|familie|famille|group|groep|groupe|business|work|werk|travail)[!,.?\s]*$/i.test(
     message.trim()
   );
 }
@@ -79,9 +79,9 @@ function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
   if (/\b(morning|ochtend|matin)\b/.test(lower)) return "morning";
-  if (/\b(afternoon|middag|après-midi)\b/.test(lower)) return "afternoon";
-  if (/\b(evening|tonight|avond|vanavond|soir|ce soir)\b/.test(lower)) return "evening";
-  if (/\b(now|nu|maintenant)\b/.test(lower)) return "now";
+  if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
+  if (/\b(evening|tonight|avond|vanavond|soir|ce soir|abend|heute abend)\b/.test(lower)) return "evening";
+  if (/\b(now|nu|maintenant|jetzt)\b/.test(lower)) return "now";
 
   return undefined;
 }
@@ -89,10 +89,21 @@ function inferTiming(message: string): string | undefined {
 function inferHasChildren(message: string): boolean | undefined {
   const lower = message.toLowerCase();
 
-  if (/\b(no children|geen kinderen|zonder kinderen|sans enfants)\b/.test(lower)) return false;
-  if (/\b(children|kids|kinderen|enfants)\b/.test(lower)) return true;
+  if (/\b(no children|geen kinderen|zonder kinderen|sans enfants|keine kinder|ohne kinder)\b/.test(lower)) return false;
+  if (/\b(children|kids|kinderen|enfants|kinder)\b/.test(lower)) return true;
 
   return undefined;
+}
+
+function clearsIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+
+  return /\b(niet|geen|zonder|not|no|without|pas|sans)\b.{0,24}\b(shop|shopping|winkel|winkelen|kopen|koop|boutique)\b/.test(lower);
+}
+
+function mergeIntent(message: string, previousIntent?: UserIntent, parsedIntent?: UserIntent): UserIntent | undefined {
+  if (clearsIntent(message)) return undefined;
+  return detectIntent(message) ?? parsedIntent ?? previousIntent;
 }
 
 function inferShoppingFocus(message: string): string | undefined {
@@ -121,7 +132,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       targetRegion: normalizeRegion(inferredRegion ?? previous?.targetRegion),
       travellerType: inferTravellerType(input.message) ?? previous?.travellerType,
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
-      intent: detectIntent(input.message) ?? previous?.intent,
+      intent: mergeIntent(input.message, previous?.intent),
       timing: inferTiming(input.message) ?? previous?.timing,
       vibe: mergeVibe(input.message, previous?.vibe)
     },
@@ -167,18 +178,27 @@ Rules:
   return {
     context: {
       language: detectLanguage(input.message, input.previousContext?.language ?? parsed.context.language),
-      currentLocation: normalizeRegion(nullToUndefined(parsed.context.currentLocation)),
-      targetRegion: normalizeRegion(explicitRegion ?? nullToUndefined(parsed.context.targetRegion)),
+      currentLocation: normalizeRegion(
+        nullToUndefined(parsed.context.currentLocation) ?? input.previousContext?.currentLocation
+      ),
+      targetRegion: normalizeRegion(
+        explicitRegion ?? nullToUndefined(parsed.context.targetRegion) ?? input.previousContext?.targetRegion
+      ),
       travellerType:
         inferTravellerType(input.message) ??
-        (nullToUndefined(parsed.context.travellerType) as TravellerType | undefined),
-      hasChildren: nullToUndefined(parsed.context.hasChildren),
-      childrenAges: nullToUndefined(parsed.context.childrenAges),
-      intent: nullToUndefined(parsed.context.intent) as UserIntent | undefined,
+        (nullToUndefined(parsed.context.travellerType) as TravellerType | undefined) ??
+        input.previousContext?.travellerType,
+      hasChildren: inferHasChildren(input.message) ?? nullToUndefined(parsed.context.hasChildren) ?? input.previousContext?.hasChildren,
+      childrenAges: nullToUndefined(parsed.context.childrenAges) ?? input.previousContext?.childrenAges,
+      intent: mergeIntent(
+        input.message,
+        input.previousContext?.intent,
+        nullToUndefined(parsed.context.intent) as UserIntent | undefined
+      ),
       timing: inferTiming(input.message) ?? input.previousContext?.timing,
-      budget: nullToUndefined(parsed.context.budget),
+      budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
       vibe: mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
-      safetyConcern: nullToUndefined(parsed.context.safetyConcern)
+      safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern
     },
     confidence: parsed.confidence
   };

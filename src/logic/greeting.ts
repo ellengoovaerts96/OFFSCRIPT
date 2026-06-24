@@ -1,4 +1,6 @@
 import type { UserContext } from "../types/userContext.js";
+import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
+import { needsClarification } from "./needsClarification.js";
 
 const GREETING_ONLY_PATTERN =
   /^(?:hallo|hoi|hey|hi|hello|bonjour|bonsoir|salut|goedemorgen|goedemiddag|goedenavond)[!,.?\s]*$/i;
@@ -8,13 +10,23 @@ export function isGreetingOnly(message: string): boolean {
 }
 
 export function buildGreetingResponse(context: UserContext): string {
+  const missingField = needsClarification(context);
+
+  if (missingField) {
+    return `Na nga def? ${buildClarifyingQuestion(missingField, context)}`;
+  }
+
   if (context.language.startsWith("nl")) {
-    return "Na Nga def? Reis je alleen, als koppel, met vrienden of met familie?";
+    return "Na nga def? Waar heb je zin in vandaag: eten, cultuur, sport, natuur, iets drinken of iets anders?";
   }
 
   if (context.language.startsWith("fr")) {
-    return "Na Nga def? Tu voyages seul, en couple, avec des amis ou en famille ?";
+    return "Na nga def? Tu as envie de quoi aujourd’hui : manger, culture, sport, nature, boire un verre ou autre chose ?";
   }
 
-  return "Na Nga def? Are you travelling solo, as a couple, with friends, or with family?";
+  if (context.language.startsWith("de")) {
+    return "Na nga def? Worauf hast du heute Lust: Essen, Kultur, Sport, Natur, etwas trinken oder etwas anderes?";
+  }
+
+  return "Na nga def? What are you in the mood for today: food, culture, sport, nature, drinks, or something else?";
 }

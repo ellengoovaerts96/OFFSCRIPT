@@ -2,7 +2,15 @@ export function detectLanguage(message: string, fallback = "en"): string {
   const lower = message.toLowerCase();
 
   if (
-    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden)\b/.test(
+    /\b(ich|du|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|essen|kultur|strand|natur|trinken|sport)\b/.test(
+      lower
+    )
+  ) {
+    return "de";
+  }
+
+  if (
+    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|wat|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie)\b/.test(
       lower
     )
   ) {
