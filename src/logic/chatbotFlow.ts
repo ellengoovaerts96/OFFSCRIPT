@@ -1,5 +1,5 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
-import { detectLanguage } from "../ai/detectLanguage.js";
+import { detectLanguage, detectRequestedLanguage } from "../ai/detectLanguage.js";
 import { generateAnswer } from "../ai/generateAnswer.js";
 import {
   deleteConversationContext,
@@ -73,6 +73,22 @@ function buildNoMatchResponse(context: UserContext): string {
   }
 
   return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
+}
+
+function buildLanguagePreferenceResponse(context: UserContext): string {
+  const missingField = needsClarification(context);
+
+  const acknowledgement = context.language.startsWith("nl")
+    ? "Helemaal, ik antwoord vanaf nu in het Nederlands."
+    : context.language.startsWith("fr")
+      ? "Bien sûr, je réponds en français à partir de maintenant."
+      : context.language.startsWith("de")
+        ? "Gerne, ich antworte ab jetzt auf Deutsch."
+        : "Of course, I will answer in English from now on.";
+
+  return missingField
+    ? `${acknowledgement} ${buildClarifyingQuestion(missingField, context)}`
+    : acknowledgement;
 }
 
 function placeArea(place: Place): string {
@@ -180,7 +196,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const previousContext = await getConversationContext(userPhone);
-  const storyLanguage = detectLanguage(message, previousContext?.language ?? "en");
+  const requestedLanguage = detectRequestedLanguage(message);
+  const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "en");
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
 
   if (storyMatch) {
@@ -196,6 +213,21 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       context,
       storySlug: storyMatch.slug,
       message: `${storyMatch.shortWhatsappReply}\n\n👉 ${storyMatch.url}`
+    };
+  }
+
+  if (requestedLanguage) {
+    const context: UserContext = {
+      ...previousContext,
+      language: requestedLanguage
+    };
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildLanguagePreferenceResponse(context)
     };
   }
 
