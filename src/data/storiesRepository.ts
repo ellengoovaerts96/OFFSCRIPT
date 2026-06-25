@@ -9,7 +9,7 @@ type StoryRow = {
   translations: StoryTranslation[];
 };
 
-const defaultSiteUrl = "https://offscript.travel";
+const defaultSiteUrl = "https://go-offscript.app";
 
 function normaliseText(value: string): string {
   return value
