@@ -2,7 +2,7 @@ export function detectLanguage(message: string, fallback = "en"): string {
   const lower = message.toLowerCase();
 
   if (
-    /\b(ich|du|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|essen|kultur|strand|natur|trinken|sport)\b/.test(
+    /\b(ich|du|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|was bedeutet|bedeutet|essen|kultur|strand|natur|trinken|sport)\b/.test(
       lower
     )
   ) {
@@ -10,18 +10,18 @@ export function detectLanguage(message: string, fallback = "en"): string {
   }
 
   if (
-    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|wat|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie)\b/.test(
+    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|wat|betekent|bedoelt|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie)\b/.test(
       lower
     )
   ) {
     return "nl";
   }
 
-  if (/\b(bonjour|bonsoir|salut|où|tu|avec|enfants|matin|après-midi|soir|manger|plage|amis|amies)\b/.test(lower)) {
+  if (/\b(bonjour|bonsoir|salut|où|que veut dire|qu est ce que|signifie|tu|avec|enfants|matin|après-midi|soir|manger|plage|amis|amies)\b/.test(lower)) {
     return "fr";
   }
 
-  if (/\b(hello|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)) {
+  if (/\b(hello|what|means|mean|does|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)) {
     return "en";
   }
 

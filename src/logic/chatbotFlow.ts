@@ -7,6 +7,7 @@ import {
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
+import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
@@ -31,6 +32,12 @@ export type ChatbotFlowResult =
   | {
       type: "no_match";
       context: UserContext;
+      message: string;
+    }
+  | {
+      type: "story";
+      context: UserContext;
+      storySlug: string;
       message: string;
     };
 
@@ -173,6 +180,25 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const previousContext = await getConversationContext(userPhone);
+  const storyLanguage = detectLanguage(message, previousContext?.language ?? "en");
+  const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
+
+  if (storyMatch) {
+    const context: UserContext = {
+      ...previousContext,
+      language: storyLanguage
+    };
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "story",
+      context,
+      storySlug: storyMatch.slug,
+      message: `${storyMatch.shortWhatsappReply}\n\n👉 ${storyMatch.url}`
+    };
+  }
+
   const { context } = await buildUserContext({
     message,
     previousContext
