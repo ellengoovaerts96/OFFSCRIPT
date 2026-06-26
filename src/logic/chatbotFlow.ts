@@ -15,6 +15,7 @@ import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
 import { buildGreetingResponse, isGreetingOnly } from "./greeting.js";
 import { needsClarification } from "./needsClarification.js";
 import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
+import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 
 export type ChatbotFlowResult =
   | {
@@ -90,6 +91,50 @@ function buildLanguagePreferenceResponse(context: UserContext): string {
   return missingField
     ? `${acknowledgement} ${buildClarifyingQuestion(missingField, context)}`
     : acknowledgement;
+}
+
+function containsObjectifyingSocialRequest(message: string): boolean {
+  const normalized = normalizeSearchText(message);
+
+  return [
+    "hard dick",
+    "stijve",
+    "beautiful girls",
+    "hot girls",
+    "pretty girls",
+    "belles filles",
+    "jolies filles",
+    "mooie meisjes",
+    "knappe meisjes",
+    "mooie vrouwen",
+    "knappe vrouwen"
+  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
+}
+
+function buildRespectfulSocialResponse(context: UserContext): string {
+  const location = context.targetRegion ?? context.currentLocation;
+
+  if (context.language.startsWith("nl")) {
+    return location
+      ? `Ik kan je niet helpen zoeken naar vrouwen of meisjes. Wel kan ik respectvolle sociale plekken in ${location} aanraden, zoals een bar, live music of een plek om te dansen. Wil je eerder iets rustig, lokaal of nightlife?`
+      : "Ik kan je niet helpen zoeken naar vrouwen of meisjes. Wel kan ik respectvolle sociale plekken aanraden, zoals een bar, live music of een plek om te dansen. In welke buurt ben je?";
+  }
+
+  if (context.language.startsWith("fr")) {
+    return location
+      ? `Je ne peux pas t’aider à chercher des femmes ou des filles. Par contre, je peux te recommander des lieux sociaux et respectueux à ${location}, comme un bar, de la musique live ou un endroit pour danser. Tu préfères une ambiance calme, locale ou plutôt nightlife ?`
+      : "Je ne peux pas t’aider à chercher des femmes ou des filles. Par contre, je peux te recommander des lieux sociaux et respectueux, comme un bar, de la musique live ou un endroit pour danser. Tu es dans quel quartier ?";
+  }
+
+  if (context.language.startsWith("de")) {
+    return location
+      ? `Ich kann dir nicht dabei helfen, Frauen oder Mädchen zu suchen. Ich kann dir aber respektvolle soziale Orte in ${location} empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. Suchst du eher ruhig, lokal oder Nightlife?`
+      : "Ich kann dir nicht dabei helfen, Frauen oder Mädchen zu suchen. Ich kann dir aber respektvolle soziale Orte empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. In welchem Viertel bist du?";
+  }
+
+  return location
+    ? `I cannot help you look for women or girls. I can help with respectful social places in ${location}, like a bar, live music or somewhere to dance. Do you want something calm, local or more nightlife?`
+    : "I cannot help you look for women or girls. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
 }
 
 function placeArea(place: Place): string {
@@ -199,6 +244,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const previousContext = await getConversationContext(userPhone);
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "en");
+  const knownRegion = findKnownRegion(message);
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
 
   if (storyMatch) {
@@ -229,6 +275,23 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       type: "clarification",
       context,
       message: buildLanguagePreferenceResponse(context)
+    };
+  }
+
+  if (containsObjectifyingSocialRequest(message)) {
+    const context: UserContext = {
+      ...previousContext,
+      language: storyLanguage,
+      targetRegion: normalizeRegion(knownRegion ?? previousContext?.targetRegion),
+      intent: "nightlife"
+    };
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildRespectfulSocialResponse(context)
     };
   }
 
