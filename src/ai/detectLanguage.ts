@@ -8,7 +8,7 @@ export function detectLanguage(message: string, fallback = "en"): string {
   const lower = message.toLowerCase();
 
   if (
-    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|wat|betekent|bedoelt|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie)\b/.test(
+    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|ik|wil|ontmoeten|wat|betekent|bedoelt|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie)\b/.test(
       lower
     )
   ) {
