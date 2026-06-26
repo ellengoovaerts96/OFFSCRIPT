@@ -12,3 +12,12 @@ export type StoryKnowledgeMatch = {
   shortWhatsappReply: string;
   url: string;
 };
+
+export type RetrievedStory = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  excerpt: string;
+  url: string;
+};

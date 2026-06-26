@@ -7,6 +7,7 @@ import {
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
+import { buildRetrievedFacts } from "../data/retrievalRepository.js";
 import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
@@ -257,10 +258,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     const alternativeSelection = selectBestAlternativePlace(places, context);
 
     if (alternativeSelection) {
+      const retrievedFacts = await buildRetrievedFacts({
+        context,
+        alternativePlace: alternativeSelection.place
+      });
       const messageText = await generateAnswer({
         userMessage: message,
         context,
-        selectedPlace: alternativeSelection.place
+        selectedPlace: alternativeSelection.place,
+        retrievedFacts
       });
 
       return {
@@ -280,10 +286,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
+  const retrievedFacts = await buildRetrievedFacts({
+    context,
+    selectedPlace: selection.place
+  });
   const messageText = await generateAnswer({
     userMessage: message,
     context,
-    selectedPlace: selection.place
+    selectedPlace: selection.place,
+    retrievedFacts
   });
 
   return {

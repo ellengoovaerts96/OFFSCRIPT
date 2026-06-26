@@ -1,5 +1,6 @@
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
 import type { Place } from "../types/place.js";
+import type { RetrievedFacts } from "../types/retrieval.js";
 import type { UserContext } from "../types/userContext.js";
 import { systemPrompt } from "./systemPrompt.js";
 
@@ -7,6 +8,7 @@ export type GenerateAnswerInput = {
   userMessage: string;
   context: UserContext;
   selectedPlace: Place;
+  retrievedFacts?: RetrievedFacts;
 };
 
 type SupportedAnswerLanguage = "nl" | "fr" | "de" | "en";
@@ -160,6 +162,41 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
   };
 }
 
+function buildRetrievedFacts(facts: RetrievedFacts | undefined): Record<string, unknown> {
+  if (!facts) {
+    return {
+      places: [],
+      stories: [],
+      experiences: []
+    };
+  }
+
+  return {
+    places: facts.places.map((place) => buildPlaceFacts(place)),
+    stories: facts.stories.map((story) => ({
+      title: story.title,
+      slug: story.slug,
+      category: story.category,
+      excerpt: story.excerpt,
+      url: story.url
+    })),
+    experiences: facts.experiences.map((experience) => ({
+      title: experience.title,
+      slug: experience.slug,
+      shortDescription: experience.shortDescription,
+      duration: experience.duration,
+      location: experience.location,
+      price: experience.price,
+      currency: experience.currency,
+      maxPeople: experience.maxPeople,
+      childFriendly: experience.childFriendly,
+      meetingPoint: experience.meetingPoint,
+      reservationRequired: experience.reservationRequired,
+      url: experience.url
+    }))
+  };
+}
+
 function answerLanguage(language: string): SupportedAnswerLanguage {
   if (language.startsWith("nl")) return "nl";
   if (language.startsWith("fr")) return "fr";
@@ -305,14 +342,17 @@ When writing in English, use British spelling and vocabulary throughout, never A
 The place name may remain in its original language, but every other sentence must use the target language.
 Write one warm, concise WhatsApp recommendation.
 Use only the provided selectedPlace facts.
+You may use retrievedFacts.stories and retrievedFacts.experiences only when they directly support the answer.
 Maximum 3 short sentences.
 Include the place name, why it fits, and at most one useful tip.
-Do not include a Google Maps link or any URL.
+Do not include a Google Maps link.
+Only include a URL if it comes from retrievedFacts.stories or retrievedFacts.experiences and is directly relevant.
 Omit missing facts. Do not invent anything.`,
     input: JSON.stringify({
       userMessage: input.userMessage,
       context: input.context,
-      selectedPlace: buildPlaceFacts(input.selectedPlace)
+      selectedPlace: buildPlaceFacts(input.selectedPlace),
+      retrievedFacts: buildRetrievedFacts(input.retrievedFacts)
     })
   });
 

@@ -1,5 +1,6 @@
 import { pool } from "../integrations/postgres.js";
-import type { StoryKnowledgeMatch, StoryTranslation } from "../types/story.js";
+import type { RetrievedStory, StoryKnowledgeMatch, StoryTranslation } from "../types/story.js";
+import type { UserContext } from "../types/userContext.js";
 
 type StoryRow = {
   id: string;
@@ -7,6 +8,15 @@ type StoryRow = {
   title: string;
   whatsapp_triggers: string[] | null;
   translations: StoryTranslation[];
+};
+
+type RelatedStoryRow = {
+  id: string;
+  slug: string;
+  category: string;
+  title: string;
+  excerpt: string;
+  url_path: string;
 };
 
 const defaultSiteUrl = "https://go-offscript.app";
@@ -101,4 +111,63 @@ export async function findStoryKnowledgeMatch(
     shortWhatsappReply: translation.shortWhatsappReply,
     url: createStoryUrl(translation.urlPath)
   };
+}
+
+function storyCategoriesForContext(context: UserContext): string[] {
+  const categories: string[] = [];
+
+  if (context.intent === "food") categories.push("Food");
+  if (context.intent === "culture") categories.push("Culture", "History", "Customs", "Religion");
+  if (context.intent === "shopping") categories.push("Culture", "Customs");
+  if (context.intent === "beach" || context.intent === "sports" || context.intent === "nature") {
+    categories.push("Safety", "Transport", "Culture");
+  }
+  if (context.intent === "drink" || context.intent === "nightlife") categories.push("Etiquette", "Safety");
+
+  return Array.from(new Set(categories));
+}
+
+export async function listRelatedStoriesForContext(
+  context: UserContext,
+  limit = 3
+): Promise<RetrievedStory[]> {
+  const locale = baseLocale(context.language);
+  const categories = storyCategoriesForContext(context);
+  const hasCategories = categories.length > 0;
+
+  const result = await pool.query<RelatedStoryRow>(
+    `
+      SELECT
+        stories.id,
+        stories.slug,
+        stories.category,
+        COALESCE(preferred.title, fallback.title, stories.title) AS title,
+        COALESCE(preferred.excerpt, fallback.excerpt, stories.excerpt) AS excerpt,
+        COALESCE(preferred.url_path, fallback.url_path, '/stories/' || stories.slug) AS url_path
+      FROM stories
+      LEFT JOIN story_translations preferred
+        ON preferred.story_id = stories.id
+       AND preferred.locale = $1
+      LEFT JOIN story_translations fallback
+        ON fallback.story_id = stories.id
+       AND fallback.locale = 'en'
+      WHERE stories.status = 'published'
+        AND ($2::boolean = false OR stories.category = ANY($3::text[]))
+      ORDER BY
+        CASE WHEN stories.category = ANY($3::text[]) THEN 0 ELSE 1 END,
+        stories.featured DESC,
+        stories.updated_at DESC
+      LIMIT $4
+    `,
+    [locale, hasCategories, categories, limit]
+  );
+
+  return result.rows.map((story) => ({
+    id: story.id,
+    slug: story.slug,
+    title: story.title,
+    category: story.category,
+    excerpt: story.excerpt,
+    url: createStoryUrl(story.url_path)
+  }));
 }
