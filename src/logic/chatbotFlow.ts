@@ -494,7 +494,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   if (isResetCommand(message)) {
     const context: UserContext = {
-      language: detectLanguage(message, previousContext?.language ?? "en")
+      language: detectLanguage(message, "en")
     };
 
     await deleteConversationContext(userPhone);

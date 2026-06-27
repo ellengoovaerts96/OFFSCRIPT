@@ -15,16 +15,16 @@ export function detectLanguage(message: string, fallback = "en"): string {
     return "nl";
   }
 
-  if (/\b(bonjour|bonsoir|salut|où|comment|pourquoi|reparer|réparer|que veut dire|qu est ce que|signifie|tu|avec|enfants|matin|après-midi|soir|manger|plage|amis|amies)\b/.test(lower)) {
+  if (/\b(bonjour|bonsoir|salut|où|comment|pourquoi|reparer|réparer|que veut dire|qu est ce que|signifie|je|veux|voudrais|aimerais|tu|avec|enfants|matin|après-midi|soir|manger|plage|amis|amies)\b/.test(lower)) {
     return "fr";
   }
 
-  if (/\b(hello|what|means|mean|does|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)) {
+  if (/\b(hello|i|want|would like|what|means|mean|does|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)) {
     return "en";
   }
 
   if (
-    /\b(ich|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|was bedeutet|bedeutet|essen|kultur|strand|natur|trinken|sport)\b/.test(
+    /\b(ich|will|mochte|möchte|wurde gern|würde gern|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|was bedeutet|bedeutet|essen|kultur|strand|natur|trinken|sport)\b/.test(
       lower
     )
   ) {
