@@ -356,7 +356,7 @@ function buildEmojiAcknowledgement(message: string, context: UserContext): strin
     return "🍹 Drinks, got it.";
   }
 
-  if (hasAnyEmoji(message, ["🏖", "🏖️", "🌊", "☀", "☀️"])) {
+  if (hasAnyEmoji(message, ["🏖", "🏖️", "⛱", "⛱️", "🏝", "🏝️", "🌊", "☀", "☀️"])) {
     if (context.language.startsWith("nl")) return "🏖️ Strandgevoel.";
     if (context.language.startsWith("fr")) return "🏖️ Ambiance plage.";
     if (context.language.startsWith("de")) return "🏖️ Strandstimmung.";

@@ -124,7 +124,7 @@ function hasAnyEmoji(message: string, emojis: string[]): boolean {
 function inferEmojiIntent(message: string): UserIntent | undefined {
   if (hasAnyEmoji(message, ["🍽", "🍴", "🥘", "🍛", "🍜", "🍲", "🍤", "🍕", "🍔", "🌮", "🥗"])) return "food";
   if (hasAnyEmoji(message, ["🍷", "🍸", "🍹", "🍺", "🍻", "🥂", "☕"])) return "drink";
-  if (hasAnyEmoji(message, ["🏖", "🏖️", "🌊", "☀", "☀️"])) return "beach";
+  if (hasAnyEmoji(message, ["🏖", "🏖️", "⛱", "⛱️", "🏝", "🏝️", "🌊", "☀", "☀️"])) return "beach";
   if (hasAnyEmoji(message, ["🎉", "🥳", "💃", "🕺", "🎶", "🎵", "🍾"])) return "nightlife";
   if (hasAnyEmoji(message, ["🎨", "🖼", "🖼️", "🏛", "🏛️", "📚"])) return "culture";
   if (hasAnyEmoji(message, ["🛍", "🛍️", "💍", "💎"])) return "shopping";
