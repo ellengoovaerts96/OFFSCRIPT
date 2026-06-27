@@ -116,13 +116,37 @@ function containsObjectifyingSocialRequest(message: string): boolean {
     "beautiful girls",
     "hot girls",
     "pretty girls",
+    "beautiful women",
+    "hot women",
+    "pretty women",
+    "beautiful men",
+    "hot men",
+    "handsome men",
+    "senegalese girls",
+    "senegalese women",
+    "senegalese men",
     "belles filles",
     "jolies filles",
     "filles chaudes",
+    "belles femmes",
+    "jolies femmes",
+    "beaux hommes",
+    "jolis hommes",
+    "hommes beaux",
+    "hommes sexy",
+    "beaux senegalais",
     "mooie meisjes",
     "knappe meisjes",
     "mooie vrouwen",
-    "knappe vrouwen"
+    "knappe vrouwen",
+    "mooie mannen",
+    "knappe mannen",
+    "mooie man",
+    "knappe man",
+    "knappe senegalese",
+    "mooie senegalese",
+    "senegalees ontmoeten",
+    "senegalese ontmoeten"
   ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
 }
 
@@ -131,25 +155,25 @@ function buildRespectfulSocialResponse(context: UserContext): string {
 
   if (context.language.startsWith("nl")) {
     return location
-      ? `Ik kan je niet helpen zoeken naar vrouwen of meisjes. Wel kan ik respectvolle sociale plekken in ${location} aanraden, zoals een bar, live music of een plek om te dansen. Wil je eerder iets rustig, lokaal of nightlife?`
-      : "Ik kan je niet helpen zoeken naar vrouwen of meisjes. Wel kan ik respectvolle sociale plekken aanraden, zoals een bar, live music of een plek om te dansen. In welke buurt ben je?";
+      ? `Ik kan je niet helpen zoeken naar mensen op basis van uiterlijk of seksuele interesse. Wel kan ik respectvolle sociale plekken in ${location} aanraden, zoals een bar, live music of een plek om te dansen. Wil je eerder iets rustig, lokaal of nightlife?`
+      : "Ik kan je niet helpen zoeken naar mensen op basis van uiterlijk of seksuele interesse. Wel kan ik respectvolle sociale plekken aanraden, zoals een bar, live music of een plek om te dansen. In welke buurt ben je?";
   }
 
   if (context.language.startsWith("fr")) {
     return location
-      ? `Je ne peux pas t’aider à chercher des femmes ou des filles. Par contre, je peux te recommander des lieux sociaux et respectueux à ${location}, comme un bar, de la musique live ou un endroit pour danser. Tu préfères une ambiance calme, locale ou plutôt nightlife ?`
-      : "Je ne peux pas t’aider à chercher des femmes ou des filles. Par contre, je peux te recommander des lieux sociaux et respectueux, comme un bar, de la musique live ou un endroit pour danser. Tu es dans quel quartier ?";
+      ? `Je ne peux pas t’aider à chercher des personnes selon leur apparence ou avec une intention sexuelle. Par contre, je peux te recommander des lieux sociaux et respectueux à ${location}, comme un bar, de la musique live ou un endroit pour danser. Tu préfères une ambiance calme, locale ou plutôt nightlife ?`
+      : "Je ne peux pas t’aider à chercher des personnes selon leur apparence ou avec une intention sexuelle. Par contre, je peux te recommander des lieux sociaux et respectueux, comme un bar, de la musique live ou un endroit pour danser. Tu es dans quel quartier ?";
   }
 
   if (context.language.startsWith("de")) {
     return location
-      ? `Ich kann dir nicht dabei helfen, Frauen oder Mädchen zu suchen. Ich kann dir aber respektvolle soziale Orte in ${location} empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. Suchst du eher ruhig, lokal oder Nightlife?`
-      : "Ich kann dir nicht dabei helfen, Frauen oder Mädchen zu suchen. Ich kann dir aber respektvolle soziale Orte empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. In welchem Viertel bist du?";
+      ? `Ich kann dir nicht dabei helfen, Menschen nach Aussehen oder mit sexueller Absicht zu suchen. Ich kann dir aber respektvolle soziale Orte in ${location} empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. Suchst du eher ruhig, lokal oder Nightlife?`
+      : "Ich kann dir nicht dabei helfen, Menschen nach Aussehen oder mit sexueller Absicht zu suchen. Ich kann dir aber respektvolle soziale Orte empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. In welchem Viertel bist du?";
   }
 
   return location
-    ? `I cannot help you look for women or girls. I can help with respectful social places in ${location}, like a bar, live music or somewhere to dance. Do you want something calm, local or more nightlife?`
-    : "I cannot help you look for women or girls. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
+    ? `I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places in ${location}, like a bar, live music or somewhere to dance. Do you want something calm, local or more nightlife?`
+    : "I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
 }
 
 function placeArea(place: Place): string {
