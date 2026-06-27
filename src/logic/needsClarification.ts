@@ -5,7 +5,15 @@ export type MissingContextField = "location" | "travellerType" | "children" | "i
 
 function hasSpecificLocation(context: UserContext): boolean {
   const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
-  return Boolean(location && location !== "Dakar");
+
+  if (!location) return false;
+  if (location !== "Dakar") return true;
+
+  return Boolean(
+    context.intent &&
+      context.intent !== "unknown" &&
+      (context.timing || context.vibe)
+  );
 }
 
 export function needsClarification(context: UserContext): MissingContextField | null {

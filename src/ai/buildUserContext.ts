@@ -65,6 +65,7 @@ function inferTravellerType(message: string): TravellerType | undefined {
   if (/\b(family|familie|famille)\b/.test(lower)) return "family";
   if (/\b(group|groep|groupe)\b/.test(lower)) return "group";
   if (/\b(business|work|werk|travail)\b/.test(lower)) return "business";
+  if (/\b(romantic|romantisch|romantique|date night)\b/.test(lower)) return "couple";
 
   return undefined;
 }
@@ -80,7 +81,7 @@ function inferTiming(message: string): string | undefined {
 
   if (/\b(morning|ochtend|matin)\b/.test(lower)) return "morning";
   if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
-  if (/\b(evening|tonight|avond|vanavond|soir|ce soir|abend|heute abend)\b/.test(lower)) return "evening";
+  if (/\b(evening|tonight|dinner|avond|vanavond|diner|soir|ce soir|dîner|abend|heute abend|abendessen)\b/.test(lower)) return "evening";
   if (/\b(now|nu|maintenant|jetzt)\b/.test(lower)) return "now";
 
   return undefined;
