@@ -14,7 +14,7 @@ import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
 import { buildGreetingResponse, isGreetingOnly } from "./greeting.js";
-import { needsClarification } from "./needsClarification.js";
+import { needsClarification, type MissingContextField } from "./needsClarification.js";
 import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 
@@ -390,6 +390,27 @@ function withEmojiAcknowledgement(message: string, context: UserContext, respons
   return `${acknowledgement} ${response}`;
 }
 
+function hasSpecificContextLocation(context: UserContext): boolean {
+  const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
+  return Boolean(location && location !== "Dakar");
+}
+
+function chooseClarificationFieldForMessage(
+  message: string,
+  context: UserContext,
+  missingField: MissingContextField
+): MissingContextField {
+  if (
+    missingField === "travellerType" &&
+    buildEmojiAcknowledgement(message, context) &&
+    !hasSpecificContextLocation(context)
+  ) {
+    return "location";
+  }
+
+  return missingField;
+}
+
 function normalizeReplyForComparison(value: string): string {
   return normalizeSearchText(value).replace(/\s+/g, " ").trim();
 }
@@ -659,10 +680,11 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   const missingField = needsClarification(context);
   if (missingField) {
+    const clarificationField = chooseClarificationFieldForMessage(message, context, missingField);
     const messageText =
-      missingField === "travellerType"
+      clarificationField === "travellerType"
         ? buildGreetingResponse(context)
-        : buildClarifyingQuestion(missingField, context);
+        : buildClarifyingQuestion(clarificationField, context);
 
     return {
       type: "clarification",
