@@ -103,7 +103,7 @@ function clearsIntent(message: string): boolean {
 
 function mergeIntent(message: string, previousIntent?: UserIntent, parsedIntent?: UserIntent): UserIntent | undefined {
   if (clearsIntent(message)) return undefined;
-  return detectIntent(message) ?? parsedIntent ?? previousIntent;
+  return detectIntent(message) ?? inferEmojiIntent(message) ?? parsedIntent ?? previousIntent;
 }
 
 function inferShoppingFocus(message: string): string | undefined {
@@ -117,8 +117,40 @@ function inferShoppingFocus(message: string): string | undefined {
   return undefined;
 }
 
+function inferEmojiIntent(message: string): UserIntent | undefined {
+  if (/[🍽🍴🥘🍛🍜🍲🍤🍕🍔🌮🥗]/u.test(message)) return "food";
+  if (/[🍷🍸🍹🍺🍻🥂☕]/u.test(message)) return "drink";
+  if (/[🏖🌊☀]/u.test(message)) return "beach";
+  if (/[🎉🥳💃🕺🎶🎵🍾]/u.test(message)) return "nightlife";
+  if (/[🎨🖼🏛📚]/u.test(message)) return "culture";
+  if (/[🛍💍💎]/u.test(message)) return "shopping";
+  if (/[🌿🌴🌳⛰]/u.test(message)) return "nature";
+  if (/[⚽🏄‍♀️🏄🏃‍♀️🏃🚴]/u.test(message)) return "sports";
+
+  return undefined;
+}
+
+function inferEmojiVibe(message: string): string | undefined {
+  if (/[❤️❤💕💖💘💞💓😍🥰😘]/u.test(message)) return "romantic";
+  if (/[🎉🥳💃🕺🎶🎵🍾]/u.test(message)) return "lively";
+  if (/[🌅🌇✨]/u.test(message)) return "scenic";
+  if (/[😌🧘]/u.test(message)) return "calm";
+
+  return undefined;
+}
+
 function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string): string | undefined {
-  return inferShoppingFocus(message) ?? parsedVibe ?? previousVibe;
+  return inferShoppingFocus(message) ?? inferEmojiVibe(message) ?? parsedVibe ?? previousVibe;
+}
+
+function mergeTravellerType(message: string, previousTravellerType?: TravellerType, parsedTravellerType?: TravellerType): TravellerType | undefined {
+  if (["👨‍👩‍👧", "👨‍👩‍👧‍👦", "👩‍👩‍👧", "👨‍👨‍👧"].some((emoji) => message.includes(emoji))) {
+    return "family";
+  }
+
+  if (/[👯]/u.test(message)) return "friends";
+
+  return inferTravellerType(message) ?? parsedTravellerType ?? previousTravellerType;
 }
 
 function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContextResult {
@@ -130,7 +162,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       ...previous,
       language: detectLanguage(input.message, previous?.language),
       targetRegion: normalizeRegion(inferredRegion ?? previous?.targetRegion),
-      travellerType: inferTravellerType(input.message) ?? previous?.travellerType,
+      travellerType: mergeTravellerType(input.message, previous?.travellerType),
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: mergeIntent(input.message, previous?.intent),
       timing: inferTiming(input.message) ?? previous?.timing,
@@ -185,9 +217,11 @@ Rules:
         explicitRegion ?? nullToUndefined(parsed.context.targetRegion) ?? input.previousContext?.targetRegion
       ),
       travellerType:
-        inferTravellerType(input.message) ??
-        (nullToUndefined(parsed.context.travellerType) as TravellerType | undefined) ??
-        input.previousContext?.travellerType,
+        mergeTravellerType(
+          input.message,
+          input.previousContext?.travellerType,
+          nullToUndefined(parsed.context.travellerType) as TravellerType | undefined
+        ),
       hasChildren: inferHasChildren(input.message) ?? nullToUndefined(parsed.context.hasChildren) ?? input.previousContext?.hasChildren,
       childrenAges: nullToUndefined(parsed.context.childrenAges) ?? input.previousContext?.childrenAges,
       intent: mergeIntent(

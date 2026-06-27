@@ -330,6 +330,62 @@ function buildOffTopicResponse(context: UserContext): string {
   return "That one is a little outside my travel lane. I am your OFFSCRIPT help for Senegal: places, neighbourhoods, culture, food, bars, beaches and practical tips. What can I help you discover?";
 }
 
+function buildEmojiAcknowledgement(message: string, context: UserContext): string | undefined {
+  if (/[❤️❤💕💖💘💞💓😍🥰😘]/u.test(message)) {
+    if (context.language.startsWith("nl")) return "❤️ Romantische vibe.";
+    if (context.language.startsWith("fr")) return "❤️ Ambiance romantique.";
+    if (context.language.startsWith("de")) return "❤️ Romantische Stimmung.";
+    return "❤️ Romantic vibe.";
+  }
+
+  if (/[🍽🍴🥘🍛🍜🍲🍤🍕🍔🌮🥗]/u.test(message)) {
+    if (context.language.startsWith("nl")) return "🍽️ Zin in eten, duidelijk.";
+    if (context.language.startsWith("fr")) return "🍽️ Envie de manger, je vois.";
+    if (context.language.startsWith("de")) return "🍽️ Lust auf Essen, verstanden.";
+    return "🍽️ Food mood, got it.";
+  }
+
+  if (/[🍷🍸🍹🍺🍻🥂☕]/u.test(message)) {
+    if (context.language.startsWith("nl")) return "🍹 Iets drinken, helder.";
+    if (context.language.startsWith("fr")) return "🍹 Un verre, c’est noté.";
+    if (context.language.startsWith("de")) return "🍹 Etwas trinken, verstanden.";
+    return "🍹 Drinks, got it.";
+  }
+
+  if (/[🏖🌊☀]/u.test(message)) {
+    if (context.language.startsWith("nl")) return "🏖️ Strandgevoel.";
+    if (context.language.startsWith("fr")) return "🏖️ Ambiance plage.";
+    if (context.language.startsWith("de")) return "🏖️ Strandstimmung.";
+    return "🏖️ Beach mood.";
+  }
+
+  if (/[🎉🥳💃🕺🎶🎵🍾]/u.test(message)) {
+    if (context.language.startsWith("nl")) return "🎉 Zin in sfeer.";
+    if (context.language.startsWith("fr")) return "🎉 Envie d’ambiance.";
+    if (context.language.startsWith("de")) return "🎉 Lust auf Stimmung.";
+    return "🎉 Lively mood.";
+  }
+
+  if (/[🎨🖼🏛📚]/u.test(message)) {
+    if (context.language.startsWith("nl")) return "🎨 Culturele toer.";
+    if (context.language.startsWith("fr")) return "🎨 Plutôt culture.";
+    if (context.language.startsWith("de")) return "🎨 Eher Kultur.";
+    return "🎨 Culture mood.";
+  }
+
+  return undefined;
+}
+
+function withEmojiAcknowledgement(message: string, context: UserContext, response: string): string {
+  const acknowledgement = buildEmojiAcknowledgement(message, context);
+
+  if (!acknowledgement || response.startsWith(acknowledgement)) {
+    return response;
+  }
+
+  return `${acknowledgement} ${response}`;
+}
+
 function normalizeReplyForComparison(value: string): string {
   return normalizeSearchText(value).replace(/\s+/g, " ").trim();
 }
@@ -599,13 +655,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   const missingField = needsClarification(context);
   if (missingField) {
+    const messageText =
+      missingField === "travellerType"
+        ? buildGreetingResponse(context)
+        : buildClarifyingQuestion(missingField, context);
+
     return {
       type: "clarification",
       context,
-      message:
-        missingField === "travellerType"
-          ? buildGreetingResponse(context)
-          : buildClarifyingQuestion(missingField, context)
+      message: withEmojiAcknowledgement(message, context, messageText)
     };
   }
 
