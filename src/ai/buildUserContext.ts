@@ -117,24 +117,28 @@ function inferShoppingFocus(message: string): string | undefined {
   return undefined;
 }
 
+function hasAnyEmoji(message: string, emojis: string[]): boolean {
+  return emojis.some((emoji) => message.includes(emoji));
+}
+
 function inferEmojiIntent(message: string): UserIntent | undefined {
-  if (/[🍽🍴🥘🍛🍜🍲🍤🍕🍔🌮🥗]/u.test(message)) return "food";
-  if (/[🍷🍸🍹🍺🍻🥂☕]/u.test(message)) return "drink";
-  if (/[🏖🌊☀]/u.test(message)) return "beach";
-  if (/[🎉🥳💃🕺🎶🎵🍾]/u.test(message)) return "nightlife";
-  if (/[🎨🖼🏛📚]/u.test(message)) return "culture";
-  if (/[🛍💍💎]/u.test(message)) return "shopping";
-  if (/[🌿🌴🌳⛰]/u.test(message)) return "nature";
-  if (/[⚽🏄‍♀️🏄🏃‍♀️🏃🚴]/u.test(message)) return "sports";
+  if (hasAnyEmoji(message, ["🍽", "🍴", "🥘", "🍛", "🍜", "🍲", "🍤", "🍕", "🍔", "🌮", "🥗"])) return "food";
+  if (hasAnyEmoji(message, ["🍷", "🍸", "🍹", "🍺", "🍻", "🥂", "☕"])) return "drink";
+  if (hasAnyEmoji(message, ["🏖", "🏖️", "🌊", "☀", "☀️"])) return "beach";
+  if (hasAnyEmoji(message, ["🎉", "🥳", "💃", "🕺", "🎶", "🎵", "🍾"])) return "nightlife";
+  if (hasAnyEmoji(message, ["🎨", "🖼", "🖼️", "🏛", "🏛️", "📚"])) return "culture";
+  if (hasAnyEmoji(message, ["🛍", "🛍️", "💍", "💎"])) return "shopping";
+  if (hasAnyEmoji(message, ["🌿", "🌴", "🌳", "⛰", "⛰️"])) return "nature";
+  if (hasAnyEmoji(message, ["⚽", "🏄‍♀️", "🏄", "🏃‍♀️", "🏃", "🚴"])) return "sports";
 
   return undefined;
 }
 
 function inferEmojiVibe(message: string): string | undefined {
-  if (/[❤️❤💕💖💘💞💓😍🥰😘]/u.test(message)) return "romantic";
-  if (/[🎉🥳💃🕺🎶🎵🍾]/u.test(message)) return "lively";
-  if (/[🌅🌇✨]/u.test(message)) return "scenic";
-  if (/[😌🧘]/u.test(message)) return "calm";
+  if (hasAnyEmoji(message, ["❤️", "❤", "💕", "💖", "💘", "💞", "💓", "😍", "🥰", "😘"])) return "romantic";
+  if (hasAnyEmoji(message, ["🎉", "🥳", "💃", "🕺", "🎶", "🎵", "🍾"])) return "lively";
+  if (hasAnyEmoji(message, ["🌅", "🌇", "✨"])) return "scenic";
+  if (hasAnyEmoji(message, ["😌", "🧘"])) return "calm";
 
   return undefined;
 }
