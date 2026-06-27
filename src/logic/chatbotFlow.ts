@@ -357,22 +357,6 @@ function isOffTopicRedirect(message: string): boolean {
   );
 }
 
-function buildRepeatedGreetingClarification(context: UserContext): string {
-  if (context.language.startsWith("nl")) {
-    return "Na nga def? Even goed mikken: reis je alleen, met z’n tweeën, met vrienden of met familie?";
-  }
-
-  if (context.language.startsWith("fr")) {
-    return "Na nga def ? Juste pour viser juste : tu voyages solo, en couple, avec des amis ou en famille ?";
-  }
-
-  if (context.language.startsWith("de")) {
-    return "Na nga def? Kurz zur Einordnung: reist du allein, zu zweit, mit Freunden oder mit Familie?";
-  }
-
-  return "Na nga def? Quick check so I can guide you properly: are you travelling solo, as a couple, with friends or with family?";
-}
-
 function buildRepeatedOffTopicRedirect(context: UserContext): string {
   if (context.language.startsWith("nl")) {
     return "Ik blijf even op mijn Senegal-kaart. Geef me een buurt, timing of vibe, dan help ik je met iets dat wél OFFSCRIPT is.";
@@ -391,7 +375,7 @@ function buildRepeatedOffTopicRedirect(context: UserContext): string {
 
 function buildRepeatedReply(result: ChatbotFlowResult): string {
   if (isGreetingClarification(result.message)) {
-    return buildRepeatedGreetingClarification(result.context);
+    return result.message;
   }
 
   if (isOffTopicRedirect(result.message)) {
