@@ -395,6 +395,10 @@ function hasSpecificContextLocation(context: UserContext): boolean {
   return Boolean(location && location !== "Dakar");
 }
 
+function hasActionableMoodOrIntent(context: UserContext): boolean {
+  return Boolean((context.intent && context.intent !== "unknown") || context.vibe);
+}
+
 function chooseClarificationFieldForMessage(
   message: string,
   context: UserContext,
@@ -402,7 +406,7 @@ function chooseClarificationFieldForMessage(
 ): MissingContextField {
   if (
     missingField === "travellerType" &&
-    buildEmojiAcknowledgement(message, context) &&
+    (buildEmojiAcknowledgement(message, context) || hasActionableMoodOrIntent(context)) &&
     !hasSpecificContextLocation(context)
   ) {
     return "location";

@@ -143,8 +143,19 @@ function inferEmojiVibe(message: string): string | undefined {
   return undefined;
 }
 
+function inferTextVibe(message: string): string | undefined {
+  const lower = message.toLowerCase();
+
+  if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
+  if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
+  if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
+  if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
+
+  return undefined;
+}
+
 function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string): string | undefined {
-  return inferShoppingFocus(message) ?? inferEmojiVibe(message) ?? parsedVibe ?? previousVibe;
+  return inferShoppingFocus(message) ?? inferEmojiVibe(message) ?? inferTextVibe(message) ?? parsedVibe ?? previousVibe;
 }
 
 function mergeTravellerType(message: string, previousTravellerType?: TravellerType, parsedTravellerType?: TravellerType): TravellerType | undefined {
