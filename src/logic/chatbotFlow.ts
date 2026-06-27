@@ -176,6 +176,135 @@ function buildRespectfulSocialResponse(context: UserContext): string {
     : "I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
 }
 
+function containsTravelSignal(message: string): boolean {
+  const normalized = normalizeSearchText(message);
+
+  return [
+    "senegal",
+    "dakar",
+    "ngor",
+    "yoff",
+    "almadies",
+    "mbour",
+    "saly",
+    "goree",
+    "saint louis",
+    "travel",
+    "trip",
+    "restaurant",
+    "dinner",
+    "lunch",
+    "bar",
+    "beach",
+    "culture",
+    "market",
+    "music",
+    "dance",
+    "hotel",
+    "taxi",
+    "transport",
+    "voyage",
+    "manger",
+    "plage",
+    "quartier",
+    "reizen",
+    "reis",
+    "eten",
+    "strand",
+    "buurt"
+  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
+}
+
+function containsContextAnswerSignal(message: string): boolean {
+  const normalized = normalizeSearchText(message);
+
+  return [
+    "solo",
+    "alone",
+    "alleen",
+    "seul",
+    "couple",
+    "koppel",
+    "friends",
+    "vrienden",
+    "amis",
+    "family",
+    "familie",
+    "famille",
+    "tonight",
+    "vanavond",
+    "ce soir",
+    "morning",
+    "ochtend",
+    "matin",
+    "afternoon",
+    "middag",
+    "apres midi",
+    "evening",
+    "avond",
+    "soir"
+  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
+}
+
+function containsOffTopicSignal(message: string): boolean {
+  const normalized = normalizeSearchText(message);
+
+  return [
+    "homework",
+    "huiswerk",
+    "devoir",
+    "code",
+    "coding",
+    "javascript",
+    "python",
+    "printer",
+    "wifi",
+    "crypto",
+    "bitcoin",
+    "tax",
+    "taxes",
+    "belasting",
+    "impot",
+    "medical",
+    "doctor",
+    "legal",
+    "lawyer",
+    "contract",
+    "recipe",
+    "recept",
+    "love advice",
+    "relationship advice",
+    "horoscope",
+    "weather on mars"
+  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
+}
+
+function isAbsurdOrOffTopicRequest(message: string): boolean {
+  const trimmed = message.trim();
+
+  if (trimmed.length < 8) return false;
+  if (containsTravelSignal(trimmed) || containsContextAnswerSignal(trimmed)) return false;
+  if (containsOffTopicSignal(trimmed)) return true;
+
+  return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|why is|how do|kan je|kun je|wat is|waarom|comment|pourquoi)\b/i.test(trimmed);
+}
+
+function buildOffTopicResponse(context: UserContext): string {
+  if (context.language.startsWith("nl")) {
+    return "Daarvoor heb ik mijn slippers niet aangetrokken. Ik ben je OFFSCRIPT-hulp voor Senegal: plekken, buurten, cultuur, eten, bars, strand en praktische reistips. Waarmee kan ik je reis wél helpen?";
+  }
+
+  if (context.language.startsWith("fr")) {
+    return "Là, je sors un peu de ma carte. Je suis ton aide OFFSCRIPT pour le Sénégal : lieux, quartiers, culture, food, bars, plage et conseils pratiques. Je t’aide avec quoi pour ton voyage ?";
+  }
+
+  if (context.language.startsWith("de")) {
+    return "Dafür habe ich meine Reisesandalen nicht geschnürt. Ich bin deine OFFSCRIPT-Hilfe für Senegal: Orte, Viertel, Kultur, Essen, Bars, Strand und praktische Tipps. Wobei soll ich dir für die Reise helfen?";
+  }
+
+  return "That one is a little outside my travel lane. I am your OFFSCRIPT help for Senegal: places, neighbourhoods, culture, food, bars, beaches and practical tips. What can I help you discover?";
+}
+
 function placeArea(place: Place): string {
   return place.neighbourhood ?? place.region;
 }
@@ -331,6 +460,21 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       type: "clarification",
       context,
       message: buildRespectfulSocialResponse(context)
+    };
+  }
+
+  if (isAbsurdOrOffTopicRequest(message)) {
+    const context: UserContext = {
+      ...previousContext,
+      language: storyLanguage
+    };
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildOffTopicResponse(context)
     };
   }
 

@@ -15,7 +15,7 @@ export function detectLanguage(message: string, fallback = "en"): string {
     return "nl";
   }
 
-  if (/\b(bonjour|bonsoir|salut|où|que veut dire|qu est ce que|signifie|tu|avec|enfants|matin|après-midi|soir|manger|plage|amis|amies)\b/.test(lower)) {
+  if (/\b(bonjour|bonsoir|salut|où|comment|pourquoi|reparer|réparer|que veut dire|qu est ce que|signifie|tu|avec|enfants|matin|après-midi|soir|manger|plage|amis|amies)\b/.test(lower)) {
     return "fr";
   }
 
