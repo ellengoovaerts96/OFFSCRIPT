@@ -6,6 +6,7 @@ import {
   getConversationContext,
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
+import { getLastOutgoingMessage } from "../data/chatMessagesRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import { buildRetrievedFacts } from "../data/retrievalRepository.js";
 import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
@@ -279,16 +280,28 @@ function containsOffTopicSignal(message: string): boolean {
     "pink elephant",
     "pink elephants",
     "roze olifant",
-    "roze olifanten"
+    "roze olifanten",
+    "bevalling van",
+    "leeuwin bevalling",
+    "bevalling leeuwin",
+    "lioness birth",
+    "birth of a lioness",
+    "lion giving birth",
+    "lioness giving birth"
   ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
 }
 
 function isAbsurdOrOffTopicRequest(message: string): boolean {
   const trimmed = message.trim();
+  const normalized = normalizeSearchText(trimmed);
 
   if (trimmed.length < 8) return false;
   if (containsTravelSignal(trimmed) || containsContextAnswerSignal(trimmed)) return false;
   if (containsOffTopicSignal(trimmed)) return true;
+
+  if (/\b(ik wil|i want|je veux|ich will)\b.+\b(zien|see|voir|sehen)\b/i.test(normalized)) {
+    return true;
+  }
 
   return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|why is|how do|kan je|kun je|wat is|waarom|waar kan|waar kan ik|comment|pourquoi)\b/i.test(trimmed);
 }
@@ -307,6 +320,43 @@ function buildOffTopicResponse(context: UserContext): string {
   }
 
   return "That one is a little outside my travel lane. I am your OFFSCRIPT help for Senegal: places, neighbourhoods, culture, food, bars, beaches and practical tips. What can I help you discover?";
+}
+
+function normalizeReplyForComparison(value: string): string {
+  return normalizeSearchText(value).replace(/\s+/g, " ").trim();
+}
+
+function buildRepeatedReply(context: UserContext): string {
+  if (context.language.startsWith("nl")) {
+    return "Ik ga mezelf niet copy-pasten. Geef me één concreet reis-haakje: je buurt, wanneer je wil gaan of de sfeer die je zoekt. Dan denk ik gerichter mee.";
+  }
+
+  if (context.language.startsWith("fr")) {
+    return "Je ne vais pas me copier-coller. Donne-moi juste un repère concret : ton quartier, le moment ou l’ambiance que tu cherches. Là je peux mieux t’aider.";
+  }
+
+  if (context.language.startsWith("de")) {
+    return "Ich wiederhole mich lieber nicht eins zu eins. Gib mir einen konkreten Reise-Hinweis: Viertel, Zeitpunkt oder gewünschte Stimmung. Dann helfe ich gezielter.";
+  }
+
+  return "I will not copy-paste myself. Give me one concrete travel clue: your neighbourhood, timing or the kind of vibe you want. Then I can help properly.";
+}
+
+async function avoidRepeatedReply(userPhone: string, result: ChatbotFlowResult): Promise<string> {
+  if (result.type === "story" || result.type === "recommendation") {
+    return result.message;
+  }
+
+  const lastOutgoingMessage = await getLastOutgoingMessage(userPhone);
+
+  if (!lastOutgoingMessage) {
+    return result.message;
+  }
+
+  const previous = normalizeReplyForComparison(lastOutgoingMessage);
+  const next = normalizeReplyForComparison(result.message);
+
+  return previous === next ? buildRepeatedReply(result.context) : result.message;
 }
 
 function placeArea(place: Place): string {
@@ -563,8 +613,10 @@ export async function handleChatMessage(input: {
   message: string;
 }): Promise<{ reply: string; imageUrls: string[] }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
+  const reply = await avoidRepeatedReply(input.userPhone, result);
+
   return {
-    reply: result.message,
+    reply,
     imageUrls: result.type === "recommendation" ? result.imageUrls : []
   };
 }

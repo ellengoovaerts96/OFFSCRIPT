@@ -24,6 +24,22 @@ export async function createChatMessage(input: {
   );
 }
 
+export async function getLastOutgoingMessage(userPhone: string): Promise<string | null> {
+  const result = await pool.query<{ message: string }>(
+    `
+      SELECT message
+      FROM chat_messages
+      WHERE user_phone = $1
+        AND direction = 'outgoing'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    [userPhone]
+  );
+
+  return result.rows[0]?.message ?? null;
+}
+
 export async function listInboxItems(limit = 100): Promise<InboxItem[]> {
   const safeLimit = Math.min(Math.max(limit, 1), 250);
   const result = await pool.query<InboxRow>(
