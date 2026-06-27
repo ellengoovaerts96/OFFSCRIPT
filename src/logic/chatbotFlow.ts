@@ -282,12 +282,16 @@ function containsOffTopicSignal(message: string): boolean {
     "roze olifant",
     "roze olifanten",
     "bevalling van",
+    "zien bevallen",
+    "zien bevalling",
     "leeuwin bevalling",
     "bevalling leeuwin",
+    "leeuwin zien bevallen",
     "lioness birth",
     "birth of a lioness",
     "lion giving birth",
-    "lioness giving birth"
+    "lioness giving birth",
+    "see a lioness giving birth"
   ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
 }
 
@@ -299,7 +303,11 @@ function isAbsurdOrOffTopicRequest(message: string): boolean {
   if (containsTravelSignal(trimmed) || containsContextAnswerSignal(trimmed)) return false;
   if (containsOffTopicSignal(trimmed)) return true;
 
-  if (/\b(ik wil|i want|je veux|ich will)\b.+\b(zien|see|voir|sehen)\b/i.test(normalized)) {
+  if (
+    /\b(ik wil|ik zou graag|ik zou willen|i want|i would like|je veux|je voudrais|j aimerais|ich will|ich mochte|ich wurde gern)\b.+\b(zien|bevallen|see|voir|sehen)\b/i.test(
+      normalized
+    )
+  ) {
     return true;
   }
 
@@ -326,9 +334,74 @@ function normalizeReplyForComparison(value: string): string {
   return normalizeSearchText(value).replace(/\s+/g, " ").trim();
 }
 
-function buildRepeatedReply(context: UserContext): string {
+function isGreetingClarification(message: string): boolean {
+  const normalized = normalizeReplyForComparison(message);
+
+  return (
+    normalized.startsWith("na nga def") &&
+    (normalized.includes("met wie reis") ||
+      normalized.includes("who are you travelling") ||
+      normalized.includes("tu voyages") ||
+      normalized.includes("reist du"))
+  );
+}
+
+function isOffTopicRedirect(message: string): boolean {
+  const normalized = normalizeReplyForComparison(message);
+
+  return (
+    normalized.includes("offscript-hulp voor senegal") ||
+    normalized.includes("aide offscript pour le senegal") ||
+    normalized.includes("offscript-hilfe fur senegal") ||
+    normalized.includes("offscript help for senegal")
+  );
+}
+
+function buildRepeatedGreetingClarification(context: UserContext): string {
   if (context.language.startsWith("nl")) {
-    return "Ik ga mezelf niet copy-pasten. Geef me één concreet reis-haakje: je buurt, wanneer je wil gaan of de sfeer die je zoekt. Dan denk ik gerichter mee.";
+    return "Na nga def? Even goed mikken: reis je alleen, met z’n tweeën, met vrienden of met familie?";
+  }
+
+  if (context.language.startsWith("fr")) {
+    return "Na nga def ? Juste pour viser juste : tu voyages solo, en couple, avec des amis ou en famille ?";
+  }
+
+  if (context.language.startsWith("de")) {
+    return "Na nga def? Kurz zur Einordnung: reist du allein, zu zweit, mit Freunden oder mit Familie?";
+  }
+
+  return "Na nga def? Quick check so I can guide you properly: are you travelling solo, as a couple, with friends or with family?";
+}
+
+function buildRepeatedOffTopicRedirect(context: UserContext): string {
+  if (context.language.startsWith("nl")) {
+    return "Ik blijf even op mijn Senegal-kaart. Geef me een buurt, timing of vibe, dan help ik je met iets dat wél OFFSCRIPT is.";
+  }
+
+  if (context.language.startsWith("fr")) {
+    return "Je reste sur ma carte du Sénégal. Donne-moi un quartier, un moment ou une ambiance, et je t’aide avec quelque chose de vraiment OFFSCRIPT.";
+  }
+
+  if (context.language.startsWith("de")) {
+    return "Ich bleibe kurz auf meiner Senegal-Karte. Gib mir Viertel, Zeitpunkt oder Stimmung, dann helfe ich dir mit etwas, das wirklich zu OFFSCRIPT passt.";
+  }
+
+  return "I am staying on my Senegal map for this one. Give me a neighbourhood, timing or vibe, and I will help with something properly OFFSCRIPT.";
+}
+
+function buildRepeatedReply(result: ChatbotFlowResult): string {
+  if (isGreetingClarification(result.message)) {
+    return buildRepeatedGreetingClarification(result.context);
+  }
+
+  if (isOffTopicRedirect(result.message)) {
+    return buildRepeatedOffTopicRedirect(result.context);
+  }
+
+  const { context } = result;
+
+  if (context.language.startsWith("nl")) {
+    return "Geef me één concreet reis-haakje: je buurt, wanneer je wil gaan of de sfeer die je zoekt. Dan denk ik gerichter mee.";
   }
 
   if (context.language.startsWith("fr")) {
@@ -356,7 +429,7 @@ async function avoidRepeatedReply(userPhone: string, result: ChatbotFlowResult):
   const previous = normalizeReplyForComparison(lastOutgoingMessage);
   const next = normalizeReplyForComparison(result.message);
 
-  return previous === next ? buildRepeatedReply(result.context) : result.message;
+  return previous === next ? buildRepeatedReply(result) : result.message;
 }
 
 function placeArea(place: Place): string {
