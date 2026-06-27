@@ -275,7 +275,11 @@ function containsOffTopicSignal(message: string): boolean {
     "love advice",
     "relationship advice",
     "horoscope",
-    "weather on mars"
+    "weather on mars",
+    "pink elephant",
+    "pink elephants",
+    "roze olifant",
+    "roze olifanten"
   ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
 }
 
@@ -286,7 +290,7 @@ function isAbsurdOrOffTopicRequest(message: string): boolean {
   if (containsTravelSignal(trimmed) || containsContextAnswerSignal(trimmed)) return false;
   if (containsOffTopicSignal(trimmed)) return true;
 
-  return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|why is|how do|kan je|kun je|wat is|waarom|comment|pourquoi)\b/i.test(trimmed);
+  return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|why is|how do|kan je|kun je|wat is|waarom|waar kan|waar kan ik|comment|pourquoi)\b/i.test(trimmed);
 }
 
 function buildOffTopicResponse(context: UserContext): string {
@@ -379,9 +383,11 @@ function selectRecommendationImages(place: Place, message: string): string[] {
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
+  const previousContext = await getConversationContext(userPhone);
+
   if (isResetCommand(message)) {
     const context: UserContext = {
-      language: detectLanguage(message)
+      language: detectLanguage(message, previousContext?.language ?? "en")
     };
 
     await deleteConversationContext(userPhone);
@@ -396,8 +402,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   if (isGreetingOnly(message)) {
     const context: UserContext = {
-      ...(await getConversationContext(userPhone)),
-      language: detectLanguage(message)
+      ...previousContext,
+      language: detectLanguage(message, previousContext?.language)
     };
 
     await upsertConversationContext(userPhone, context);
@@ -409,7 +415,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  const previousContext = await getConversationContext(userPhone);
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "en");
   const knownRegion = findKnownRegion(message);
