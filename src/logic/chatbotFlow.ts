@@ -6,8 +6,13 @@ import {
   getConversationContext,
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
-import { getLastOutgoingMessage } from "../data/chatMessagesRepository.js";
+import { getLastOutgoingMessage, listRecentOutgoingMessages } from "../data/chatMessagesRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
+import {
+  getLastRecommendedPlace,
+  listRecommendedPlaceIds,
+  recordPlaceRecommendation
+} from "../data/recommendationHistoryRepository.js";
 import { buildRetrievedFacts } from "../data/retrievalRepository.js";
 import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
 import type { Place } from "../types/place.js";
@@ -27,6 +32,7 @@ export type ChatbotFlowResult =
   | {
       type: "recommendation";
       context: UserContext;
+      placeId: string;
       placeName: string;
       score: number;
       message: string;
@@ -330,6 +336,47 @@ function buildOffTopicResponse(context: UserContext): string {
   return "That one is a little outside my travel lane. I am your OFFSCRIPT help for Senegal: places, neighbourhoods, culture, food, bars, beaches and practical tips. What can I help you discover?";
 }
 
+function isRecommendationFeedbackOnly(message: string): boolean {
+  const normalized = normalizeSearchText(message).replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+
+  if (!normalized && /[\p{Emoji_Presentation}\uFE0F]/u.test(message)) return true;
+
+  return /^(?:i know|i know thanks|got it|great|nice|perfect|cool|thanks|thank you|ok|okay|yes|yes thanks|super|top|merci|d accord|ok merci|oui|oui merci|ja|ja dank je|dank je|bedankt|prima|mooi|leuk)$/i.test(
+    normalized
+  );
+}
+
+function buildRecommendationFeedbackReply(context: UserContext): string {
+  if (context.language.startsWith("nl")) {
+    return "Helemaal. Wil je dat ik iets anders voorstel: eten, strand, cultuur, shopping, iets drinken of nightlife?";
+  }
+
+  if (context.language.startsWith("fr")) {
+    return "Parfait. Tu veux que je te propose autre chose : manger, plage, culture, shopping, boire un verre ou sortir ?";
+  }
+
+  if (context.language.startsWith("de")) {
+    return "Alles klar. Soll ich dir etwas anderes vorschlagen: Essen, Strand, Kultur, Shopping, etwas trinken oder Nightlife?";
+  }
+
+  return "Got it. Would you like something else: food, beach, culture, shopping, drinks or nightlife?";
+}
+
+async function isFeedbackAfterRecommendation(userPhone: string, message: string): Promise<boolean> {
+  if (!isRecommendationFeedbackOnly(message)) return false;
+
+  const [lastOutgoingMessage, lastRecommendedPlace] = await Promise.all([
+    getLastOutgoingMessage(userPhone),
+    getLastRecommendedPlace(userPhone)
+  ]);
+
+  return Boolean(
+    lastOutgoingMessage &&
+      lastRecommendedPlace &&
+      normalizeSearchText(lastOutgoingMessage).includes(normalizeSearchText(lastRecommendedPlace.placeName))
+  );
+}
+
 function hasAnyEmoji(message: string, emojis: string[]): boolean {
   return emojis.some((emoji) => message.includes(emoji));
 }
@@ -574,6 +621,11 @@ function selectRecommendationImages(place: Place, message: string): string[] {
   return Array.from(new Set(imageUrls)).slice(0, 2);
 }
 
+function wasPlaceAlreadyMentioned(place: Place, outgoingMessages: string[]): boolean {
+  const placeName = normalizeSearchText(place.name);
+  return outgoingMessages.some((message) => normalizeSearchText(message).includes(placeName));
+}
+
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
   const previousContext = await getConversationContext(userPhone);
 
@@ -611,6 +663,21 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "en");
   const knownRegion = findKnownRegion(message);
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
+
+  if (await isFeedbackAfterRecommendation(userPhone, message)) {
+    const context: UserContext = {
+      ...previousContext,
+      language: storyLanguage
+    };
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildRecommendationFeedbackReply(context)
+    };
+  }
 
   if (storyMatch) {
     const context: UserContext = {
@@ -698,10 +765,18 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const places = await listRecommendationPlaces();
-  const selection = selectBestPlace(places, context);
+  const [recommendedPlaceIds, recentOutgoingMessages] = await Promise.all([
+    listRecommendedPlaceIds(userPhone),
+    listRecentOutgoingMessages(userPhone)
+  ]);
+  const recommendedPlaceIdSet = new Set(recommendedPlaceIds);
+  const newPlaces = places.filter(
+    (place) => !recommendedPlaceIdSet.has(place.id) && !wasPlaceAlreadyMentioned(place, recentOutgoingMessages)
+  );
+  const selection = selectBestPlace(newPlaces, context);
 
   if (!selection) {
-    const alternativeSelection = selectBestAlternativePlace(places, context);
+    const alternativeSelection = selectBestAlternativePlace(newPlaces, context);
 
     if (alternativeSelection) {
       const retrievedFacts = await buildRetrievedFacts({
@@ -718,6 +793,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       return {
         type: "recommendation",
         context,
+        placeId: alternativeSelection.place.id,
         placeName: alternativeSelection.place.name,
         score: alternativeSelection.score,
         message: `${buildAlternativeIntro(context, alternativeSelection.place)}${messageText}`,
@@ -746,6 +822,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   return {
     type: "recommendation",
     context,
+    placeId: selection.place.id,
     placeName: selection.place.name,
     score: selection.score,
     message: messageText,
@@ -759,6 +836,14 @@ export async function handleChatMessage(input: {
 }): Promise<{ reply: string; imageUrls: string[] }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
   const reply = await avoidRepeatedReply(input.userPhone, result);
+
+  if (result.type === "recommendation") {
+    await recordPlaceRecommendation({
+      userPhone: input.userPhone,
+      placeId: result.placeId,
+      placeName: result.placeName
+    });
+  }
 
   return {
     reply,
