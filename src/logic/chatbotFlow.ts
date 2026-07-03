@@ -85,6 +85,22 @@ function buildNoMatchResponse(context: UserContext): string {
   return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
 }
 
+function buildNoNewMatchResponse(context: UserContext): string {
+  if (context.language?.startsWith("nl")) {
+    return "Ik heb geen nieuw adresje meer dat sterk genoeg past zonder mezelf te herhalen. Wil je dat ik breder zoek, bijvoorbeeld een andere buurt, andere vibe of iets anders dan dit?";
+  }
+
+  if (context.language?.startsWith("fr")) {
+    return "Je n’ai plus de nouvelle adresse assez solide sans me répéter. Tu veux que j’élargisse la recherche, par exemple un autre quartier, une autre ambiance ou autre chose ?";
+  }
+
+  if (context.language?.startsWith("de")) {
+    return "Ich habe keinen neuen starken Tipp mehr, ohne mich zu wiederholen. Soll ich breiter suchen, zum Beispiel anderes Viertel, andere Stimmung oder etwas anderes?";
+  }
+
+  return "I do not have a new strong match without repeating myself. Would you like me to search more broadly, for example another neighbourhood, another vibe or something different?";
+}
+
 function buildLanguagePreferenceResponse(context: UserContext): string {
   const missingField = needsClarification(context);
 
@@ -818,6 +834,14 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         score: alternativeSelection.score,
         message: `${buildAlternativeIntro(context, alternativeSelection.place)}${messageText}`,
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
+      };
+    }
+
+    if (newPlaces.length < places.length && selectBestPlace(places, context)) {
+      return {
+        type: "no_match",
+        context,
+        message: buildNoNewMatchResponse(context)
       };
     }
 

@@ -50,7 +50,17 @@ function matchesAny(value: string, candidates: string[]): boolean {
 
 function placeMatchesIntent(place: Place, intent: string): boolean {
   const aliases = INTENT_CATEGORY_ALIASES[intent] ?? [intent];
-  return place.categories.some((category) => matchesAny(category, aliases));
+  return (
+    place.categories.some((category) => matchesAny(category, aliases)) ||
+    place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
+    place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
+    textIncludesAny(place.shortDescription, aliases) ||
+    textIncludesAny(place.longDescription, aliases) ||
+    textIncludesAny(place.personalTip, aliases) ||
+    textIncludesAny(place.whyHiddenGem, aliases) ||
+    textIncludesAny(place.exactArea, aliases) ||
+    textIncludesAny(place.vibe, aliases)
+  );
 }
 
 function placeMatchesTiming(place: Place, timing: string): boolean {
