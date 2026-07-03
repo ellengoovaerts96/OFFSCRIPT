@@ -6,3 +6,15 @@ export const twilioClient = twilio(
 );
 
 export const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM;
+
+export async function sendWhatsAppMessage(to: string, body: string): Promise<void> {
+  if (!twilioWhatsAppFrom) {
+    throw new Error("TWILIO_WHATSAPP_FROM is not configured.");
+  }
+
+  await twilioClient.messages.create({
+    from: twilioWhatsAppFrom,
+    to,
+    body
+  });
+}

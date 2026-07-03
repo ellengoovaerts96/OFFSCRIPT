@@ -366,18 +366,18 @@ function isRecommendationFeedbackOnly(message: string): boolean {
 
 function buildRecommendationFeedbackReply(context: UserContext): string {
   if (context.language.startsWith("nl")) {
-    return "Helemaal. Wil je dat ik iets anders voorstel: eten, strand, cultuur, shopping, iets drinken of nightlife?";
+    return "Helemaal. Wil je nog iets anders?";
   }
 
   if (context.language.startsWith("fr")) {
-    return "Parfait. Tu veux que je te propose autre chose : manger, plage, culture, shopping, boire un verre ou sortir ?";
+    return "Parfait. Tu veux encore autre chose ?";
   }
 
   if (context.language.startsWith("de")) {
-    return "Alles klar. Soll ich dir etwas anderes vorschlagen: Essen, Strand, Kultur, Shopping, etwas trinken oder Nightlife?";
+    return "Alles klar. Möchtest du noch etwas anderes?";
   }
 
-  return "Got it. Would you like something else: food, beach, culture, shopping, drinks or nightlife?";
+  return "Got it. Would you like anything else?";
 }
 
 async function isFeedbackAfterRecommendation(userPhone: string, message: string): Promise<boolean> {
@@ -617,18 +617,18 @@ function buildGoogleMapsFollowUp(context: UserContext, place: Pick<Place, "name"
 
 function buildAnythingElseFollowUp(context: UserContext): string {
   if (context.language?.startsWith("nl")) {
-    return "Wil je nog iets anders: eten, strand, cultuur, shopping, iets drinken of praktische tips?";
+    return "Wil je nog iets anders?";
   }
 
   if (context.language?.startsWith("fr")) {
-    return "Tu veux encore autre chose : manger, plage, culture, shopping, boire un verre ou des conseils pratiques ?";
+    return "Tu veux encore autre chose ?";
   }
 
   if (context.language?.startsWith("de")) {
-    return "Möchtest du noch etwas anderes: Essen, Strand, Kultur, Shopping, etwas trinken oder praktische Tipps?";
+    return "Möchtest du noch etwas anderes?";
   }
 
-  return "Would you like anything else: food, beach, culture, shopping, drinks or practical tips?";
+  return "Would you like anything else?";
 }
 
 function isResetCommand(message: string): boolean {

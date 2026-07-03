@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { createChatMessage } from "../data/chatMessagesRepository.js";
+import { sendWhatsAppMessage } from "../integrations/twilio.js";
 import { handleChatMessage } from "../logic/chatbotFlow.js";
 
 export const whatsappRouter = Router();
@@ -21,13 +22,14 @@ whatsappRouter.post("/", async (req, res) => {
       message: incomingMessage
     });
 
-    const outgoingMessages = [reply, ...followUpMessages, ...afterMediaMessages];
+    const outgoingMessages = [reply, ...followUpMessages];
 
     for (const outgoingMessage of outgoingMessages) {
       await logChatMessage(from, "outgoing", outgoingMessage);
     }
 
-    sendTwilioMessages(res, [reply, ...followUpMessages], imageUrls, afterMediaMessages);
+    sendTwilioMessages(res, outgoingMessages, imageUrls);
+    scheduleAfterMediaMessages(from, afterMediaMessages);
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
     sendTwilioMessages(res, ["OFFSCRIPT had a small hiccup. Try again in a moment."]);
@@ -49,14 +51,31 @@ async function logChatMessage(
 function sendTwilioMessages(
   res: { type: (value: string) => { send: (body: string) => void } },
   messages: string[],
-  imageUrls: string[] = [],
-  afterMediaMessages: string[] = []
+  imageUrls: string[] = []
 ): void {
   const textMessages = messages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
   const mediaMessages = imageUrls.map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`).join("");
-  const afterMediaTextMessages = afterMediaMessages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
 
-  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}${afterMediaTextMessages}</Response>`);
+  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}</Response>`);
+}
+
+function scheduleAfterMediaMessages(to: string, messages: string[]): void {
+  if (!messages.length) return;
+
+  setTimeout(() => {
+    void sendDelayedMessages(to, messages);
+  }, 2500);
+}
+
+async function sendDelayedMessages(to: string, messages: string[]): Promise<void> {
+  for (const message of messages) {
+    try {
+      await sendWhatsAppMessage(to, message);
+      await logChatMessage(to, "outgoing", message);
+    } catch (error) {
+      console.error("Could not send delayed WhatsApp message", error);
+    }
+  }
 }
 
 function escapeXml(value: string): string {
