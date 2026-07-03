@@ -98,6 +98,28 @@ function acceptsAnyLocation(message: string): boolean {
   );
 }
 
+function isBeachLocationPreference(message: string): boolean {
+  const lower = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return /\b(at the beach|on the beach|by the beach|beach|op het strand|aan het strand|strand|a la plage|sur la plage|plage|am strand|strand)\b/.test(
+    lower
+  );
+}
+
+function hasExplicitActivityIntent(message: string): boolean {
+  const lower = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return /\b(eat|food|restaurant|dinner|lunch|drink|bar|cocktail|swim|surf|relax|walk|party|dance|eten|restaurant|diner|lunch|drinken|bar|zwemmen|surfen|wandelen|manger|restaurant|dejeuner|diner|boire|nager|surfer|marcher|essen|restaurant|trinken|schwimmen|spazieren)\b/.test(
+    lower
+  );
+}
+
 function inferHasChildren(message: string): boolean | undefined {
   const lower = message.toLowerCase();
 
@@ -115,6 +137,11 @@ function clearsIntent(message: string): boolean {
 
 function mergeIntent(message: string, previousIntent?: UserIntent, parsedIntent?: UserIntent): UserIntent | undefined {
   if (clearsIntent(message)) return undefined;
+
+  if (acceptsAnyLocation(message) && isBeachLocationPreference(message) && !hasExplicitActivityIntent(message)) {
+    return parsedIntent === "beach" ? previousIntent : parsedIntent ?? previousIntent;
+  }
+
   return detectIntent(message) ?? inferEmojiIntent(message) ?? parsedIntent ?? previousIntent;
 }
 
@@ -162,6 +189,7 @@ function inferTextVibe(message: string): string | undefined {
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
+  if (isBeachLocationPreference(message)) return "beach";
 
   return undefined;
 }
