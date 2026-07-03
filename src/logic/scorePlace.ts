@@ -28,6 +28,13 @@ const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
   artworks: ["artworks", "artwork", "art", "kunst", "kunstwerken", "oeuvres", "œuvres"]
 };
 
+const VIBE_ALIASES: Record<string, string[]> = {
+  romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
+  calm: ["calm", "quiet", "rustig", "calme", "ruhig", "relax", "relaxed"],
+  lively: ["lively", "gezellig", "levendig", "ambiance", "anime", "animé", "nightlife"],
+  scenic: ["scenic", "sunset", "view", "uitzicht", "vue", "sea", "ocean"]
+};
+
 function normalizeValue(value: string): string {
   return value
     .trim()
@@ -72,6 +79,23 @@ function placeMatchesShoppingFocus(place: Place, focus: string | undefined): boo
   );
 }
 
+function placeMatchesVibe(place: Place, vibe: string | undefined): boolean {
+  if (!vibe) return false;
+
+  const normalizedVibe = normalizeValue(vibe);
+  const aliases = VIBE_ALIASES[normalizedVibe] ?? [normalizedVibe];
+
+  return (
+    place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
+    place.categories.some((category) => matchesAny(category, aliases)) ||
+    place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
+    textIncludesAny(place.shortDescription, aliases) ||
+    textIncludesAny(place.longDescription, aliases) ||
+    textIncludesAny(place.personalTip, aliases) ||
+    textIncludesAny(place.whyHiddenGem, aliases)
+  );
+}
+
 export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
 
@@ -84,6 +108,7 @@ export function scorePlace(place: Place, context: UserContext): number {
     score += 30;
   }
   if (context.intent === "shopping" && placeMatchesShoppingFocus(place, context.vibe)) score += 25;
+  if (placeMatchesVibe(place, context.vibe)) score += 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;

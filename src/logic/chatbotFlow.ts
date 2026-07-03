@@ -439,7 +439,9 @@ function withEmojiAcknowledgement(message: string, context: UserContext, respons
 
 function hasSpecificContextLocation(context: UserContext): boolean {
   const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
-  return Boolean(location && location !== "Dakar");
+  if (!location) return false;
+  if (location !== "Dakar") return true;
+  return hasActionableMoodOrIntent(context);
 }
 
 function hasActionableMoodOrIntent(context: UserContext): boolean {
