@@ -76,6 +76,24 @@ function isTravellerTypeOnly(message: string): boolean {
   );
 }
 
+function normalizeContextText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isKnownRegionOnly(message: string): boolean {
+  const knownRegion = findKnownRegion(message);
+  if (!knownRegion) return false;
+
+  return normalizeContextText(message) === normalizeContextText(knownRegion);
+}
+
 function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
@@ -213,6 +231,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const inferredRegion = findKnownRegion(input.message);
   const targetRegion = normalizeRegion(inferredRegion ?? (acceptsAnyLocation(input.message) ? "Dakar" : previous?.targetRegion));
   const timing = inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previous?.timing);
+  const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
   return {
     context: {
@@ -223,7 +242,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: mergeIntent(input.message, previous?.intent),
       timing,
-      vibe: mergeVibe(input.message, previous?.vibe)
+      vibe: messageIsKnownRegionOnly ? previous?.vibe : mergeVibe(input.message, previous?.vibe)
     },
     confidence: 0.55
   };
@@ -232,6 +251,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
   const broadTargetRegion = acceptsAnyLocation(input.message) ? "Dakar" : undefined;
+  const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
   if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
     return fallbackBuildUserContext(input);
@@ -285,11 +305,13 @@ Rules:
       intent: mergeIntent(
         input.message,
         input.previousContext?.intent,
-        nullToUndefined(parsed.context.intent) as UserIntent | undefined
+        messageIsKnownRegionOnly ? undefined : (nullToUndefined(parsed.context.intent) as UserIntent | undefined)
       ),
       timing: inferTiming(input.message) ?? (broadTargetRegion ? "flexible" : input.previousContext?.timing),
       budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
-      vibe: mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
+      vibe: messageIsKnownRegionOnly
+        ? input.previousContext?.vibe
+        : mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern
     },
     confidence: parsed.confidence
