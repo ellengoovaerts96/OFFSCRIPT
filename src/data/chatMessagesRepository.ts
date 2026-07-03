@@ -48,6 +48,16 @@ export async function listRecentOutgoingMessages(userPhone: string, limit = 100)
       FROM chat_messages
       WHERE user_phone = $1
         AND direction = 'outgoing'
+        AND created_at > COALESCE(
+          (
+            SELECT MAX(reset_message.created_at)
+            FROM chat_messages reset_message
+            WHERE reset_message.user_phone = $1
+              AND reset_message.direction = 'incoming'
+              AND reset_message.message ~* '^[[:space:]]*(reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?[:space:]]*$'
+          ),
+          '-infinity'::timestamp
+        )
       ORDER BY created_at DESC
       LIMIT $2
     `,

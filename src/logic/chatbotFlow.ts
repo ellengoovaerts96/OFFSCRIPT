@@ -9,6 +9,7 @@ import {
 import { getLastOutgoingMessage, listRecentOutgoingMessages } from "../data/chatMessagesRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import {
+  deleteRecommendationHistoryForUser,
   getLastRecommendedPlace,
   listRecommendedPlaceIds,
   recordPlaceRecommendation
@@ -670,6 +671,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
 
     await deleteConversationContext(userPhone);
+    await deleteRecommendationHistoryForUser(userPhone);
     await upsertConversationContext(userPhone, context);
 
     return {

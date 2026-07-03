@@ -50,6 +50,20 @@ export async function listRecommendedPlaceIds(userPhone: string): Promise<string
   }
 }
 
+export async function deleteRecommendationHistoryForUser(userPhone: string): Promise<void> {
+  try {
+    await pool.query(
+      `
+        DELETE FROM place_recommendation_history
+        WHERE user_phone = $1
+      `,
+      [userPhone]
+    );
+  } catch (error) {
+    if (!isUndefinedTableError(error)) throw error;
+  }
+}
+
 export async function getLastRecommendedPlace(userPhone: string): Promise<RecommendedPlaceHistoryItem | null> {
   try {
     const result = await pool.query<{ place_id: string | null; place_name: string }>(
