@@ -30,6 +30,9 @@ type PlaceRow = {
   reservation_contact_name: string | null;
   reservation_phone: string | null;
   reservation_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
   google_maps_url: string;
   latitude: number | null;
   longitude: number | null;
@@ -75,6 +78,9 @@ function mapPlace(row: PlaceRow): Place {
     reservationContactName: row.reservation_contact_name ?? undefined,
     reservationPhone: row.reservation_phone ?? undefined,
     reservationUrl: row.reservation_url ?? undefined,
+    facebookUrl: row.facebook_url ?? undefined,
+    instagramUrl: row.instagram_url ?? undefined,
+    tiktokUrl: row.tiktok_url ?? undefined,
     googleMapsUrl: row.google_maps_url,
     latitude: row.latitude ?? undefined,
     longitude: row.longitude ?? undefined,

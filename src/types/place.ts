@@ -56,6 +56,9 @@ export type Place = {
   reservationContactName?: string;
   reservationPhone?: string;
   reservationUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
   googleMapsUrl: string;
   latitude?: number;
   longitude?: number;
