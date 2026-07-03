@@ -33,6 +33,8 @@ export type Place = {
   country: "Senegal";
   region: string;
   neighbourhood?: string;
+  exactArea?: string;
+  vibe?: string;
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];
   shortDescription: string;

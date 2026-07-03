@@ -7,6 +7,8 @@ type PlaceRow = {
   country: "Senegal";
   region: string;
   neighbourhood: string | null;
+  exact_area: string | null;
+  vibe: string | null;
   categories: PlaceCategory[] | null;
   subcategories: PlaceSubcategory[] | null;
   short_description: string;
@@ -50,6 +52,8 @@ function mapPlace(row: PlaceRow): Place {
     country: row.country,
     region: row.region,
     neighbourhood: row.neighbourhood ?? undefined,
+    exactArea: row.exact_area ?? undefined,
+    vibe: row.vibe ?? undefined,
     categories: row.categories ?? [],
     subcategories: row.subcategories ?? [],
     shortDescription: row.short_description,

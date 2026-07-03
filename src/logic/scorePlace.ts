@@ -92,7 +92,8 @@ function placeMatchesVibe(place: Place, vibe: string | undefined): boolean {
     textIncludesAny(place.shortDescription, aliases) ||
     textIncludesAny(place.longDescription, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
-    textIncludesAny(place.whyHiddenGem, aliases)
+    textIncludesAny(place.whyHiddenGem, aliases) ||
+    textIncludesAny(place.vibe, aliases)
   );
 }
 

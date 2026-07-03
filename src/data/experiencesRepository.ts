@@ -10,6 +10,8 @@ type ExperienceRow = {
   full_description: string | null;
   duration: string | null;
   location: string | null;
+  exact_area: string | null;
+  vibe: string | null;
   price: string | null;
   currency: string | null;
   max_people: number | null;
@@ -54,6 +56,8 @@ function mapExperience(row: ExperienceRow): Experience {
     fullDescription: row.full_description ?? undefined,
     duration: row.duration ?? undefined,
     location: row.location ?? undefined,
+    exactArea: row.exact_area ?? undefined,
+    vibe: row.vibe ?? undefined,
     price: row.price ? Number(row.price) : undefined,
     currency: row.currency ?? "EUR",
     maxPeople: row.max_people ?? undefined,
@@ -86,6 +90,8 @@ export async function listRelevantExperiencesForContext(
         full_description,
         duration,
         location,
+        exact_area,
+        vibe,
         price,
         currency,
         max_people,
@@ -100,6 +106,8 @@ export async function listRelevantExperiencesForContext(
           OR COALESCE(short_description, '') ILIKE ANY($2::text[])
           OR COALESCE(full_description, '') ILIKE ANY($2::text[])
           OR COALESCE(location, '') ILIKE ANY($2::text[])
+          OR COALESCE(exact_area, '') ILIKE ANY($2::text[])
+          OR COALESCE(vibe, '') ILIKE ANY($2::text[])
         ))
         AND ($3::boolean = false OR child_friendly = true)
       ORDER BY featured DESC, updated_at DESC, title ASC

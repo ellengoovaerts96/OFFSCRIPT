@@ -6,6 +6,8 @@ export type Experience = {
   fullDescription?: string;
   duration?: string;
   location?: string;
+  exactArea?: string;
+  vibe?: string;
   price?: number;
   currency: string;
   maxPeople?: number;
