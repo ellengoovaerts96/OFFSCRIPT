@@ -45,7 +45,7 @@ function normalizeValue(value: string): string {
 
 function matchesAny(value: string, candidates: string[]): boolean {
   const normalizedValue = normalizeValue(value);
-  return candidates.map(normalizeValue).includes(normalizedValue);
+  return candidates.map(normalizeValue).some((candidate) => normalizedValue === candidate || normalizedValue.includes(candidate));
 }
 
 function placeMatchesIntent(place: Place, intent: string): boolean {
