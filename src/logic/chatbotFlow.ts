@@ -615,6 +615,22 @@ function buildGoogleMapsFollowUp(context: UserContext, place: Pick<Place, "name"
   return `Exact location for ${place.name}: ${place.googleMapsUrl}`;
 }
 
+function buildAnythingElseFollowUp(context: UserContext): string {
+  if (context.language?.startsWith("nl")) {
+    return "Wil je nog iets anders: eten, strand, cultuur, shopping, iets drinken of praktische tips?";
+  }
+
+  if (context.language?.startsWith("fr")) {
+    return "Tu veux encore autre chose : manger, plage, culture, shopping, boire un verre ou des conseils pratiques ?";
+  }
+
+  if (context.language?.startsWith("de")) {
+    return "Möchtest du noch etwas anderes: Essen, Strand, Kultur, Shopping, etwas trinken oder praktische Tipps?";
+  }
+
+  return "Would you like anything else: food, beach, culture, shopping, drinks or practical tips?";
+}
+
 function isResetCommand(message: string): boolean {
   return /^(?:reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?\s]*$/i.test(
     message.trim()
@@ -880,13 +896,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 export async function handleChatMessage(input: {
   userPhone: string;
   message: string;
-}): Promise<{ reply: string; followUpMessages: string[]; imageUrls: string[] }> {
+}): Promise<{ reply: string; followUpMessages: string[]; imageUrls: string[]; afterMediaMessages: string[] }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
   const reply = await avoidRepeatedReply(input.userPhone, result);
   const followUpMessages =
     result.type === "recommendation" && reply === result.message
       ? [buildGoogleMapsFollowUp(result.context, { name: result.placeName, googleMapsUrl: result.googleMapsUrl })]
       : [];
+  const afterMediaMessages =
+    result.type === "recommendation" && reply === result.message ? [buildAnythingElseFollowUp(result.context)] : [];
 
   if (result.type === "recommendation") {
     await recordPlaceRecommendation({
@@ -899,6 +917,7 @@ export async function handleChatMessage(input: {
   return {
     reply,
     followUpMessages,
-    imageUrls: result.type === "recommendation" ? result.imageUrls : []
+    imageUrls: result.type === "recommendation" ? result.imageUrls : [],
+    afterMediaMessages
   };
 }
