@@ -87,6 +87,17 @@ function inferTiming(message: string): string | undefined {
   return undefined;
 }
 
+function acceptsAnyLocation(message: string): boolean {
+  const lower = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return /\b(anywhere|anywhere in dakar|does not matter|doesnt matter|it does not matter|it doesnt matter|no preference|wherever|maakt niet uit|het maakt niet uit|eender waar|maakt me niet uit|maakt mij niet uit|peu importe|n importe ou|n'importe ou|egal|gelijk waar)\b/.test(
+    lower
+  );
+}
+
 function inferHasChildren(message: string): boolean | undefined {
   const lower = message.toLowerCase();
 
@@ -172,16 +183,18 @@ function mergeTravellerType(message: string, previousTravellerType?: TravellerTy
 function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContextResult {
   const previous = input.previousContext;
   const inferredRegion = findKnownRegion(input.message);
+  const targetRegion = normalizeRegion(inferredRegion ?? (acceptsAnyLocation(input.message) ? "Dakar" : previous?.targetRegion));
+  const timing = inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previous?.timing);
 
   return {
     context: {
       ...previous,
       language: detectLanguage(input.message, previous?.language),
-      targetRegion: normalizeRegion(inferredRegion ?? previous?.targetRegion),
+      targetRegion,
       travellerType: mergeTravellerType(input.message, previous?.travellerType),
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: mergeIntent(input.message, previous?.intent),
-      timing: inferTiming(input.message) ?? previous?.timing,
+      timing,
       vibe: mergeVibe(input.message, previous?.vibe)
     },
     confidence: 0.55
@@ -190,6 +203,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
 
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
+  const broadTargetRegion = acceptsAnyLocation(input.message) ? "Dakar" : undefined;
 
   if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
     return fallbackBuildUserContext(input);
@@ -230,7 +244,7 @@ Rules:
         nullToUndefined(parsed.context.currentLocation) ?? input.previousContext?.currentLocation
       ),
       targetRegion: normalizeRegion(
-        explicitRegion ?? nullToUndefined(parsed.context.targetRegion) ?? input.previousContext?.targetRegion
+        explicitRegion ?? broadTargetRegion ?? nullToUndefined(parsed.context.targetRegion) ?? input.previousContext?.targetRegion
       ),
       travellerType:
         mergeTravellerType(
@@ -245,7 +259,7 @@ Rules:
         input.previousContext?.intent,
         nullToUndefined(parsed.context.intent) as UserIntent | undefined
       ),
-      timing: inferTiming(input.message) ?? input.previousContext?.timing,
+      timing: inferTiming(input.message) ?? (broadTargetRegion ? "flexible" : input.previousContext?.timing),
       budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
       vibe: mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern
