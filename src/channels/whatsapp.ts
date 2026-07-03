@@ -10,22 +10,27 @@ whatsappRouter.post("/", async (req, res) => {
     const from = String(req.body.From ?? "");
 
     if (!incomingMessage || !from) {
-      sendTwilioMessage(res, "Send a message to start.");
+      sendTwilioMessages(res, ["Send a message to start."]);
       return;
     }
 
     await logChatMessage(from, "incoming", incomingMessage);
 
-    const { reply, imageUrls } = await handleChatMessage({
+    const { reply, followUpMessages, imageUrls } = await handleChatMessage({
       userPhone: from,
       message: incomingMessage
     });
 
-    await logChatMessage(from, "outgoing", reply);
-    sendTwilioMessage(res, reply, imageUrls);
+    const outgoingMessages = [reply, ...followUpMessages];
+
+    for (const outgoingMessage of outgoingMessages) {
+      await logChatMessage(from, "outgoing", outgoingMessage);
+    }
+
+    sendTwilioMessages(res, outgoingMessages, imageUrls);
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
-    sendTwilioMessage(res, "OFFSCRIPT had a small hiccup. Try again in a moment.");
+    sendTwilioMessages(res, ["OFFSCRIPT had a small hiccup. Try again in a moment."]);
   }
 });
 
@@ -41,15 +46,15 @@ async function logChatMessage(
   }
 }
 
-function sendTwilioMessage(
+function sendTwilioMessages(
   res: { type: (value: string) => { send: (body: string) => void } },
-  message: string,
+  messages: string[],
   imageUrls: string[] = []
 ): void {
-  const textMessage = `<Message><Body>${escapeXml(message)}</Body></Message>`;
+  const textMessages = messages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
   const mediaMessages = imageUrls.map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`).join("");
 
-  res.type("text/xml").send(`<Response>${textMessage}${mediaMessages}</Response>`);
+  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}</Response>`);
 }
 
 function escapeXml(value: string): string {

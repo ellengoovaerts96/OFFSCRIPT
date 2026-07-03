@@ -34,6 +34,7 @@ export type ChatbotFlowResult =
       context: UserContext;
       placeId: string;
       placeName: string;
+      googleMapsUrl: string;
       score: number;
       message: string;
       imageUrls: string[];
@@ -581,6 +582,22 @@ function buildAlternativeIntro(context: UserContext, place: Place): string {
     : "";
 }
 
+function buildGoogleMapsFollowUp(context: UserContext, place: Pick<Place, "name" | "googleMapsUrl">): string {
+  if (context.language?.startsWith("nl")) {
+    return `Exacte locatie van ${place.name}: ${place.googleMapsUrl}`;
+  }
+
+  if (context.language?.startsWith("fr")) {
+    return `Localisation exacte de ${place.name} : ${place.googleMapsUrl}`;
+  }
+
+  if (context.language?.startsWith("de")) {
+    return `Genauer Standort von ${place.name}: ${place.googleMapsUrl}`;
+  }
+
+  return `Exact location for ${place.name}: ${place.googleMapsUrl}`;
+}
+
 function isResetCommand(message: string): boolean {
   return /^(?:reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?\s]*$/i.test(
     message.trim()
@@ -797,6 +814,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         context,
         placeId: alternativeSelection.place.id,
         placeName: alternativeSelection.place.name,
+        googleMapsUrl: alternativeSelection.place.googleMapsUrl,
         score: alternativeSelection.score,
         message: `${buildAlternativeIntro(context, alternativeSelection.place)}${messageText}`,
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
@@ -826,6 +844,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     context,
     placeId: selection.place.id,
     placeName: selection.place.name,
+    googleMapsUrl: selection.place.googleMapsUrl,
     score: selection.score,
     message: messageText,
     imageUrls: selectRecommendationImages(selection.place, message)
@@ -835,9 +854,13 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 export async function handleChatMessage(input: {
   userPhone: string;
   message: string;
-}): Promise<{ reply: string; imageUrls: string[] }> {
+}): Promise<{ reply: string; followUpMessages: string[]; imageUrls: string[] }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
   const reply = await avoidRepeatedReply(input.userPhone, result);
+  const followUpMessages =
+    result.type === "recommendation" && reply === result.message
+      ? [buildGoogleMapsFollowUp(result.context, { name: result.placeName, googleMapsUrl: result.googleMapsUrl })]
+      : [];
 
   if (result.type === "recommendation") {
     await recordPlaceRecommendation({
@@ -849,6 +872,7 @@ export async function handleChatMessage(input: {
 
   return {
     reply,
+    followUpMessages,
     imageUrls: result.type === "recommendation" ? result.imageUrls : []
   };
 }
