@@ -17,10 +17,23 @@ function hasActionableMoodOrIntent(context: UserContext): boolean {
 }
 
 function canRecommendWithoutTravellerType(context: UserContext): boolean {
-  return Boolean(hasSpecificLocation(context) && hasActionableMoodOrIntent(context) && (context.timing || context.vibe));
+  return Boolean(
+    hasSpecificLocation(context) &&
+      context.intent &&
+      context.intent !== "unknown" &&
+      (context.timing || context.vibe)
+  );
 }
 
 export function needsClarification(context: UserContext): MissingContextField | null {
+  if (
+    hasSpecificLocation(context) &&
+    context.vibe &&
+    (!context.intent || context.intent === "unknown")
+  ) {
+    return "intent";
+  }
+
   if (
     (!context.travellerType || context.travellerType === "unknown") &&
     !canRecommendWithoutTravellerType(context)
@@ -29,7 +42,7 @@ export function needsClarification(context: UserContext): MissingContextField | 
   }
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
   if (!hasSpecificLocation(context)) return "location";
-  if ((!context.intent || context.intent === "unknown") && !context.vibe) return "intent";
+  if (!context.intent || context.intent === "unknown") return "intent";
   if ((!context.timing || context.timing === "unknown") && !context.vibe) return "timing";
 
   return null;
