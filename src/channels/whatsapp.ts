@@ -31,11 +31,13 @@ whatsappRouter.post("/", async (req, res) => {
       return;
     }
 
-    for (const outgoingMessage of [...followUpMessages, ...afterMediaMessages]) {
-      await logChatMessage(from, "outgoing", outgoingMessage);
+    if (followUpMessages.length || imageUrls.length || afterMediaMessages.length) {
+      console.error(
+        "Delayed WhatsApp recommendation follow-ups are unavailable. Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM to send Maps, photos and the closing question after the description."
+      );
     }
 
-    sendTwilioMessages(res, [reply, ...followUpMessages], imageUrls, afterMediaMessages);
+    sendTwilioMessages(res, [reply]);
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
     sendTwilioMessages(res, ["OFFSCRIPT had a small hiccup. Try again in a moment."]);
@@ -56,15 +58,11 @@ async function logChatMessage(
 
 function sendTwilioMessages(
   res: { type: (value: string) => { send: (body: string) => void } },
-  messages: string[],
-  imageUrls: string[] = [],
-  afterMediaMessages: string[] = []
+  messages: string[]
 ): void {
   const textMessages = messages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
-  const mediaMessages = imageUrls.map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`).join("");
-  const afterMediaTextMessages = afterMediaMessages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
 
-  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}${afterMediaTextMessages}</Response>`);
+  res.type("text/xml").send(`<Response>${textMessages}</Response>`);
 }
 
 function scheduleRecommendationFollowUps(
