@@ -172,7 +172,7 @@ function containsObjectifyingSocialRequest(message: string): boolean {
     "mooie senegalese",
     "senegalees ontmoeten",
     "senegalese ontmoeten"
-  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
+  ].some((phrase) => containsNormalizedPhrase(normalized, phrase));
 }
 
 function buildRespectfulSocialResponse(context: UserContext): string {
@@ -649,6 +649,20 @@ function normalizeSearchText(value: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function normalizePhraseText(value: string): string {
+  return normalizeSearchText(value)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function containsNormalizedPhrase(normalizedMessage: string, phrase: string): boolean {
+  const searchableMessage = ` ${normalizePhraseText(normalizedMessage)} `;
+  const searchablePhrase = normalizePhraseText(phrase);
+
+  return Boolean(searchablePhrase && searchableMessage.includes(` ${searchablePhrase} `));
 }
 
 function subcategoryMatchesMessage(subcategoryName: string, message: string): boolean {
