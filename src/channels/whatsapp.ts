@@ -22,14 +22,10 @@ whatsappRouter.post("/", async (req, res) => {
       message: incomingMessage
     });
 
-    const outgoingMessages = [reply, ...followUpMessages];
+    await logChatMessage(from, "outgoing", reply);
 
-    for (const outgoingMessage of outgoingMessages) {
-      await logChatMessage(from, "outgoing", outgoingMessage);
-    }
-
-    sendTwilioMessages(res, outgoingMessages, imageUrls);
-    scheduleAfterMediaMessages(from, afterMediaMessages);
+    sendTwilioMessages(res, [reply]);
+    scheduleRecommendationFollowUps(from, followUpMessages, imageUrls, afterMediaMessages);
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
     sendTwilioMessages(res, ["OFFSCRIPT had a small hiccup. Try again in a moment."]);
@@ -48,34 +44,67 @@ async function logChatMessage(
   }
 }
 
-function sendTwilioMessages(
-  res: { type: (value: string) => { send: (body: string) => void } },
-  messages: string[],
-  imageUrls: string[] = []
-): void {
+function sendTwilioMessages(res: { type: (value: string) => { send: (body: string) => void } }, messages: string[]): void {
   const textMessages = messages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
-  const mediaMessages = imageUrls.map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`).join("");
 
-  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}</Response>`);
+  res.type("text/xml").send(`<Response>${textMessages}</Response>`);
 }
 
-function scheduleAfterMediaMessages(to: string, messages: string[]): void {
-  if (!messages.length) return;
+function scheduleRecommendationFollowUps(
+  to: string,
+  followUpMessages: string[],
+  imageUrls: string[],
+  afterMediaMessages: string[]
+): void {
+  if (!followUpMessages.length && !imageUrls.length && !afterMediaMessages.length) return;
 
   setTimeout(() => {
-    void sendDelayedMessages(to, messages);
-  }, 2500);
+    void sendRecommendationFollowUps(to, followUpMessages, imageUrls, afterMediaMessages);
+  }, 1500);
 }
 
-async function sendDelayedMessages(to: string, messages: string[]): Promise<void> {
-  for (const message of messages) {
+async function sendRecommendationFollowUps(
+  to: string,
+  followUpMessages: string[],
+  imageUrls: string[],
+  afterMediaMessages: string[]
+): Promise<void> {
+  for (const message of followUpMessages) {
     try {
       await sendWhatsAppMessage(to, message);
       await logChatMessage(to, "outgoing", message);
     } catch (error) {
-      console.error("Could not send delayed WhatsApp message", error);
+      console.error("Could not send delayed WhatsApp follow-up", error);
     }
   }
+
+  for (const imageUrl of imageUrls) {
+    try {
+      await sendWhatsAppMessage(to, undefined, [imageUrl]);
+      await wait(800);
+    } catch (error) {
+      console.error("Could not send delayed WhatsApp media", error);
+    }
+  }
+
+  if (imageUrls.length) {
+    await wait(1500);
+  }
+
+  for (const message of afterMediaMessages) {
+    try {
+      await sendWhatsAppMessage(to, message);
+      await logChatMessage(to, "outgoing", message);
+    } catch (error) {
+      console.error("Could not send delayed WhatsApp after-media message", error);
+    }
+  }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function escapeXml(value: string): string {
