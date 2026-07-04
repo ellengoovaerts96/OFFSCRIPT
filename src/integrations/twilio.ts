@@ -7,15 +7,26 @@ export const twilioClient = twilio(
 
 export const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM;
 
-export async function sendWhatsAppMessage(to: string, body?: string, mediaUrl?: string[]): Promise<void> {
-  if (!twilioWhatsAppFrom) {
-    throw new Error("TWILIO_WHATSAPP_FROM is not configured.");
+export function canSendWhatsAppMessage(fromOverride?: string): boolean {
+  return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && (twilioWhatsAppFrom || fromOverride));
+}
+
+export async function sendWhatsAppMessage(
+  to: string,
+  body?: string,
+  mediaUrl?: string[],
+  fromOverride?: string
+): Promise<void> {
+  const from = twilioWhatsAppFrom || fromOverride;
+
+  if (!from) {
+    throw new Error("TWILIO_WHATSAPP_FROM is not configured and no webhook To number was available.");
   }
 
   await twilioClient.messages.create({
-    from: twilioWhatsAppFrom,
+    from,
     to,
     ...(body ? { body } : {}),
-    mediaUrl
+    ...(mediaUrl?.length ? { mediaUrl } : {})
   });
 }
