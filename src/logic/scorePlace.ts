@@ -55,7 +55,7 @@ function placeMatchesIntent(place: Place, intent: string): boolean {
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     textIncludesAny(place.shortDescription, aliases) ||
-    textIncludesAny(place.longDescription, aliases) ||
+    textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
     textIncludesAny(place.whyHiddenGem, aliases) ||
     textIncludesAny(place.exactArea, aliases) ||
@@ -84,7 +84,7 @@ function placeMatchesShoppingFocus(place: Place, focus: string | undefined): boo
     place.subcategories.some((subcategory) => matchesAny(subcategory.name, aliases)) ||
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     textIncludesAny(place.shortDescription, aliases) ||
-    textIncludesAny(place.longDescription, aliases) ||
+    textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases)
   );
 }
@@ -100,7 +100,7 @@ function placeMatchesVibe(place: Place, vibe: string | undefined): boolean {
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
     textIncludesAny(place.shortDescription, aliases) ||
-    textIncludesAny(place.longDescription, aliases) ||
+    textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
     textIncludesAny(place.whyHiddenGem, aliases) ||
     textIncludesAny(place.vibe, aliases)

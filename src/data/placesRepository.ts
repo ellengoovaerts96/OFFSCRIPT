@@ -12,7 +12,7 @@ type PlaceRow = {
   categories: PlaceCategory[] | null;
   subcategories: PlaceSubcategory[] | null;
   short_description: string;
-  long_description: string | null;
+  practical_info: string | null;
   personal_tip: string | null;
   why_hidden_gem: string | null;
   best_for: string[] | null;
@@ -60,7 +60,7 @@ function mapPlace(row: PlaceRow): Place {
     categories: row.categories ?? [],
     subcategories: row.subcategories ?? [],
     shortDescription: row.short_description,
-    longDescription: row.long_description ?? undefined,
+    practicalInfo: row.practical_info ?? undefined,
     personalTip: row.personal_tip ?? undefined,
     whyHiddenGem: row.why_hidden_gem ?? undefined,
     bestFor: row.best_for ?? [],

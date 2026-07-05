@@ -38,7 +38,7 @@ export type Place = {
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];
   shortDescription: string;
-  longDescription?: string;
+  practicalInfo?: string;
   personalTip?: string;
   whyHiddenGem?: string;
   bestFor: string[];

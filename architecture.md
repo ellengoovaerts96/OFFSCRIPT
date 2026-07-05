@@ -299,7 +299,7 @@ type Place = {
   categories: ("food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other")[];
   subcategories: string[];
   shortDescription: string;
-  longDescription?: string;
+  practicalInfo?: string;
   personalTip?: string;
   whyHiddenGem?: string;
   bestFor: string[];
@@ -685,7 +685,7 @@ CREATE TABLE places (
   categories TEXT[] NOT NULL DEFAULT '{}',
   subcategories TEXT[] DEFAULT '{}',
   short_description TEXT NOT NULL,
-  long_description TEXT,
+  practical_info TEXT,
   personal_tip TEXT,
   why_hidden_gem TEXT,
   best_for TEXT[],

@@ -194,7 +194,7 @@ CREATE TABLE places (
   categories TEXT[] NOT NULL DEFAULT '{}',
   subcategories TEXT[] DEFAULT '{}',
   short_description TEXT NOT NULL,
-  long_description TEXT,
+  practical_info TEXT,
   personal_tip TEXT,
   why_hidden_gem TEXT,
   best_for TEXT[],
@@ -378,7 +378,7 @@ export type Place = {
     images: PlaceImage[];
   }[];
   shortDescription: string;
-  longDescription?: string;
+  practicalInfo?: string;
   personalTip?: string;
   whyHiddenGem?: string;
   bestFor: string[];
