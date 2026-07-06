@@ -14,7 +14,7 @@ type PlaceRow = {
   short_description: string;
   practical_info: string | null;
   personal_tip: string | null;
-  why_hidden_gem: string | null;
+  transport: string | null;
   best_for: string[] | null;
   not_ideal_for: string[] | null;
   traveller_types: string[] | null;
@@ -62,7 +62,7 @@ function mapPlace(row: PlaceRow): Place {
     shortDescription: row.short_description,
     practicalInfo: row.practical_info ?? undefined,
     personalTip: row.personal_tip ?? undefined,
-    whyHiddenGem: row.why_hidden_gem ?? undefined,
+    transport: row.transport ?? undefined,
     bestFor: row.best_for ?? [],
     notIdealFor: row.not_ideal_for ?? [],
     travellerTypes: row.traveller_types ?? [],

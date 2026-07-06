@@ -57,7 +57,7 @@ function placeMatchesIntent(place: Place, intent: string): boolean {
     textIncludesAny(place.shortDescription, aliases) ||
     textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
-    textIncludesAny(place.whyHiddenGem, aliases) ||
+    textIncludesAny(place.transport, aliases) ||
     textIncludesAny(place.exactArea, aliases) ||
     textIncludesAny(place.vibe, aliases)
   );
@@ -102,7 +102,7 @@ function placeMatchesVibe(place: Place, vibe: string | undefined): boolean {
     textIncludesAny(place.shortDescription, aliases) ||
     textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
-    textIncludesAny(place.whyHiddenGem, aliases) ||
+    textIncludesAny(place.transport, aliases) ||
     textIncludesAny(place.vibe, aliases)
   );
 }

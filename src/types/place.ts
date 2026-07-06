@@ -40,7 +40,7 @@ export type Place = {
   shortDescription: string;
   practicalInfo?: string;
   personalTip?: string;
-  whyHiddenGem?: string;
+  transport?: string;
   bestFor: string[];
   notIdealFor: string[];
   travellerTypes: string[];

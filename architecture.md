@@ -301,7 +301,7 @@ type Place = {
   shortDescription: string;
   practicalInfo?: string;
   personalTip?: string;
-  whyHiddenGem?: string;
+  transport?: string;
   bestFor: string[];
   notIdealFor?: string[];
   travellerTypes: string[];
@@ -687,7 +687,7 @@ CREATE TABLE places (
   short_description TEXT NOT NULL,
   practical_info TEXT,
   personal_tip TEXT,
-  why_hidden_gem TEXT,
+  transport TEXT,
   best_for TEXT[],
   not_ideal_for TEXT[],
   traveller_types TEXT[],
@@ -814,7 +814,7 @@ CREATE TABLE conversation_context (
   "subcategories": ["local café"],
   "shortDescription": "A quiet local courtyard café with simple food and a relaxed atmosphere.",
   "personalTip": "Go just before sunset and sit outside if possible.",
-  "whyHiddenGem": "It is not very visible from the street and is mostly known by locals.",
+  "transport": "Best reached by taxi from the nearest main road.",
   "bestFor": ["quiet dinner", "friends", "couple"],
   "travellerTypes": ["solo", "couple", "friends"],
   "childFriendly": false,

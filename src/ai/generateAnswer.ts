@@ -142,7 +142,7 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     })),
     shortDescription: place.shortDescription,
     personalTip: place.personalTip,
-    whyHiddenGem: place.whyHiddenGem,
+    transport: place.transport,
     bestFor: place.bestFor,
     childFriendly: place.childFriendly,
     childNotes: place.childNotes,
