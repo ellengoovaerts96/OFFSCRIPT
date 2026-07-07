@@ -30,7 +30,7 @@ export type PlaceSubcategory = {
 export type Place = {
   id: string;
   name: string;
-  country: "Senegal";
+  country: string;
   region: string;
   neighbourhood?: string;
   exactArea?: string;

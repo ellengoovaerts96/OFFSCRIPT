@@ -4,7 +4,7 @@ import type { Place, PlaceCategory, PlaceImage, PlaceSubcategory } from "../type
 type PlaceRow = {
   id: string;
   name: string;
-  country: "Senegal";
+  country: string;
   region: string;
   neighbourhood: string | null;
   exact_area: string | null;

@@ -188,7 +188,7 @@ Then create the MVP tables:
 CREATE TABLE places (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  country TEXT DEFAULT 'Senegal',
+  country TEXT,
   region TEXT NOT NULL,
   neighbourhood TEXT,
   categories TEXT[] NOT NULL DEFAULT '{}',
@@ -366,7 +366,7 @@ Keep API/domain types in camelCase:
 export type Place = {
   id: string;
   name: string;
-  country: "Senegal";
+  country: string;
   region: string;
   neighbourhood?: string;
   categories: ("food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other")[];

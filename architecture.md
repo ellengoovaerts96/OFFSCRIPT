@@ -295,7 +295,7 @@ type Place = {
   name: string;
   region: string;
   neighbourhood?: string;
-  country: "Senegal";
+  country: string;
   categories: ("food" | "bar" | "culture" | "beach" | "sports" | "nature" | "nightlife" | "shopping" | "stay" | "guide" | "other")[];
   subcategories: string[];
   shortDescription: string;
@@ -679,7 +679,7 @@ The most important tables are:
 CREATE TABLE places (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  country TEXT DEFAULT 'Senegal',
+  country TEXT,
   region TEXT NOT NULL,
   neighbourhood TEXT,
   categories TEXT[] NOT NULL DEFAULT '{}',

@@ -19,6 +19,7 @@ try {
     `
       INSERT INTO places (
         name,
+        country,
         region,
         neighbourhood,
         categories,
@@ -48,6 +49,7 @@ try {
       )
       VALUES (
         'OFFSCRIPT Demo: Mbour Fish Market',
+        'Senegal',
         'Mbour',
         'Mbour',
         ARRAY['culture'],
@@ -84,6 +86,7 @@ try {
       WITH place AS (
         INSERT INTO places (
           name,
+          country,
           region,
           neighbourhood,
           categories,
@@ -111,6 +114,7 @@ try {
         )
         VALUES (
           'Village de Soumbédioune',
+          'Senegal',
           'Dakar',
           'Soumbédioune',
           ARRAY['culture', 'shopping'],
