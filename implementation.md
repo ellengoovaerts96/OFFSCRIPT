@@ -237,6 +237,7 @@ CREATE TABLE place_images (
   url TEXT NOT NULL,
   alt_text TEXT,
   photographer TEXT,
+  sort_order INTEGER DEFAULT 0,
   is_hero_image BOOLEAN DEFAULT false,
   caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()

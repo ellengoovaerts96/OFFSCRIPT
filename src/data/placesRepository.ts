@@ -110,7 +110,7 @@ const placeSelect = `
             'caption', pi.caption,
             'isHeroImage', pi.is_hero_image
           )
-          ORDER BY pi.is_hero_image DESC, pi.created_at ASC
+          ORDER BY pi.is_hero_image DESC, pi.sort_order ASC, pi.created_at ASC
         )
         FROM place_images pi
         WHERE pi.place_id = p.id
