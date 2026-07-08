@@ -238,7 +238,6 @@ CREATE TABLE place_images (
   alt_text TEXT,
   photographer TEXT,
   copyright_status TEXT,
-  usage_allowed BOOLEAN DEFAULT false,
   is_hero_image BOOLEAN DEFAULT false,
   caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()
@@ -422,7 +421,6 @@ Rules:
 
 - return only `ready` and `premium` places
 - exclude `draft` and `archived`
-- include only images where `usage_allowed = true`
 - prefer hero images in ordering
 - never generate missing Google Maps URLs
 

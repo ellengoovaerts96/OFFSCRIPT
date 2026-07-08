@@ -733,7 +733,6 @@ CREATE TABLE place_images (
   alt_text TEXT,
   photographer TEXT,
   copyright_status TEXT,
-  usage_allowed BOOLEAN DEFAULT false,
   is_hero_image BOOLEAN DEFAULT false,
   caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()

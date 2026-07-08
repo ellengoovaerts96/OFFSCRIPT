@@ -114,7 +114,6 @@ const placeSelect = `
         )
         FROM place_images pi
         WHERE pi.place_id = p.id
-          AND pi.usage_allowed = true
       ),
       '[]'
     ) AS images,
