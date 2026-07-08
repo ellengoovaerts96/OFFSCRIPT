@@ -754,6 +754,33 @@ CREATE TABLE contacts (
 );
 ```
 
+### Table: `contact_methods`
+
+```sql
+CREATE TABLE contact_methods (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  value TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(contact_id, type, value)
+);
+```
+
+### Table: `place_contacts`
+
+```sql
+CREATE TABLE place_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  place_id UUID REFERENCES places(id) ON DELETE CASCADE,
+  contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
+  role TEXT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(place_id, contact_id)
+);
+```
+
 ### Table: `reservations`
 
 ```sql
