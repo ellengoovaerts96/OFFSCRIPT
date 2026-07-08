@@ -352,8 +352,6 @@ type PlaceImage = {
   url: string;
   altText: string;
   photographer?: string;
-  copyrightStatus: "owned" | "permission_given" | "unknown";
-  usageAllowed: boolean;
   isHeroImage: boolean;
   caption?: string;
 };
@@ -370,7 +368,6 @@ type PlaceSubcategory = {
 
 Rules:
 
-- Never show an image if `usageAllowed` is false.
 - Prefer the hero image if available.
 - Every image needs alt text.
 - Store images in a stable location such as Cloudinary, Supabase Storage or another image CDN.
@@ -732,7 +729,6 @@ CREATE TABLE place_images (
   url TEXT NOT NULL,
   alt_text TEXT,
   photographer TEXT,
-  copyright_status TEXT,
   is_hero_image BOOLEAN DEFAULT false,
   caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()

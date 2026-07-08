@@ -237,7 +237,6 @@ CREATE TABLE place_images (
   url TEXT NOT NULL,
   alt_text TEXT,
   photographer TEXT,
-  copyright_status TEXT,
   is_hero_image BOOLEAN DEFAULT false,
   caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()
@@ -260,7 +259,6 @@ CREATE TABLE place_subcategory_images (
   url TEXT NOT NULL,
   alt_text TEXT,
   photographer TEXT,
-  copyright_status TEXT,
   is_hero_image BOOLEAN DEFAULT false,
   caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()
