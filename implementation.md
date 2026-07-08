@@ -268,7 +268,7 @@ The database enforces a maximum of three `place_images` per place and three `pla
 
 CREATE TABLE contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
+  name TEXT,
   role TEXT,
   phone TEXT,
   whatsapp TEXT,
@@ -280,6 +280,11 @@ CREATE TABLE contacts (
   last_verified_at DATE,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX contacts_phone_unique_idx
+  ON contacts(phone)
+  WHERE phone IS NOT NULL
+    AND btrim(phone) <> '';
 
 CREATE TABLE contact_methods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

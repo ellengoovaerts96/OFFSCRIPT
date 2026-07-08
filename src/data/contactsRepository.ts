@@ -3,7 +3,7 @@ import type { Contact } from "../types/contact.js";
 
 type ContactRow = {
   id: string;
-  name: string;
+  name: string | null;
   role: string | null;
   phone: string | null;
   whatsapp: string | null;
@@ -24,7 +24,7 @@ export async function listTrustedContacts(): Promise<Contact[]> {
 
   return result.rows.map((row) => ({
     id: row.id,
-    name: row.name,
+    name: row.name ?? undefined,
     role: row.role ?? undefined,
     phone: row.phone ?? undefined,
     whatsapp: row.whatsapp ?? undefined,

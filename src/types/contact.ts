@@ -1,6 +1,6 @@
 export type Contact = {
   id: string;
-  name: string;
+  name?: string;
   role?: string;
   phone?: string;
   whatsapp?: string;
