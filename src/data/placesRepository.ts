@@ -139,7 +139,6 @@ const placeSelect = `
                 )
                 FROM place_subcategory_images psi
                 WHERE psi.place_subcategory_id = ps.id
-                  AND psi.usage_allowed = true
               ),
               '[]'
             )
