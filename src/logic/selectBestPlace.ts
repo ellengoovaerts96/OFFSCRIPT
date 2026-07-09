@@ -1,6 +1,6 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
-import { placeMatchesIntent, scorePlace } from "./scorePlace.js";
+import { placeMatchesIntent, placeMatchesLocation, scorePlace } from "./scorePlace.js";
 
 export const MIN_RECOMMENDATION_SCORE = 60;
 export const MIN_ALTERNATIVE_RECOMMENDATION_SCORE = 45;
@@ -29,8 +29,21 @@ function filterCandidates(places: Place[], context: UserContext): Place[] {
   return travellerCandidates.filter((place) => candidateMatchesContextIntent(place, context));
 }
 
+function targetLocationForContext(context: UserContext): string | undefined {
+  return context.targetRegion ?? context.currentLocation;
+}
+
+function localCandidatesForContext(places: Place[], context: UserContext): Place[] {
+  const targetLocation = targetLocationForContext(context);
+  if (!targetLocation || targetLocation === "Dakar") return places;
+
+  const localCandidates = places.filter((place) => placeMatchesLocation(place, targetLocation));
+
+  return localCandidates.length ? localCandidates : places;
+}
+
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
-  const candidates = filterCandidates(places, context);
+  const candidates = localCandidatesForContext(filterCandidates(places, context), context);
 
   const ranked = candidates
     .map((place) => ({ place, score: scorePlace(place, context) }))

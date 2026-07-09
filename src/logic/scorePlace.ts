@@ -48,6 +48,25 @@ function matchesAny(value: string, candidates: string[]): boolean {
   return candidates.map(normalizeValue).some((candidate) => normalizedValue === candidate || normalizedValue.includes(candidate));
 }
 
+function textMatchesLocation(value: string | undefined, targetLocation: string): boolean {
+  if (!value) return false;
+
+  const normalizedValue = normalizeValue(normalizeRegion(value) ?? value);
+  const normalizedTarget = normalizeValue(normalizeRegion(targetLocation) ?? targetLocation);
+
+  return normalizedValue === normalizedTarget || normalizedValue.includes(normalizedTarget);
+}
+
+export function placeMatchesLocation(place: Place, targetLocation: string | undefined): boolean {
+  if (!targetLocation) return false;
+
+  return (
+    textMatchesLocation(place.region, targetLocation) ||
+    textMatchesLocation(place.neighbourhood, targetLocation) ||
+    textMatchesLocation(place.exactArea, targetLocation)
+  );
+}
+
 export function placeMatchesIntent(place: Place, intent: string): boolean {
   const aliases = INTENT_CATEGORY_ALIASES[intent] ?? [intent];
 
@@ -107,10 +126,8 @@ export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
 
   const targetRegion = normalizeRegion(context.targetRegion ?? context.currentLocation);
-  const placeRegion = normalizeRegion(place.region);
-  const placeNeighbourhood = normalizeRegion(place.neighbourhood);
 
-  if (targetRegion && (placeRegion === targetRegion || placeNeighbourhood === targetRegion)) score += 40;
+  if (placeMatchesLocation(place, targetRegion)) score += 40;
   if (context.intent && context.intent !== "unknown" && placeMatchesIntent(place, context.intent)) {
     score += 30;
   }
