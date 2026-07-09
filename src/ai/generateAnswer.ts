@@ -297,6 +297,10 @@ function normaliseEnglishVariant(text: string, language: SupportedAnswerLanguage
   );
 }
 
+function removeWolofGreeting(text: string): string {
+  return text.replace(/^\s*na nga def\??\s*/i, "").trim();
+}
+
 function fallbackAnswer(input: GenerateAnswerInput): string {
   const place = input.selectedPlace;
   const language = answerLanguage(input.context.language);
@@ -341,6 +345,7 @@ Write the complete answer only in ${languageNames[language]}.
 When writing in English, use British spelling and vocabulary throughout, never American English.
 The place name may remain in its original language, but every other sentence must use the target language.
 Write one warm, concise WhatsApp recommendation.
+Do not start with or include "Na nga def?". That greeting is only for the first bot message in a WhatsApp conversation.
 Use only the provided selectedPlace facts.
 You may use retrievedFacts.stories and retrievedFacts.experiences only when they directly support the answer.
 Maximum 3 short sentences.
@@ -356,6 +361,6 @@ Omit missing facts. Do not invent anything.`,
     })
   });
 
-  const answer = normaliseEnglishVariant(response.output_text.trim(), language);
+  const answer = removeWolofGreeting(normaliseEnglishVariant(response.output_text.trim(), language));
   return answer && matchesLanguage(answer, language) ? answer : fallbackAnswer(input);
 }

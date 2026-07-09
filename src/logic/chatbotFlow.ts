@@ -697,6 +697,7 @@ function wasPlaceAlreadyMentioned(place: Place, outgoingMessages: string[]): boo
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
   const previousContext = await getConversationContext(userPhone);
+  const useWolofGreeting = !(await getLastOutgoingMessage(userPhone));
 
   if (isResetCommand(message)) {
     const context: UserContext = {
@@ -710,7 +711,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: buildGreetingResponse(context)
+      message: buildGreetingResponse(context, { useWolofGreeting })
     };
   }
 
@@ -725,7 +726,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: buildGreetingResponse(context)
+      message: buildGreetingResponse(context, { useWolofGreeting })
     };
   }
 
@@ -824,7 +825,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     const clarificationField = chooseClarificationFieldForMessage(message, context, missingField);
     const messageText =
       clarificationField === "travellerType"
-        ? buildGreetingResponse(context)
+        ? buildGreetingResponse(context, { useWolofGreeting })
         : buildClarifyingQuestion(clarificationField, context);
 
     return {
