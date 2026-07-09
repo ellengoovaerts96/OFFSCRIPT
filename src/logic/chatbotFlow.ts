@@ -369,18 +369,18 @@ function isRecommendationFeedbackOnly(message: string): boolean {
 
 function buildRecommendationFeedbackReply(context: UserContext): string {
   if (context.language.startsWith("nl")) {
-    return "Helemaal. Wil je nog iets anders?";
+    return "Helemaal.";
   }
 
   if (context.language.startsWith("fr")) {
-    return "Parfait. Tu veux encore autre chose ?";
+    return "Parfait.";
   }
 
   if (context.language.startsWith("de")) {
-    return "Alles klar. Möchtest du noch etwas anderes?";
+    return "Alles klar.";
   }
 
-  return "Got it. Would you like anything else?";
+  return "Got it.";
 }
 
 async function isFeedbackAfterRecommendation(userPhone: string, message: string): Promise<boolean> {
@@ -616,22 +616,6 @@ function buildGoogleMapsFollowUp(context: UserContext, place: Pick<Place, "name"
   }
 
   return `Exact location for ${place.name}: ${place.googleMapsUrl}`;
-}
-
-function buildAnythingElseFollowUp(context: UserContext): string {
-  if (context.language?.startsWith("nl")) {
-    return "Wil je nog iets anders?";
-  }
-
-  if (context.language?.startsWith("fr")) {
-    return "Tu veux encore autre chose ?";
-  }
-
-  if (context.language?.startsWith("de")) {
-    return "Möchtest du noch etwas anderes?";
-  }
-
-  return "Would you like anything else?";
 }
 
 function isResetCommand(message: string): boolean {
@@ -921,8 +905,7 @@ export async function handleChatMessage(input: {
     result.type === "recommendation" && reply === result.message
       ? [buildGoogleMapsFollowUp(result.context, { name: result.placeName, googleMapsUrl: result.googleMapsUrl })]
       : [];
-  const afterMediaMessages =
-    result.type === "recommendation" && reply === result.message ? [buildAnythingElseFollowUp(result.context)] : [];
+  const afterMediaMessages: string[] = [];
 
   if (result.type === "recommendation") {
     await recordPlaceRecommendation({
