@@ -7,7 +7,7 @@ const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
   drink: ["drink", "bar", "cocktail", "cocktails", "drinks", "cafe", "café"],
   culture: ["culture", "market", "museum", "craft", "crafts"],
   shopping: ["shopping", "shop", "market", "craft", "crafts"],
-  sports: ["sports", "sport"],
+  sports: ["sports", "sport", "fitness", "gym", "workout", "training", "surf", "surfing", "yoga", "running"],
   beach: ["beach", "sea", "ocean"],
   nightlife: ["nightlife", "club", "dance", "bar"]
 };
@@ -32,8 +32,14 @@ const VIBE_ALIASES: Record<string, string[]> = {
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
   calm: ["calm", "quiet", "rustig", "calme", "ruhig", "relax", "relaxed"],
   lively: ["lively", "gezellig", "levendig", "ambiance", "anime", "animé", "nightlife"],
-  scenic: ["scenic", "sunset", "view", "uitzicht", "vue", "sea", "ocean"]
+  scenic: ["scenic", "sunset", "view", "uitzicht", "vue", "sea", "ocean"],
+  fitness: ["fitness", "gym", "workout", "training"],
+  surfing: ["surfing", "surf", "surf school"],
+  yoga: ["yoga"],
+  running: ["running", "run"]
 };
+
+const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running"]);
 
 function normalizeValue(value: string): string {
   return value
@@ -109,16 +115,20 @@ function placeMatchesVibe(place: Place, vibe: string | undefined): boolean {
 
   const normalizedVibe = normalizeValue(vibe);
   const aliases = VIBE_ALIASES[normalizedVibe] ?? [normalizedVibe];
-
-  return (
+  const structuredMatch =
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
+    textIncludesAny(place.vibe, aliases);
+
+  if (STRUCTURED_ONLY_VIBES.has(normalizedVibe)) return structuredMatch;
+
+  return (
+    structuredMatch ||
     textIncludesAny(place.shortDescription, aliases) ||
     textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
-    textIncludesAny(place.transport, aliases) ||
-    textIncludesAny(place.vibe, aliases)
+    textIncludesAny(place.transport, aliases)
   );
 }
 

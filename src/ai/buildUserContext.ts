@@ -134,7 +134,7 @@ function hasExplicitActivityIntent(message: string): boolean {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|drink|bar|cocktail|swim|surf|relax|walk|party|dance|eten|ontbijt|restaurant|diner|lunch|drinken|bar|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|nager|surfer|marcher|essen|fruhstuck|restaurant|trinken|schwimmen|spazieren)\b/.test(
+  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|drink|bar|cocktail|fitness|gym|workout|training|swim|surf|relax|walk|party|dance|eten|ontbijt|restaurant|diner|lunch|drinken|bar|fitness|gym|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|fitness|gym|nager|surfer|marcher|essen|fruhstuck|restaurant|fitness|gym|trinken|schwimmen|spazieren)\b/.test(
     lower
   );
 }
@@ -208,6 +208,10 @@ function inferTextVibe(message: string): string | undefined {
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
+  if (/\b(fitness|gym|workout|training)\b/.test(lower)) return "fitness";
+  if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
+  if (/\b(yoga)\b/.test(lower)) return "yoga";
+  if (/\b(running|run|lopen|courir)\b/.test(lower)) return "running";
   if (isBeachLocationPreference(message)) return "beach";
 
   return undefined;

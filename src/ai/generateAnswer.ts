@@ -302,6 +302,23 @@ function removeWolofGreeting(text: string): string {
   return text.replace(/^\s*na nga def\??\s*/i, "").trim();
 }
 
+function practicalInfoLabel(language: SupportedAnswerLanguage): string {
+  if (language === "nl") return "Praktisch";
+  if (language === "fr") return "Pratique";
+  if (language === "de") return "Praktisch";
+  return "Practical info";
+}
+
+function ensurePracticalInfo(text: string, place: Place, language: SupportedAnswerLanguage): string {
+  if (!place.practicalInfo) return text;
+
+  const normalizedText = text.toLowerCase();
+  const normalizedPracticalInfo = place.practicalInfo.toLowerCase();
+  if (normalizedText.includes(normalizedPracticalInfo)) return text;
+
+  return `${text} ${practicalInfoLabel(language)}: ${place.practicalInfo}`;
+}
+
 function fallbackAnswer(input: GenerateAnswerInput): string {
   const place = input.selectedPlace;
   const language = answerLanguage(input.context.language);
@@ -367,6 +384,10 @@ Omit missing facts. Do not invent anything.`,
     })
   });
 
-  const answer = removeWolofGreeting(normaliseEnglishVariant(response.output_text.trim(), language));
+  const answer = ensurePracticalInfo(
+    removeWolofGreeting(normaliseEnglishVariant(response.output_text.trim(), language)),
+    input.selectedPlace,
+    language
+  );
   return answer && matchesLanguage(answer, language) ? answer : fallbackAnswer(input);
 }
