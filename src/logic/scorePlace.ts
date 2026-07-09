@@ -135,6 +135,8 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
   const aliases = VIBE_ALIASES[normalizedFocus] ?? [normalizedFocus];
 
   return (
+    textIncludesAny(place.name, aliases) ||
+    textIncludesAny(place.exactArea, aliases) ||
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
