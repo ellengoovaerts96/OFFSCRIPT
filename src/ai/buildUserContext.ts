@@ -97,7 +97,7 @@ function isKnownRegionOnly(message: string): boolean {
 function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
-  if (/\b(morning|ochtend|matin)\b/.test(lower)) return "morning";
+  if (/\b(morning|breakfast|ochtend|ontbijt|matin|petit déjeuner|frühstück)\b/.test(lower)) return "morning";
   if (/\b(lunch|noon|midday|middageten|lunchpauze|dejeuner|déjeuner|mittagessen)\b/.test(lower)) return "lunch";
   if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
   if (/\b(evening|tonight|dinner|avond|vanavond|diner|soir|ce soir|dîner|abend|heute abend|abendessen)\b/.test(lower)) return "evening";
@@ -134,7 +134,7 @@ function hasExplicitActivityIntent(message: string): boolean {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(eat|food|restaurant|dinner|lunch|drink|bar|cocktail|swim|surf|relax|walk|party|dance|eten|restaurant|diner|lunch|drinken|bar|zwemmen|surfen|wandelen|manger|restaurant|dejeuner|diner|boire|nager|surfer|marcher|essen|restaurant|trinken|schwimmen|spazieren)\b/.test(
+  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|drink|bar|cocktail|swim|surf|relax|walk|party|dance|eten|ontbijt|restaurant|diner|lunch|drinken|bar|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|nager|surfer|marcher|essen|fruhstuck|restaurant|trinken|schwimmen|spazieren)\b/.test(
     lower
   );
 }

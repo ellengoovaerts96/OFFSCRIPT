@@ -3,7 +3,7 @@ import type { UserIntent } from "../types/userContext.js";
 export function detectIntent(message: string): UserIntent | undefined {
   const lower = message.toLowerCase();
 
-  if (/\b(food|eat|restaurant|dinner|lunch|eten|restaurant|manger|déjeuner|dîner|essen|mittagessen|abendessen)\b/.test(lower)) return "food";
+  if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|eten|ontbijt|restaurant|manger|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
   if (/\b(drink|bar|cocktail|bier|drinken|boire|verre|trinken|getränk)\b/.test(lower)) return "drink";
   if (/\b(culture|museum|market|cultuur|markt|culture|marché|kultur|markt)\b/.test(lower)) return "culture";
   if (/\b(beach|strand|plage)\b/.test(lower)) return "beach";
