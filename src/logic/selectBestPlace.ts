@@ -51,9 +51,7 @@ function localCandidatesForContext(places: Place[], context: UserContext): Place
 function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
   if (!isSpecificFocus(context.vibe)) return places;
 
-  const focusCandidates = places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
-
-  return focusCandidates.length ? focusCandidates : places;
+  return places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
 }
 
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
@@ -81,7 +79,7 @@ export function selectBestAlternativePlace(places: Place[], context: UserContext
     targetRegion: undefined
   };
 
-  const candidates = filterCandidates(places, contextWithoutLocation);
+  const candidates = focusCandidatesForContext(filterCandidates(places, contextWithoutLocation), contextWithoutLocation);
 
   const ranked = candidates
     .map((place) => ({ place, score: scorePlace(place, contextWithoutLocation) }))
