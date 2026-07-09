@@ -156,7 +156,7 @@ const placeSelect = `
 export async function listRecommendationPlaces(): Promise<Place[]> {
   const result = await pool.query<PlaceRow>(`
     ${placeSelect}
-    WHERE p.status IN ('ready', 'premium')
+    WHERE p.status <> 'archived'
     ORDER BY p.status DESC, p.name ASC
   `);
 
@@ -168,7 +168,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
     `
       ${placeSelect}
       WHERE p.id = $1
-        AND p.status IN ('ready', 'premium')
+        AND p.status <> 'archived'
       LIMIT 1
     `,
     [id]
