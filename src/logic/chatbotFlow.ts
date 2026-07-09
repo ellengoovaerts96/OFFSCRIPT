@@ -34,6 +34,7 @@ export type ChatbotFlowResult =
       placeId: string;
       placeName: string;
       googleMapsUrl: string;
+      shortDescription: string;
       practicalInfo?: string;
       score: number;
       message: string;
@@ -792,9 +793,10 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         placeId: alternativeSelection.place.id,
         placeName: alternativeSelection.place.name,
         googleMapsUrl: alternativeSelection.place.googleMapsUrl,
+        shortDescription: alternativeSelection.place.shortDescription,
         practicalInfo: alternativeSelection.place.practicalInfo,
         score: alternativeSelection.score,
-        message: alternativeSelection.place.shortDescription,
+        message: alternativeSelection.place.name,
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
       };
     }
@@ -820,9 +822,10 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     placeId: selection.place.id,
     placeName: selection.place.name,
     googleMapsUrl: selection.place.googleMapsUrl,
+    shortDescription: selection.place.shortDescription,
     practicalInfo: selection.place.practicalInfo,
     score: selection.score,
-    message: selection.place.shortDescription,
+    message: selection.place.name,
     imageUrls: selectRecommendationImages(selection.place, message)
   };
 }
@@ -842,7 +845,9 @@ export async function handleChatMessage(input: {
   const locationActions: string[] = [];
   const followUpMessages =
     result.type === "recommendation" && reply === result.message
-      ? [result.practicalInfo, result.googleMapsUrl].filter((message): message is string => Boolean(message))
+      ? [result.shortDescription, result.practicalInfo, result.googleMapsUrl].filter(
+          (message): message is string => Boolean(message)
+        )
       : [];
   const afterMediaMessages: string[] = [];
 
