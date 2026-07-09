@@ -3,8 +3,8 @@ import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 
 const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
-  food: ["food", "restaurant", "lunch", "dinner", "brunch", "local food", "local"],
-  drink: ["drink", "bar", "cocktail", "drinks"],
+  food: ["food", "restaurant", "restaurants", "lunch", "dinner", "brunch", "breakfast", "cafe", "café", "seafood", "grill", "eat", "eating"],
+  drink: ["drink", "bar", "cocktail", "cocktails", "drinks", "cafe", "café"],
   culture: ["culture", "market", "museum", "craft", "crafts"],
   shopping: ["shopping", "shop", "market", "craft", "crafts"],
   sports: ["sports", "sport"],
@@ -50,15 +50,11 @@ function matchesAny(value: string, candidates: string[]): boolean {
 
 export function placeMatchesIntent(place: Place, intent: string): boolean {
   const aliases = INTENT_CATEGORY_ALIASES[intent] ?? [intent];
+
   return (
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
-    textIncludesAny(place.shortDescription, aliases) ||
-    textIncludesAny(place.practicalInfo, aliases) ||
-    textIncludesAny(place.personalTip, aliases) ||
-    textIncludesAny(place.transport, aliases) ||
-    textIncludesAny(place.exactArea, aliases) ||
     textIncludesAny(place.vibe, aliases)
   );
 }
