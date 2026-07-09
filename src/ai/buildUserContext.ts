@@ -117,6 +117,17 @@ function acceptsAnyLocation(message: string): boolean {
   );
 }
 
+function acceptsBroaderLocation(message: string): boolean {
+  const lower = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|andere buurt|andere wijk|andere regio|andere plek|andere plaats|elders|autre quartier|autre zone|autre endroit|anderes viertel|andere gegend)\b/.test(
+    lower
+  );
+}
+
 function isBeachLocationPreference(message: string): boolean {
   const lower = message
     .normalize("NFD")
@@ -234,7 +245,8 @@ function mergeTravellerType(message: string, previousTravellerType?: TravellerTy
 function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContextResult {
   const previous = input.previousContext;
   const inferredRegion = findKnownRegion(input.message);
-  const targetRegion = normalizeRegion(inferredRegion ?? (acceptsAnyLocation(input.message) ? "Dakar" : previous?.targetRegion));
+  const acceptsBroadLocation = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message);
+  const targetRegion = normalizeRegion(inferredRegion ?? (acceptsBroadLocation ? "Dakar" : previous?.targetRegion));
   const timing = inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previous?.timing);
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
@@ -255,7 +267,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
 
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
-  const broadTargetRegion = acceptsAnyLocation(input.message) ? "Dakar" : undefined;
+  const broadTargetRegion = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message) ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
   if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
@@ -312,7 +324,7 @@ Rules:
         input.previousContext?.intent,
         messageIsKnownRegionOnly ? undefined : (nullToUndefined(parsed.context.intent) as UserIntent | undefined)
       ),
-      timing: inferTiming(input.message) ?? (broadTargetRegion ? "flexible" : input.previousContext?.timing),
+      timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
       budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
