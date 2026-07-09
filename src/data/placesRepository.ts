@@ -10,6 +10,7 @@ type PlaceRow = {
   exact_area: string | null;
   vibe: string | null;
   categories: PlaceCategory[] | null;
+  legacy_subcategories: string[] | null;
   subcategories: PlaceSubcategory[] | null;
   short_description: string;
   practical_info: string | null;
@@ -48,6 +49,22 @@ type PlaceRow = {
   images: PlaceImage[] | null;
 };
 
+function mergeSubcategories(row: PlaceRow): PlaceSubcategory[] {
+  const normalizedSubcategories = row.subcategories ?? [];
+  const existingNames = new Set(normalizedSubcategories.map((subcategory) => subcategory.name.trim().toLowerCase()));
+  const legacySubcategories = (row.legacy_subcategories ?? [])
+    .filter((name) => name.trim())
+    .filter((name) => !existingNames.has(name.trim().toLowerCase()))
+    .map((name, index) => ({
+      id: `legacy-${row.id}-${index}`,
+      name,
+      displayOrder: normalizedSubcategories.length + index + 1,
+      images: []
+    }));
+
+  return [...normalizedSubcategories, ...legacySubcategories];
+}
+
 function mapPlace(row: PlaceRow): Place {
   return {
     id: row.id,
@@ -58,7 +75,7 @@ function mapPlace(row: PlaceRow): Place {
     exactArea: row.exact_area ?? undefined,
     vibe: row.vibe ?? undefined,
     categories: row.categories ?? [],
-    subcategories: row.subcategories ?? [],
+    subcategories: mergeSubcategories(row),
     shortDescription: row.short_description,
     practicalInfo: row.practical_info ?? undefined,
     personalTip: row.personal_tip ?? undefined,
@@ -100,6 +117,7 @@ function mapPlace(row: PlaceRow): Place {
 const placeSelect = `
   SELECT
     p.*,
+    p.subcategories AS legacy_subcategories,
     COALESCE(
       (
         SELECT json_agg(
