@@ -1,6 +1,12 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
-import { placeMatchesIntent, placeMatchesLocation, scorePlace } from "./scorePlace.js";
+import {
+  isSpecificFocus,
+  placeMatchesIntent,
+  placeMatchesLocation,
+  placeMatchesSpecificFocus,
+  scorePlace
+} from "./scorePlace.js";
 
 export const MIN_RECOMMENDATION_SCORE = 60;
 export const MIN_ALTERNATIVE_RECOMMENDATION_SCORE = 45;
@@ -42,8 +48,16 @@ function localCandidatesForContext(places: Place[], context: UserContext): Place
   return localCandidates.length ? localCandidates : places;
 }
 
+function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
+  if (!isSpecificFocus(context.vibe)) return places;
+
+  const focusCandidates = places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
+
+  return focusCandidates.length ? focusCandidates : places;
+}
+
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
-  const candidates = localCandidatesForContext(filterCandidates(places, context), context);
+  const candidates = localCandidatesForContext(focusCandidatesForContext(filterCandidates(places, context), context), context);
 
   const ranked = candidates
     .map((place) => ({ place, score: scorePlace(place, context) }))
