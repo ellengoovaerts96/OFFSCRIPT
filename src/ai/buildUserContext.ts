@@ -98,6 +98,7 @@ function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
   if (/\b(morning|ochtend|matin)\b/.test(lower)) return "morning";
+  if (/\b(lunch|noon|midday|middageten|lunchpauze|dejeuner|déjeuner|mittagessen)\b/.test(lower)) return "lunch";
   if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
   if (/\b(evening|tonight|dinner|avond|vanavond|diner|soir|ce soir|dîner|abend|heute abend|abendessen)\b/.test(lower)) return "evening";
   if (/\b(now|nu|maintenant|jetzt)\b/.test(lower)) return "now";

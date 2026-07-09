@@ -16,8 +16,8 @@ const TIMING_ALIASES: Record<string, string[]> = {
   tonight: ["tonight", "evening", "night"],
   evening: ["evening", "tonight", "night", "sunset"],
   sunset: ["sunset", "evening"],
-  lunch: ["lunch", "day", "afternoon"],
-  afternoon: ["afternoon", "day", "lunch"],
+  lunch: ["lunch", "noon", "midday", "day", "afternoon"],
+  afternoon: ["afternoon", "day", "lunch", "noon", "midday"],
   morning: ["morning"]
 };
 
