@@ -711,7 +711,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: buildGreetingResponse(context, { useWolofGreeting })
+      message: buildGreetingResponse(context, { useWolofGreeting: true })
     };
   }
 
