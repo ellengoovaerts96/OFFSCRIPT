@@ -1,6 +1,6 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
-import { scorePlace } from "./scorePlace.js";
+import { placeMatchesIntent, scorePlace } from "./scorePlace.js";
 
 export const MIN_RECOMMENDATION_SCORE = 60;
 export const MIN_ALTERNATIVE_RECOMMENDATION_SCORE = 45;
@@ -10,11 +10,27 @@ export type PlaceSelection = {
   score: number;
 };
 
-export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
-  const candidates =
+function shouldRequireIntentMatch(context: UserContext): boolean {
+  return Boolean(context.intent && context.intent !== "unknown");
+}
+
+function candidateMatchesContextIntent(place: Place, context: UserContext): boolean {
+  if (!shouldRequireIntentMatch(context)) return true;
+
+  return placeMatchesIntent(place, context.intent as string);
+}
+
+function filterCandidates(places: Place[], context: UserContext): Place[] {
+  const travellerCandidates =
     context.travellerType === "family" || context.hasChildren === true
       ? places.filter((place) => place.childFriendly)
       : places;
+
+  return travellerCandidates.filter((place) => candidateMatchesContextIntent(place, context));
+}
+
+export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
+  const candidates = filterCandidates(places, context);
 
   const ranked = candidates
     .map((place) => ({ place, score: scorePlace(place, context) }))
@@ -38,10 +54,7 @@ export function selectBestAlternativePlace(places: Place[], context: UserContext
     targetRegion: undefined
   };
 
-  const candidates =
-    context.travellerType === "family" || context.hasChildren === true
-      ? places.filter((place) => place.childFriendly)
-      : places;
+  const candidates = filterCandidates(places, contextWithoutLocation);
 
   const ranked = candidates
     .map((place) => ({ place, score: scorePlace(place, contextWithoutLocation) }))

@@ -48,7 +48,7 @@ function matchesAny(value: string, candidates: string[]): boolean {
   return candidates.map(normalizeValue).some((candidate) => normalizedValue === candidate || normalizedValue.includes(candidate));
 }
 
-function placeMatchesIntent(place: Place, intent: string): boolean {
+export function placeMatchesIntent(place: Place, intent: string): boolean {
   const aliases = INTENT_CATEGORY_ALIASES[intent] ?? [intent];
   return (
     place.categories.some((category) => matchesAny(category, aliases)) ||
