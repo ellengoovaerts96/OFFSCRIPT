@@ -1,6 +1,5 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
 import { detectLanguage, detectRequestedLanguage } from "../ai/detectLanguage.js";
-import { generateAnswer } from "../ai/generateAnswer.js";
 import {
   deleteConversationContext,
   getConversationContext,
@@ -14,7 +13,6 @@ import {
   listRecommendedPlaceIds,
   recordPlaceRecommendation
 } from "../data/recommendationHistoryRepository.js";
-import { buildRetrievedFacts } from "../data/retrievalRepository.js";
 import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
@@ -36,8 +34,7 @@ export type ChatbotFlowResult =
       placeId: string;
       placeName: string;
       googleMapsUrl: string;
-      latitude?: number;
-      longitude?: number;
+      practicalInfo?: string;
       score: number;
       message: string;
       imageUrls: string[];
@@ -573,59 +570,6 @@ async function avoidRepeatedReply(userPhone: string, result: ChatbotFlowResult):
   return previous === next ? buildRepeatedReply(result) : result.message;
 }
 
-function placeArea(place: Place): string {
-  return place.neighbourhood ?? place.region;
-}
-
-function buildAlternativeIntro(context: UserContext, place: Place): string {
-  const requestedLocation = context.targetRegion ?? context.currentLocation;
-  const alternativeLocation = placeArea(place);
-
-  if (context.language?.startsWith("nl")) {
-    return requestedLocation
-      ? `Ik heb nog geen sterke OFFSCRIPT-match in ${requestedLocation}, maar wel een goede optie in ${alternativeLocation}: `
-      : "";
-  }
-
-  if (context.language?.startsWith("fr")) {
-    return requestedLocation
-      ? `Je n’ai pas encore de match OFFSCRIPT vraiment solide à ${requestedLocation}, mais j’ai une bonne option à ${alternativeLocation} : `
-      : "";
-  }
-
-  if (context.language?.startsWith("de")) {
-    return requestedLocation
-      ? `Ich habe noch keinen starken OFFSCRIPT-Match in ${requestedLocation}, aber eine gute Option in ${alternativeLocation}: `
-      : "";
-  }
-
-  return requestedLocation
-    ? `I do not have a strong OFFSCRIPT match in ${requestedLocation} yet, but I do have a good option in ${alternativeLocation}: `
-    : "";
-}
-
-function buildGoogleMapsFollowUp(context: UserContext, place: Pick<Place, "name" | "googleMapsUrl">): string {
-  if (context.language?.startsWith("nl")) {
-    return `Exacte locatie van ${place.name}: ${place.googleMapsUrl}`;
-  }
-
-  if (context.language?.startsWith("fr")) {
-    return `Localisation exacte de ${place.name} : ${place.googleMapsUrl}`;
-  }
-
-  if (context.language?.startsWith("de")) {
-    return `Genauer Standort von ${place.name}: ${place.googleMapsUrl}`;
-  }
-
-  return `Exact location for ${place.name}: ${place.googleMapsUrl}`;
-}
-
-function buildLocationFollowUp(place: Pick<Place, "name" | "latitude" | "longitude">): string[] {
-  if (place.latitude === undefined || place.longitude === undefined) return [];
-
-  return [`geo:${place.latitude},${place.longitude}|${place.name}`];
-}
-
 function isResetCommand(message: string): boolean {
   return /^(?:reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?\s]*$/i.test(
     message.trim()
@@ -679,7 +623,7 @@ function selectRecommendationImages(place: Place, message: string): string[] {
     ...place.subcategories.flatMap((subcategory) => subcategory.images.map((image) => image.url))
   ];
 
-  return Array.from(new Set(imageUrls)).slice(0, 2);
+  return Array.from(new Set(imageUrls)).slice(0, 3);
 }
 
 function wasPlaceAlreadyMentioned(place: Place, outgoingMessages: string[]): boolean {
@@ -842,27 +786,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     const alternativeSelection = selectBestAlternativePlace(newPlaces, context);
 
     if (alternativeSelection) {
-      const retrievedFacts = await buildRetrievedFacts({
-        context,
-        alternativePlace: alternativeSelection.place
-      });
-      const messageText = await generateAnswer({
-        userMessage: message,
-        context,
-        selectedPlace: alternativeSelection.place,
-        retrievedFacts
-      });
-
       return {
         type: "recommendation",
         context,
         placeId: alternativeSelection.place.id,
         placeName: alternativeSelection.place.name,
         googleMapsUrl: alternativeSelection.place.googleMapsUrl,
-        latitude: alternativeSelection.place.latitude,
-        longitude: alternativeSelection.place.longitude,
+        practicalInfo: alternativeSelection.place.practicalInfo,
         score: alternativeSelection.score,
-        message: `${buildAlternativeIntro(context, alternativeSelection.place)}${messageText}`,
+        message: alternativeSelection.place.shortDescription,
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
       };
     }
@@ -882,27 +814,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  const retrievedFacts = await buildRetrievedFacts({
-    context,
-    selectedPlace: selection.place
-  });
-  const messageText = await generateAnswer({
-    userMessage: message,
-    context,
-    selectedPlace: selection.place,
-    retrievedFacts
-  });
-
   return {
     type: "recommendation",
     context,
     placeId: selection.place.id,
     placeName: selection.place.name,
     googleMapsUrl: selection.place.googleMapsUrl,
-    latitude: selection.place.latitude,
-    longitude: selection.place.longitude,
+    practicalInfo: selection.place.practicalInfo,
     score: selection.score,
-    message: messageText,
+    message: selection.place.shortDescription,
     imageUrls: selectRecommendationImages(selection.place, message)
   };
 }
@@ -919,17 +839,10 @@ export async function handleChatMessage(input: {
 }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
   const reply = await avoidRepeatedReply(input.userPhone, result);
-  const locationActions =
-    result.type === "recommendation" && reply === result.message
-      ? buildLocationFollowUp({
-          name: result.placeName,
-          latitude: result.latitude,
-          longitude: result.longitude
-        })
-      : [];
+  const locationActions: string[] = [];
   const followUpMessages =
-    result.type === "recommendation" && reply === result.message && !locationActions.length
-      ? [buildGoogleMapsFollowUp(result.context, { name: result.placeName, googleMapsUrl: result.googleMapsUrl })]
+    result.type === "recommendation" && reply === result.message
+      ? [result.practicalInfo, result.googleMapsUrl].filter((message): message is string => Boolean(message))
       : [];
   const afterMediaMessages: string[] = [];
 
