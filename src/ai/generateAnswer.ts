@@ -141,6 +141,7 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
       imageCount: subcategory.images.length
     })),
     shortDescription: place.shortDescription,
+    practicalInfo: place.practicalInfo,
     personalTip: place.personalTip,
     transport: place.transport,
     bestFor: place.bestFor,
@@ -308,25 +309,29 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
 
   if (language === "nl") {
     const fit = intent ? `Deze plek past goed als je zin hebt in ${intent}.` : "Deze plek past goed bij wat je zoekt.";
+    const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
     const reservation = place.reservationNeeded ? "Ik raad aan om vooraf te reserveren." : undefined;
-    return [`Ik zou je naar ${place.name} sturen.`, fit, reservation].filter(Boolean).join(" ");
+    return [`Ik zou je naar ${place.name} sturen.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "fr") {
     const fit = intent ? `Cet endroit te convient bien si tu cherches ${intent}.` : "Cet endroit correspond bien à ce que tu cherches.";
+    const practicalInfo = place.practicalInfo ? `Pratique : ${place.practicalInfo}` : undefined;
     const reservation = place.reservationNeeded ? "Je te conseille de réserver à l’avance." : undefined;
-    return [`Je t’enverrais à ${place.name}.`, fit, reservation].filter(Boolean).join(" ");
+    return [`Je t’enverrais à ${place.name}.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "de") {
     const fit = intent ? `Dieser Ort passt gut, wenn du Lust auf ${intent} hast.` : "Dieser Ort passt gut zu dem, was du suchst.";
+    const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
     const reservation = place.reservationNeeded ? "Ich würde vorher reservieren." : undefined;
-    return [`Ich würde dich zu ${place.name} schicken.`, fit, reservation].filter(Boolean).join(" ");
+    return [`Ich würde dich zu ${place.name} schicken.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
   }
 
   const fit = intent ? `This place is a good fit if you are looking for ${intent}.` : "This place is a good fit for what you want.";
+  const practicalInfo = place.practicalInfo ? `Practical info: ${place.practicalInfo}` : undefined;
   const reservation = place.reservationNeeded ? "I recommend booking in advance." : undefined;
-  return [`I would send you to ${place.name}.`, fit, reservation].filter(Boolean).join(" ");
+  return [`I would send you to ${place.name}.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
 }
 
 export async function generateAnswer(input: GenerateAnswerInput): Promise<string> {
@@ -349,7 +354,8 @@ Do not start with or include "Na nga def?". That greeting is only for the first 
 Use only the provided selectedPlace facts.
 You may use retrievedFacts.stories and retrievedFacts.experiences only when they directly support the answer.
 Maximum 3 short sentences.
-Include the place name, why it fits, and at most one useful tip.
+Include the place name, why it fits, and practicalInfo when selectedPlace.practicalInfo is available.
+Add at most one extra useful tip beyond practicalInfo.
 Do not include a Google Maps link.
 Only include a URL if it comes from retrievedFacts.stories or retrievedFacts.experiences and is directly relevant.
 Omit missing facts. Do not invent anything.`,
