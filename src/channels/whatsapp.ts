@@ -67,19 +67,12 @@ function sendTwilioMessages(
   afterMediaMessages: string[] = []
 ): void {
   const textMessages = messages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
-  const afterMediaBody = afterMediaMessages.join("\n\n");
   const mediaMessages = imageUrls
-    .map((url, index) => {
-      const isLastImage = index === imageUrls.length - 1;
-      const caption = isLastImage && afterMediaBody ? `<Body>${escapeXml(afterMediaBody)}</Body>` : "";
-
-      return `<Message>${caption}<Media>${escapeXml(url)}</Media></Message>`;
-    })
+    .map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`)
     .join("");
-  const afterMediaTextMessages =
-    imageUrls.length === 0
-      ? afterMediaMessages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("")
-      : "";
+  const afterMediaTextMessages = afterMediaMessages
+    .map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`)
+    .join("");
 
   res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}${afterMediaTextMessages}</Response>`);
 }
