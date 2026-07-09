@@ -36,6 +36,8 @@ export type ChatbotFlowResult =
       placeId: string;
       placeName: string;
       googleMapsUrl: string;
+      latitude?: number;
+      longitude?: number;
       score: number;
       message: string;
       imageUrls: string[];
@@ -618,6 +620,12 @@ function buildGoogleMapsFollowUp(context: UserContext, place: Pick<Place, "name"
   return `Exact location for ${place.name}: ${place.googleMapsUrl}`;
 }
 
+function buildLocationFollowUp(place: Pick<Place, "name" | "latitude" | "longitude">): string[] {
+  if (place.latitude === undefined || place.longitude === undefined) return [];
+
+  return [`geo:${place.latitude},${place.longitude}|${place.name}`];
+}
+
 function isResetCommand(message: string): boolean {
   return /^(?:reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?\s]*$/i.test(
     message.trim()
@@ -851,6 +859,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         placeId: alternativeSelection.place.id,
         placeName: alternativeSelection.place.name,
         googleMapsUrl: alternativeSelection.place.googleMapsUrl,
+        latitude: alternativeSelection.place.latitude,
+        longitude: alternativeSelection.place.longitude,
         score: alternativeSelection.score,
         message: `${buildAlternativeIntro(context, alternativeSelection.place)}${messageText}`,
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
@@ -889,6 +899,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     placeId: selection.place.id,
     placeName: selection.place.name,
     googleMapsUrl: selection.place.googleMapsUrl,
+    latitude: selection.place.latitude,
+    longitude: selection.place.longitude,
     score: selection.score,
     message: messageText,
     imageUrls: selectRecommendationImages(selection.place, message)
@@ -898,11 +910,25 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 export async function handleChatMessage(input: {
   userPhone: string;
   message: string;
-}): Promise<{ reply: string; followUpMessages: string[]; imageUrls: string[]; afterMediaMessages: string[] }> {
+}): Promise<{
+  reply: string;
+  followUpMessages: string[];
+  locationActions: string[];
+  imageUrls: string[];
+  afterMediaMessages: string[];
+}> {
   const result = await runChatbotFlow(input.userPhone, input.message);
   const reply = await avoidRepeatedReply(input.userPhone, result);
-  const followUpMessages =
+  const locationActions =
     result.type === "recommendation" && reply === result.message
+      ? buildLocationFollowUp({
+          name: result.placeName,
+          latitude: result.latitude,
+          longitude: result.longitude
+        })
+      : [];
+  const followUpMessages =
+    result.type === "recommendation" && reply === result.message && !locationActions.length
       ? [buildGoogleMapsFollowUp(result.context, { name: result.placeName, googleMapsUrl: result.googleMapsUrl })]
       : [];
   const afterMediaMessages: string[] = [];
@@ -918,6 +944,7 @@ export async function handleChatMessage(input: {
   return {
     reply,
     followUpMessages,
+    locationActions,
     imageUrls: result.type === "recommendation" ? result.imageUrls : [],
     afterMediaMessages
   };

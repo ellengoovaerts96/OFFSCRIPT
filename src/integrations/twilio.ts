@@ -15,7 +15,8 @@ export async function sendWhatsAppMessage(
   to: string,
   body?: string,
   mediaUrl?: string[],
-  fromOverride?: string
+  fromOverride?: string,
+  persistentAction?: string[]
 ): Promise<void> {
   const from = twilioWhatsAppFrom || fromOverride;
 
@@ -27,6 +28,7 @@ export async function sendWhatsAppMessage(
     from,
     to,
     ...(body ? { body } : {}),
-    ...(mediaUrl?.length ? { mediaUrl } : {})
+    ...(mediaUrl?.length ? { mediaUrl } : {}),
+    ...(persistentAction?.length ? { persistentAction } : {})
   });
 }

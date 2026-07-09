@@ -18,7 +18,7 @@ whatsappRouter.post("/", async (req, res) => {
 
     await logChatMessage(from, "incoming", incomingMessage);
 
-    const { reply, followUpMessages, imageUrls, afterMediaMessages } = await handleChatMessage({
+    const { reply, followUpMessages, locationActions, imageUrls, afterMediaMessages } = await handleChatMessage({
       userPhone: from,
       message: incomingMessage
     });
@@ -27,11 +27,11 @@ whatsappRouter.post("/", async (req, res) => {
 
     if (canSendWhatsAppMessage(twilioTo)) {
       sendTwilioMessages(res, [reply]);
-      scheduleRecommendationFollowUps(from, twilioTo, followUpMessages, imageUrls, afterMediaMessages);
+      scheduleRecommendationFollowUps(from, twilioTo, followUpMessages, locationActions, imageUrls, afterMediaMessages);
       return;
     }
 
-    if (followUpMessages.length || imageUrls.length || afterMediaMessages.length) {
+    if (followUpMessages.length || locationActions.length || imageUrls.length || afterMediaMessages.length) {
       console.error(
         "Delayed WhatsApp recommendation follow-ups are unavailable. Falling back to one combined description and Maps message."
       );
@@ -87,13 +87,14 @@ function scheduleRecommendationFollowUps(
   to: string,
   fromOverride: string,
   followUpMessages: string[],
+  locationActions: string[],
   imageUrls: string[],
   afterMediaMessages: string[]
 ): void {
-  if (!followUpMessages.length && !imageUrls.length && !afterMediaMessages.length) return;
+  if (!followUpMessages.length && !locationActions.length && !imageUrls.length && !afterMediaMessages.length) return;
 
   setTimeout(() => {
-    void sendRecommendationFollowUps(to, fromOverride, followUpMessages, imageUrls, afterMediaMessages);
+    void sendRecommendationFollowUps(to, fromOverride, followUpMessages, locationActions, imageUrls, afterMediaMessages);
   }, 1500);
 }
 
@@ -101,6 +102,7 @@ async function sendRecommendationFollowUps(
   to: string,
   fromOverride: string,
   followUpMessages: string[],
+  locationActions: string[],
   imageUrls: string[],
   afterMediaMessages: string[]
 ): Promise<void> {
@@ -110,6 +112,15 @@ async function sendRecommendationFollowUps(
       await logChatMessage(to, "outgoing", message);
     } catch (error) {
       console.error("Could not send delayed WhatsApp follow-up", error);
+    }
+  }
+
+  for (const locationAction of locationActions) {
+    try {
+      await sendWhatsAppMessage(to, undefined, undefined, fromOverride, [locationAction]);
+      await wait(800);
+    } catch (error) {
+      console.error("Could not send delayed WhatsApp location", error);
     }
   }
 
