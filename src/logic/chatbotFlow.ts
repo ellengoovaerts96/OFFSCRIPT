@@ -36,6 +36,7 @@ export type ChatbotFlowResult =
       googleMapsUrl: string;
       shortDescription: string;
       practicalInfo?: string;
+      socialUrl?: string;
       score: number;
       message: string;
       imageUrls: string[];
@@ -577,6 +578,10 @@ function isResetCommand(message: string): boolean {
   );
 }
 
+function preferredSocialUrl(place: Place): string | undefined {
+  return place.instagramUrl ?? place.tiktokUrl ?? place.facebookUrl;
+}
+
 const SUBCATEGORY_ALIASES: Record<string, string[]> = {
   jewellery: ["jewellery", "jewelry", "juwelen", "juweel", "sieraden", "bijoux"],
   wood: ["wood", "woodwork", "hout", "houten", "bois"],
@@ -795,6 +800,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         googleMapsUrl: alternativeSelection.place.googleMapsUrl,
         shortDescription: alternativeSelection.place.shortDescription,
         practicalInfo: alternativeSelection.place.practicalInfo,
+        socialUrl: preferredSocialUrl(alternativeSelection.place),
         score: alternativeSelection.score,
         message: alternativeSelection.place.name,
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
@@ -824,6 +830,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     googleMapsUrl: selection.place.googleMapsUrl,
     shortDescription: selection.place.shortDescription,
     practicalInfo: selection.place.practicalInfo,
+    socialUrl: preferredSocialUrl(selection.place),
     score: selection.score,
     message: selection.place.name,
     imageUrls: selectRecommendationImages(selection.place, message)
@@ -845,7 +852,7 @@ export async function handleChatMessage(input: {
   const locationActions: string[] = [];
   const followUpMessages =
     result.type === "recommendation" && reply === result.message
-      ? [result.shortDescription, result.practicalInfo, result.googleMapsUrl].filter(
+      ? [result.shortDescription, result.practicalInfo, result.socialUrl, result.googleMapsUrl].filter(
           (message): message is string => Boolean(message)
         )
       : [];
