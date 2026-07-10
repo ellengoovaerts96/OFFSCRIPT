@@ -3,7 +3,7 @@ import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 
 const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
-  food: ["food", "restaurant", "restaurants", "lunch", "dinner", "brunch", "breakfast", "cafe", "café", "seafood", "grill", "eat", "eating"],
+  food: ["food", "restaurant", "restaurants", "lunch", "dinner", "brunch", "breakfast", "cafe", "café", "seafood", "grill", "pizza", "pizzeria", "eat", "eating"],
   drink: ["drink", "bar", "cocktail", "cocktails", "drinks", "cafe", "café"],
   culture: ["culture", "market", "museum", "craft", "crafts"],
   shopping: ["shopping", "shop", "market", "craft", "crafts"],
@@ -30,6 +30,7 @@ const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
 
 const VIBE_ALIASES: Record<string, string[]> = {
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
+  pizza: ["pizza", "pizzeria"],
   local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],
   calm: ["calm", "quiet", "rustig", "calme", "ruhig", "relax", "relaxed"],
   lively: ["lively", "gezellig", "levendig", "ambiance", "anime", "animé", "nightlife"],

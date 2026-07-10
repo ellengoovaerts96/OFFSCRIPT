@@ -145,7 +145,7 @@ function hasExplicitActivityIntent(message: string): boolean {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|drink|bar|cocktail|fitness|gym|workout|training|swim|surf|relax|walk|party|dance|eten|ontbijt|restaurant|diner|lunch|drinken|bar|fitness|gym|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|fitness|gym|nager|surfer|marcher|essen|fruhstuck|restaurant|fitness|gym|trinken|schwimmen|spazieren)\b/.test(
+  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|drink|bar|cocktail|fitness|gym|workout|training|swim|surf|relax|walk|party|dance|eten|ontbijt|restaurant|diner|lunch|drinken|bar|fitness|gym|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|fitness|gym|nager|surfer|marcher|essen|fruhstuck|restaurant|fitness|gym|trinken|schwimmen|spazieren)\b/.test(
     lower
   );
 }
@@ -216,6 +216,7 @@ function inferTextVibe(message: string): string | undefined {
   const lower = message.toLowerCase();
 
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
+  if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
   if (/\b(local|lokaal|locale|lokal)\b/.test(lower)) return "local";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
