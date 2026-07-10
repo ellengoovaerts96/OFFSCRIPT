@@ -1,5 +1,6 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
 import { detectLanguage, detectRequestedLanguage } from "../ai/detectLanguage.js";
+import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
   deleteConversationContext,
   getConversationContext,
@@ -902,9 +903,22 @@ export async function handleChatMessage(input: {
   const result = await runChatbotFlow(input.userPhone, input.message);
   const reply = await avoidRepeatedReply(input.userPhone, result);
   const locationActions: string[] = [];
-  const followUpMessages =
+  const localizedRecommendation =
     result.type === "recommendation" && reply === result.message
-      ? [result.shortDescription, result.practicalInfo, result.socialUrl, result.googleMapsUrl].filter(
+      ? await localizeRecommendationText({
+          language: result.context.language,
+          shortDescription: result.shortDescription,
+          practicalInfo: result.practicalInfo
+        })
+      : null;
+  const followUpMessages =
+    result.type === "recommendation" && localizedRecommendation
+      ? [
+          localizedRecommendation.shortDescription,
+          localizedRecommendation.practicalInfo,
+          result.socialUrl,
+          result.googleMapsUrl
+        ].filter(
           (message): message is string => Boolean(message)
         )
       : [];
