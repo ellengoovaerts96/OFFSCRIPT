@@ -640,6 +640,15 @@ function preferredSocialUrl(place: Place): string | undefined {
   return place.instagramUrl ?? place.tiktokUrl ?? place.facebookUrl;
 }
 
+function placeAreaLabel(place: Place): string | undefined {
+  return place.exactArea ?? place.neighbourhood ?? place.region;
+}
+
+function recommendationTitle(place: Place): string {
+  const area = placeAreaLabel(place);
+  return area ? `${place.name} - ${area}` : place.name;
+}
+
 const SUBCATEGORY_ALIASES: Record<string, string[]> = {
   jewellery: ["jewellery", "jewelry", "juwelen", "juweel", "sieraden", "bijoux"],
   wood: ["wood", "woodwork", "hout", "houten", "bois"],
@@ -861,7 +870,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         practicalInfo: alternativeSelection.place.practicalInfo,
         socialUrl: preferredSocialUrl(alternativeSelection.place),
         score: alternativeSelection.score,
-        message: alternativeSelection.place.name,
+        message: recommendationTitle(alternativeSelection.place),
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
       };
     }
@@ -892,7 +901,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     practicalInfo: selection.place.practicalInfo,
     socialUrl: preferredSocialUrl(selection.place),
     score: selection.score,
-    message: selection.place.name,
+    message: recommendationTitle(selection.place),
     imageUrls: selectRecommendationImages(selection.place, message)
   };
 }
