@@ -17,7 +17,7 @@ const localizedRecommendationSchema = z.object({
   practicalInfo: z.string().nullable()
 });
 
-const LOCALIZATION_TIMEOUT_MS = 1800;
+const LOCALIZATION_TIMEOUT_MS = 6000;
 
 export type LocalizeRecommendationTextInput = {
   language: string;
@@ -27,7 +27,7 @@ export type LocalizeRecommendationTextInput = {
 };
 
 export type LocalizedRecommendationText = {
-  shortDescription: string;
+  shortDescription?: string;
   personalTip?: string;
   practicalInfo?: string;
 };
@@ -56,17 +56,28 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   }
 }
 
+function fallbackRecommendationText(
+  language: SupportedRecommendationLanguage,
+  input: LocalizeRecommendationTextInput
+): LocalizedRecommendationText {
+  if (language === "en") {
+    return {
+      shortDescription: input.shortDescription,
+      personalTip: input.personalTip,
+      practicalInfo: input.practicalInfo
+    };
+  }
+
+  return {};
+}
+
 export async function localizeRecommendationText(
   input: LocalizeRecommendationTextInput
 ): Promise<LocalizedRecommendationText> {
   const language = recommendationLanguage(input.language);
 
   if (language === "en" || !hasOpenAIKey()) {
-    return {
-      shortDescription: input.shortDescription,
-      personalTip: input.personalTip,
-      practicalInfo: input.practicalInfo
-    };
+    return fallbackRecommendationText(language, input);
   }
 
   try {
@@ -93,16 +104,16 @@ Rules:
 
     const localized = response?.output_parsed;
 
+    if (!localized) {
+      return fallbackRecommendationText(language, input);
+    }
+
     return {
       shortDescription: localized?.shortDescription?.trim() || input.shortDescription,
       personalTip: localized?.personalTip?.trim() || input.personalTip,
       practicalInfo: localized?.practicalInfo?.trim() || input.practicalInfo
     };
   } catch {
-    return {
-      shortDescription: input.shortDescription,
-      personalTip: input.personalTip,
-      practicalInfo: input.practicalInfo
-    };
+    return fallbackRecommendationText(language, input);
   }
 }
