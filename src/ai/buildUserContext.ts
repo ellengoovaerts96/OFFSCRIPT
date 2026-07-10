@@ -216,6 +216,7 @@ function inferTextVibe(message: string): string | undefined {
   const lower = message.toLowerCase();
 
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
+  if (/\b(local|lokaal|locale|lokal)\b/.test(lower)) return "local";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";

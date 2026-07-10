@@ -30,6 +30,7 @@ const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
 
 const VIBE_ALIASES: Record<string, string[]> = {
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
+  local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],
   calm: ["calm", "quiet", "rustig", "calme", "ruhig", "relax", "relaxed"],
   lively: ["lively", "gezellig", "levendig", "ambiance", "anime", "animé", "nightlife"],
   scenic: ["scenic", "sunset", "view", "uitzicht", "vue", "sea", "ocean"],

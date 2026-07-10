@@ -24,7 +24,7 @@ export function detectLanguage(message: string, fallback = "fr"): string {
   }
 
   if (
-    /\b(ich|will|mochte|möchte|wurde gern|würde gern|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|was bedeutet|bedeutet|essen|kultur|strand|natur|trinken|sport)\b/.test(
+    /\b(ich|will|mochte|möchte|wurde gern|würde gern|sie|alleine|allein|freunde|freundinnen|paar|familie|kinder|morgen|heute|abend|heute abend|wo|was bedeutet|bedeutet|essen|kultur|strand|natur|trinken)\b/.test(
       lower
     )
   ) {

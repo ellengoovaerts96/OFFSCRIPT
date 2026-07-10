@@ -1,7 +1,18 @@
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 
-export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "timing";
+export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "vibe" | "timing";
+
+const VIBE_RELEVANT_INTENTS = new Set([
+  "food",
+  "drink",
+  "culture",
+  "beach",
+  "sports",
+  "nature",
+  "nightlife",
+  "shopping"
+]);
 
 function hasSpecificLocation(context: UserContext): boolean {
   const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
@@ -25,6 +36,15 @@ function canRecommendWithoutTravellerType(context: UserContext): boolean {
   );
 }
 
+function needsVibeForBroadIntent(context: UserContext): boolean {
+  return Boolean(
+    context.intent &&
+      context.intent !== "unknown" &&
+      VIBE_RELEVANT_INTENTS.has(context.intent) &&
+      !context.vibe
+  );
+}
+
 export function needsClarification(context: UserContext): MissingContextField | null {
   if (
     hasSpecificLocation(context) &&
@@ -43,6 +63,7 @@ export function needsClarification(context: UserContext): MissingContextField | 
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
   if (!hasSpecificLocation(context)) return "location";
   if (!context.intent || context.intent === "unknown") return "intent";
+  if (needsVibeForBroadIntent(context)) return "vibe";
   if ((!context.timing || context.timing === "unknown") && !context.vibe) return "timing";
 
   return null;
