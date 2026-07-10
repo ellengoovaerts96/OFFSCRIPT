@@ -5,8 +5,8 @@ import { normalizeRegion } from "../utils/normalizeRegion.js";
 const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
   food: ["food", "restaurant", "restaurants", "lunch", "dinner", "brunch", "breakfast", "cafe", "café", "seafood", "grill", "pizza", "pizzeria", "eat", "eating"],
   drink: ["drink", "bar", "cocktail", "cocktails", "drinks", "cafe", "café"],
-  culture: ["culture", "market", "museum", "craft", "crafts"],
-  shopping: ["shopping", "shop", "market", "craft", "crafts"],
+  culture: ["culture", "market", "museum", "art", "artist", "artists", "artwork", "artworks", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"],
+  shopping: ["shopping", "shop", "market", "buying art", "art", "artist", "artists", "artwork", "artworks", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"],
   sports: ["sports", "sport", "fitness", "gym", "workout", "training", "surf", "surfing", "yoga", "running"],
   beach: ["beach", "sea", "ocean"],
   nightlife: ["nightlife", "club", "dance", "bar"]
@@ -38,7 +38,8 @@ const VIBE_ALIASES: Record<string, string[]> = {
   fitness: ["fitness", "gym", "workout", "training"],
   surfing: ["surfing", "surf", "surf school"],
   yoga: ["yoga"],
-  running: ["running", "run"]
+  running: ["running", "run"],
+  artworks: ["artworks", "artwork", "art", "artist", "artists", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"]
 };
 
 const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running"]);
