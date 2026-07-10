@@ -17,6 +17,8 @@ const localizedRecommendationSchema = z.object({
   practicalInfo: z.string().nullable()
 });
 
+const LOCALIZATION_TIMEOUT_MS = 1800;
+
 export type LocalizeRecommendationTextInput = {
   language: string;
   shortDescription: string;
@@ -38,6 +40,22 @@ function recommendationLanguage(language: string): SupportedRecommendationLangua
   return "fr";
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  let timeout: NodeJS.Timeout | undefined;
+  promise.catch(() => undefined);
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timeout = setTimeout(() => resolve(null), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export async function localizeRecommendationText(
   input: LocalizeRecommendationTextInput
 ): Promise<LocalizedRecommendationText> {
@@ -53,7 +71,7 @@ export async function localizeRecommendationText(
 
   try {
     const client = getOpenAIClient();
-    const response = await client.responses.parse({
+    const response = await withTimeout(client.responses.parse({
       model: openaiModel,
       instructions: `Translate the provided OFFSCRIPT recommendation fields to ${languageNames[language]}.
 Rules:
@@ -71,9 +89,9 @@ Rules:
       text: {
         format: zodTextFormat(localizedRecommendationSchema, "localized_recommendation")
       }
-    });
+    }), LOCALIZATION_TIMEOUT_MS);
 
-    const localized = response.output_parsed;
+    const localized = response?.output_parsed;
 
     return {
       shortDescription: localized?.shortDescription?.trim() || input.shortDescription,
