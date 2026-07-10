@@ -13,17 +13,20 @@ const languageNames: Record<SupportedRecommendationLanguage, string> = {
 
 const localizedRecommendationSchema = z.object({
   shortDescription: z.string(),
+  personalTip: z.string().nullable(),
   practicalInfo: z.string().nullable()
 });
 
 export type LocalizeRecommendationTextInput = {
   language: string;
   shortDescription: string;
+  personalTip?: string;
   practicalInfo?: string;
 };
 
 export type LocalizedRecommendationText = {
   shortDescription: string;
+  personalTip?: string;
   practicalInfo?: string;
 };
 
@@ -42,6 +45,7 @@ export async function localizeRecommendationText(
   if (language === "en" || !hasOpenAIKey()) {
     return {
       shortDescription: input.shortDescription,
+      personalTip: input.personalTip,
       practicalInfo: input.practicalInfo
     };
   }
@@ -60,6 +64,7 @@ Rules:
 - Return empty or missing fields as empty/null.`,
       input: JSON.stringify({
         shortDescription: input.shortDescription,
+        personalTip: input.personalTip ?? null,
         practicalInfo: input.practicalInfo ?? null
       }),
       text: {
@@ -71,11 +76,13 @@ Rules:
 
     return {
       shortDescription: localized?.shortDescription?.trim() || input.shortDescription,
+      personalTip: localized?.personalTip?.trim() || input.personalTip,
       practicalInfo: localized?.practicalInfo?.trim() || input.practicalInfo
     };
   } catch {
     return {
       shortDescription: input.shortDescription,
+      personalTip: input.personalTip,
       practicalInfo: input.practicalInfo
     };
   }
