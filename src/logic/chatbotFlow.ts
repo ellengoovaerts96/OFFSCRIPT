@@ -7,6 +7,7 @@ import {
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
 import { getLastOutgoingMessage, listRecentOutgoingMessages } from "../data/chatMessagesRepository.js";
+import { listPlaceContactDetails, type PlaceContactDetail } from "../data/contactsRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import {
   deleteRecommendationHistoryForUser,
@@ -52,6 +53,11 @@ export type ChatbotFlowResult =
       type: "story";
       context: UserContext;
       storySlug: string;
+      message: string;
+    }
+  | {
+      type: "contact_info";
+      context: UserContext;
       message: string;
     };
 
@@ -391,6 +397,60 @@ function isRecommendationFeedbackOnly(message: string): boolean {
   return /^(?:i know|i know thanks|got it|great|nice|perfect|cool|thanks|thank you|ok|okay|yes|yes thanks|super|top|merci|d accord|ok merci|oui|oui merci|ja|ja dank je|dank je|bedankt|prima|mooi|leuk)$/i.test(
     normalized
   );
+}
+
+function isContactInfoRequest(message: string): boolean {
+  const normalized = normalizePhraseText(message);
+
+  return [
+    "phone",
+    "phone number",
+    "number",
+    "telephone",
+    "whatsapp",
+    "contact",
+    "call",
+    "numero",
+    "numero de telephone",
+    "tel",
+    "contacter",
+    "appeler",
+    "telefoonnummer",
+    "nummer",
+    "whatsapp nummer",
+    "contactgegevens",
+    "bellen"
+  ].some((phrase) => containsNormalizedPhrase(normalized, phrase));
+}
+
+function preferredPhoneContact(details: PlaceContactDetail[]): PlaceContactDetail | undefined {
+  return details.find((detail) => detail.type.toLowerCase() === "whatsapp") ??
+    details.find((detail) => detail.type.toLowerCase() === "phone") ??
+    details.find((detail) => ["tel", "telephone", "mobile"].includes(detail.type.toLowerCase()));
+}
+
+function buildContactInfoResponse(
+  context: UserContext,
+  placeName: string,
+  details: PlaceContactDetail[]
+): string {
+  const contact = preferredPhoneContact(details);
+
+  if (contact) {
+    const contactName = contact.name && !normalizeSearchText(placeName).includes(normalizeSearchText(contact.name))
+      ? ` (${contact.name})`
+      : "";
+
+    if (context.language.startsWith("nl")) return `Voor ${placeName}${contactName}: ${contact.value}`;
+    if (context.language.startsWith("fr")) return `Pour ${placeName}${contactName} : ${contact.value}`;
+    if (context.language.startsWith("de")) return `Für ${placeName}${contactName}: ${contact.value}`;
+    return `For ${placeName}${contactName}: ${contact.value}`;
+  }
+
+  if (context.language.startsWith("nl")) return `Ik heb nog geen telefoonnummer voor ${placeName}.`;
+  if (context.language.startsWith("fr")) return `Je n’ai pas encore de numéro de téléphone pour ${placeName}.`;
+  if (context.language.startsWith("de")) return `Ich habe noch keine Telefonnummer für ${placeName}.`;
+  return `I do not have a phone number for ${placeName} yet.`;
 }
 
 function buildRecommendationFeedbackReply(context: UserContext): string {
@@ -743,6 +803,26 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "fr");
   const knownRegion = findKnownRegion(message);
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
+
+  if (isContactInfoRequest(message)) {
+    const lastRecommendedPlace = await getLastRecommendedPlace(userPhone);
+
+    if (lastRecommendedPlace?.placeId) {
+      const context: UserContext = {
+        ...previousContext,
+        language: storyLanguage
+      };
+      const details = await listPlaceContactDetails(lastRecommendedPlace.placeId);
+
+      await upsertConversationContext(userPhone, context);
+
+      return {
+        type: "contact_info",
+        context,
+        message: buildContactInfoResponse(context, lastRecommendedPlace.placeName, details)
+      };
+    }
+  }
 
   if (await isFeedbackAfterRecommendation(userPhone, message)) {
     const context: UserContext = {
