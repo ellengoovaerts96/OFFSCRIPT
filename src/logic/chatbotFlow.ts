@@ -710,7 +710,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   if (isResetCommand(message)) {
     const context: UserContext = {
-      language: detectLanguage(message, "en")
+      language: detectLanguage(message, "fr")
     };
 
     await deleteConversationContext(userPhone);
@@ -740,7 +740,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const requestedLanguage = detectRequestedLanguage(message);
-  const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "en");
+  const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "fr");
   const knownRegion = findKnownRegion(message);
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
 

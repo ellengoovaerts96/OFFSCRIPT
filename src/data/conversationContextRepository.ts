@@ -17,7 +17,7 @@ type ConversationContextRow = {
 
 function mapContext(row: ConversationContextRow): UserContext {
   return {
-    language: row.language ?? "en",
+    language: row.language ?? "fr",
     currentLocation: row.current_location ?? undefined,
     targetRegion: row.target_region ?? undefined,
     travellerType: row.traveller_type ?? undefined,

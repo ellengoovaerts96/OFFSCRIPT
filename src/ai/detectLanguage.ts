@@ -1,4 +1,4 @@
-export function detectLanguage(message: string, fallback = "en"): string {
+export function detectLanguage(message: string, fallback = "fr"): string {
   const requestedLanguage = detectRequestedLanguage(message);
 
   if (requestedLanguage) {

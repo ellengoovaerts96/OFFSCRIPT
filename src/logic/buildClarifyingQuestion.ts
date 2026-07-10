@@ -36,7 +36,8 @@ function languageKey(language: string | undefined): "nl" | "fr" | "de" | "en" {
   if (language?.startsWith("nl")) return "nl";
   if (language?.startsWith("fr")) return "fr";
   if (language?.startsWith("de")) return "de";
-  return "en";
+  if (language?.startsWith("en")) return "en";
+  return "fr";
 }
 
 export function buildClarifyingQuestion(field: MissingContextField, context: UserContext): string {
