@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "db:migrate": "tsx scripts/migrate.ts",
+    "sync:field-research": "tsx scripts/syncFieldResearch.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:check": "tsx scripts/checkRepositories.ts",
     "logic:check": "tsx scripts/checkLogic.ts",
@@ -20,6 +21,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "googleapis": "^173.0.0",
     "openai": "^6.38.0",
     "pg": "^8.20.0",
     "twilio": "^6.0.2",
