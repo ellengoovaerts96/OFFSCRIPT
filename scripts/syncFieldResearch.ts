@@ -80,6 +80,7 @@ function columnForHeader(header: string): DatabaseColumn | "source_row_id" | und
   const normalized = normalizeHeader(header);
   const aliases: Record<string, DatabaseColumn | "source_row_id"> = {
     source_row_id: "source_row_id",
+    source_raw_id: "source_row_id",
     source_row: "source_row_id",
     timestamp: "timestamp",
     time_stamp: "timestamp",
@@ -205,9 +206,9 @@ async function main(): Promise<void> {
 
   const headers = sheetRows[0].map((value) => String(value));
   const mappedHeaders = headers.map(columnForHeader);
-  const sourceRowIdIndex = mappedHeaders.indexOf("source_row_id");
-  if (sourceRowIdIndex === -1) {
-    throw new Error(`Sheet "${SHEET_NAME}" must contain a source_row_id column.`);
+  const timestampIndex = mappedHeaders.indexOf("timestamp");
+  if (timestampIndex === -1) {
+    throw new Error(`Sheet "${SHEET_NAME}" must contain a Timestamp column.`);
   }
 
   const mappedColumns = databaseColumns.filter((column) => mappedHeaders.includes(column));
@@ -219,14 +220,7 @@ async function main(): Promise<void> {
   const rowsBySourceId = new Map<string, SourceRow>();
   for (let index = 1; index < sheetRows.length; index += 1) {
     const sheetRow = sheetRows[index];
-    const sourceRowIdValue = normalizeCell(sheetRow[sourceRowIdIndex]);
-    const sourceRowId = sourceRowIdValue === null ? "" : String(sourceRowIdValue).trim();
     const sheetRowNumber = index + 1;
-
-    if (!sourceRowId) {
-      console.warn(`Skipping Sheet row ${sheetRowNumber}: source_row_id is missing.`);
-      continue;
-    }
 
     const values = new Map<DatabaseColumn, SheetValue>();
     mappedHeaders.forEach((column, columnIndex) => {
@@ -236,8 +230,22 @@ async function main(): Promise<void> {
       values.set(column, value);
     });
 
+    const timestamp = values.get("timestamp") ?? normalizeTimestamp(
+      normalizeCell(sheetRow[timestampIndex]),
+      spreadsheetLocale
+    );
+    if (timestamp === null || String(timestamp).trim() === "") {
+      console.warn(`Skipping Sheet row ${sheetRowNumber}: Timestamp is missing.`);
+      continue;
+    }
+
+    // Google Form timestamps are immutable for a response and form the real
+    // source identity. Keep the database upsert contract on source_row_id while
+    // avoiding a second ID column that has to be maintained in the Sheet.
+    const sourceRowId = `sheet-timestamp:${String(timestamp)}`;
+
     if (rowsBySourceId.has(sourceRowId)) {
-      console.warn(`Duplicate source_row_id "${sourceRowId}" in Sheet; keeping row ${sheetRowNumber}.`);
+      console.warn(`Duplicate Timestamp "${timestamp}" in Sheet; keeping row ${sheetRowNumber}.`);
     }
     rowsBySourceId.set(sourceRowId, { sheetRowNumber, sourceRowId, values });
   }
