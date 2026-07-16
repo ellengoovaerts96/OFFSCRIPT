@@ -33,4 +33,6 @@ npm run sync:field-research
 
 Rows without a timestamp are skipped. Duplicate timestamps within the sheet are
 collapsed to the last occurrence, and unchanged rows remain untouched. A separate
-`Source Raw ID` column is not required.
+`Source Raw ID` column is not required. Rows without `Name of place/story/experience`
+are also skipped. After a successful upsert, legacy rows without a source key are
+removed only when a timestamp-keyed row with the same normalized place name exists.

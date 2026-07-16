@@ -35,7 +35,11 @@ const databaseColumns = [
   "phone",
   "story",
   "transport",
-  "entry_type"
+  "entry_type",
+  "food_orientation",
+  "paid_experience_later",
+  "experience_idea",
+  "update_notes"
 ] as const;
 
 type DatabaseColumn = (typeof databaseColumns)[number];
@@ -85,7 +89,39 @@ function columnForHeader(header: string): DatabaseColumn | "source_row_id" | und
     timestamp: "timestamp",
     time_stamp: "timestamp",
     place_name: "place",
-    name_of_place: "place"
+    name_of_place: "place",
+    name_of_place_story_experience: "place",
+    type_of_entry: "entry_type",
+    city: "region",
+    region: "neighbourhood",
+    neighbourhood_exact_area: "area",
+    photo_1: "image_1",
+    photo_2: "image_2",
+    photo_3: "image_3",
+    practical_info: "practical_info",
+    google_maps_link: "google_maps_url",
+    category: "categories",
+    subcategory: "subcategories",
+    short_description: "short_description",
+    personal_tip: "personal_tip",
+    food_orientation: "food_orientation",
+    vibe: "vibe",
+    best_time_to_go: "best_timing",
+    good_for: "traveller_types",
+    is_it_child_friendly: "child_friendly",
+    contact_person: "contact_person",
+    phone_whatsapp_contact: "phone",
+    transport_notes: "transport",
+    safety_comfort_notes: "safety_notes",
+    price_indication: "price_level",
+    story: "story",
+    could_this_become_a_paid_experience_later: "paid_experience_later",
+    experience_idea: "experience_idea",
+    update: "update_notes",
+    fb: "facebook_url",
+    instagram: "instagram_url",
+    tiktok: "tiktok_url",
+    country: "country"
   };
 
   const alias = aliases[normalized];
@@ -150,7 +186,7 @@ async function syncRows(
   rows: SourceRow[],
   mappedColumns: DatabaseColumn[],
   spreadsheetTimeZone: string
-): Promise<number> {
+): Promise<{ changedRows: number; removedLegacyDuplicates: number }> {
   await client.query("BEGIN");
   await client.query("SELECT set_config('TimeZone', $1, true)", [spreadsheetTimeZone]);
 
@@ -167,7 +203,20 @@ async function syncRows(
     changedRows += result.rowCount ?? 0;
   }
 
-  return changedRows;
+  const cleanupResult = await client.query(`
+    DELETE FROM public.field_research_raw AS legacy
+    USING public.field_research_raw AS synced
+    WHERE legacy.source_row_id IS NULL
+      AND synced.source_row_id LIKE 'sheet-timestamp:%'
+      AND legacy.place IS NOT NULL
+      AND synced.place IS NOT NULL
+      AND lower(btrim(legacy.place)) = lower(btrim(synced.place))
+  `);
+
+  return {
+    changedRows,
+    removedLegacyDuplicates: cleanupResult.rowCount ?? 0
+  };
 }
 
 async function main(): Promise<void> {
@@ -212,6 +261,9 @@ async function main(): Promise<void> {
   }
 
   const mappedColumns = databaseColumns.filter((column) => mappedHeaders.includes(column));
+  if (!mappedColumns.includes("place")) {
+    throw new Error(`Sheet "${SHEET_NAME}" must contain the "Name of place/story/experience" column.`);
+  }
   const ignoredHeaders = headers.filter((header, index) => header.trim() && !mappedHeaders[index]);
   if (ignoredHeaders.length > 0) {
     console.warn(`Ignoring unmapped Sheet columns: ${ignoredHeaders.join(", ")}`);
@@ -239,6 +291,12 @@ async function main(): Promise<void> {
       continue;
     }
 
+    const place = values.get("place");
+    if (place === null || place === undefined || String(place).trim() === "") {
+      console.warn(`Skipping Sheet row ${sheetRowNumber}: Name of place/story/experience is missing.`);
+      continue;
+    }
+
     // Google Form timestamps are immutable for a response and form the real
     // source identity. Keep the database upsert contract on source_row_id while
     // avoiding a second ID column that has to be maintained in the Sheet.
@@ -257,7 +315,7 @@ async function main(): Promise<void> {
   const client = await pool.connect();
 
   try {
-    const changedRows = await syncRows(
+    const { changedRows, removedLegacyDuplicates } = await syncRows(
       client,
       [...rowsBySourceId.values()],
       mappedColumns,
@@ -266,10 +324,10 @@ async function main(): Promise<void> {
 
     if (dryRun) {
       await client.query("ROLLBACK");
-      console.log(`Dry run complete: ${rowsBySourceId.size} unique rows checked; ${changedRows} would be inserted or updated.`);
+      console.log(`Dry run complete: ${rowsBySourceId.size} unique rows checked; ${changedRows} would be inserted or updated; ${removedLegacyDuplicates} legacy duplicates would be removed.`);
     } else {
       await client.query("COMMIT");
-      console.log(`Sync complete: ${rowsBySourceId.size} unique rows checked; ${changedRows} inserted or updated.`);
+      console.log(`Sync complete: ${rowsBySourceId.size} unique rows checked; ${changedRows} inserted or updated; ${removedLegacyDuplicates} legacy duplicates removed.`);
     }
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
