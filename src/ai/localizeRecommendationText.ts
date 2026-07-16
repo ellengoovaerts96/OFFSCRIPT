@@ -60,7 +60,7 @@ function fallbackRecommendationText(
   language: SupportedRecommendationLanguage,
   input: LocalizeRecommendationTextInput
 ): LocalizedRecommendationText {
-  if (language === "en") {
+  if (language === "en" || language === "fr") {
     return {
       shortDescription: input.shortDescription,
       personalTip: input.personalTip,
@@ -76,7 +76,7 @@ export async function localizeRecommendationText(
 ): Promise<LocalizedRecommendationText> {
   const language = recommendationLanguage(input.language);
 
-  if (language === "en" || !hasOpenAIKey()) {
+  if (language === "en" || language === "fr" || !hasOpenAIKey()) {
     return fallbackRecommendationText(language, input);
   }
 

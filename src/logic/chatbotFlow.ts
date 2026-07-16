@@ -946,7 +946,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  const places = await listRecommendationPlaces();
+  const places = await listRecommendationPlaces(context.language);
   const [recommendedPlaceIds, recentOutgoingMessages] = await Promise.all([
     listRecommendedPlaceIds(userPhone),
     listRecentOutgoingMessages(userPhone)

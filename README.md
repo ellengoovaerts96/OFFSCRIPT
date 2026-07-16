@@ -36,3 +36,19 @@ collapsed to the last occurrence, and unchanged rows remain untouched. A separat
 `Source Raw ID` column is not required. Rows without `Name of place/story/experience`
 are also skipped. After a successful upsert, legacy rows without a source key are
 removed only when a timestamp-keyed row with the same normalized place name exists.
+
+### English and French content
+
+The Sheet fields `Short description`, `Practical info`, `Personal tip`, and `Story`
+are stored in their corresponding `_en` columns. On the first sync, and whenever
+one of those English values changes, the sync uses `OPENAI_API_KEY` to generate the
+four `_fr` values. A SHA-256 source hash prevents unchanged rows from being
+translated again.
+
+French is the chatbot default. It reads `_fr` first and falls back to `_en`; only
+an explicitly English conversation reads `_en` first. Dutch and German answers use
+French as their stored factual source before response localization.
+
+To protect a manually corrected French translation, set `translation_status` to
+`manual` for that raw row. Later English changes retain the French text and mark the
+row `manual_review_required` instead of overwriting it.

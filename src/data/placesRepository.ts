@@ -13,8 +13,16 @@ type PlaceRow = {
   legacy_subcategories: string[] | null;
   subcategories: PlaceSubcategory[] | null;
   short_description: string;
+  short_description_en: string | null;
+  short_description_fr: string | null;
   practical_info: string | null;
+  practical_info_en: string | null;
+  practical_info_fr: string | null;
   personal_tip: string | null;
+  personal_tip_en: string | null;
+  personal_tip_fr: string | null;
+  story_en: string | null;
+  story_fr: string | null;
   transport: string | null;
   best_for: string[] | null;
   not_ideal_for: string[] | null;
@@ -65,7 +73,27 @@ function mergeSubcategories(row: PlaceRow): PlaceSubcategory[] {
   return [...normalizedSubcategories, ...legacySubcategories];
 }
 
-function mapPlace(row: PlaceRow): Place {
+function localizedText(
+  language: string,
+  english: string | null,
+  french: string | null,
+  legacy?: string | null
+): string | undefined {
+  const value = language.toLowerCase().startsWith("en")
+    ? english ?? french ?? legacy
+    : french ?? english ?? legacy;
+
+  return value ?? undefined;
+}
+
+function mapPlace(row: PlaceRow, language = "fr"): Place {
+  const shortDescription = localizedText(
+    language,
+    row.short_description_en,
+    row.short_description_fr,
+    row.short_description
+  );
+
   return {
     id: row.id,
     name: row.name,
@@ -76,9 +104,10 @@ function mapPlace(row: PlaceRow): Place {
     vibe: row.vibe ?? undefined,
     categories: row.categories ?? [],
     subcategories: mergeSubcategories(row),
-    shortDescription: row.short_description,
-    practicalInfo: row.practical_info ?? undefined,
-    personalTip: row.personal_tip ?? undefined,
+    shortDescription: shortDescription ?? row.short_description,
+    practicalInfo: localizedText(language, row.practical_info_en, row.practical_info_fr, row.practical_info),
+    personalTip: localizedText(language, row.personal_tip_en, row.personal_tip_fr, row.personal_tip),
+    story: localizedText(language, row.story_en, row.story_fr),
     transport: row.transport ?? undefined,
     bestFor: row.best_for ?? [],
     notIdealFor: row.not_ideal_for ?? [],
@@ -171,17 +200,17 @@ const placeSelect = `
   FROM places p
 `;
 
-export async function listRecommendationPlaces(): Promise<Place[]> {
+export async function listRecommendationPlaces(language = "fr"): Promise<Place[]> {
   const result = await pool.query<PlaceRow>(`
     ${placeSelect}
     WHERE p.status <> 'archived'
     ORDER BY p.status DESC, p.name ASC
   `);
 
-  return result.rows.map(mapPlace);
+  return result.rows.map((row) => mapPlace(row, language));
 }
 
-export async function getPlaceById(id: string): Promise<Place | null> {
+export async function getPlaceById(id: string, language = "fr"): Promise<Place | null> {
   const result = await pool.query<PlaceRow>(
     `
       ${placeSelect}
@@ -192,5 +221,5 @@ export async function getPlaceById(id: string): Promise<Place | null> {
     [id]
   );
 
-  return result.rows[0] ? mapPlace(result.rows[0]) : null;
+  return result.rows[0] ? mapPlace(result.rows[0], language) : null;
 }

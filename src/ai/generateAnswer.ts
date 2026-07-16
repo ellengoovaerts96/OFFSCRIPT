@@ -143,6 +143,7 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     shortDescription: place.shortDescription,
     practicalInfo: place.practicalInfo,
     personalTip: place.personalTip,
+    story: place.story,
     transport: place.transport,
     bestFor: place.bestFor,
     childFriendly: place.childFriendly,

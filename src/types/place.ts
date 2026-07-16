@@ -40,6 +40,7 @@ export type Place = {
   shortDescription: string;
   practicalInfo?: string;
   personalTip?: string;
+  story?: string;
   transport?: string;
   bestFor: string[];
   notIdealFor: string[];
