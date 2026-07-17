@@ -49,9 +49,14 @@ function localCandidatesForContext(places: Place[], context: UserContext): Place
 }
 
 function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
-  if (!isSpecificFocus(context.vibe)) return places;
+  const requestedSubcategory = context.requestedSubcategory;
+  const subcategoryCandidates = requestedSubcategory
+    ? places.filter((place) => placeMatchesSpecificFocus(place, requestedSubcategory))
+    : places;
 
-  return places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
+  if (!isSpecificFocus(context.vibe)) return subcategoryCandidates;
+
+  return subcategoryCandidates.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
 }
 
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {

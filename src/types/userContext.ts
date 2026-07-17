@@ -24,6 +24,7 @@ export type UserContext = {
   intent?: UserIntent;
   timing?: string;
   budget?: string;
+  requestedSubcategory?: string;
   vibe?: string;
   safetyConcern?: boolean;
 };

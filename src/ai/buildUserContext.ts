@@ -33,6 +33,7 @@ const userContextSchema = z.object({
   intent: intentSchema.nullable(),
   timing: z.string().nullable(),
   budget: z.string().nullable(),
+  requestedSubcategory: z.string().nullable(),
   vibe: z.string().nullable(),
   safetyConcern: z.boolean().nullable()
 });
@@ -139,6 +140,10 @@ function isBeachLocationPreference(message: string): boolean {
   );
 }
 
+function inferRequestedSubcategory(message: string): string | undefined {
+  return isBeachLocationPreference(message) ? "beach" : undefined;
+}
+
 function hasExplicitActivityIntent(message: string): boolean {
   const lower = message
     .normalize("NFD")
@@ -225,13 +230,18 @@ function inferTextVibe(message: string): string | undefined {
   if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
   if (/\b(yoga)\b/.test(lower)) return "yoga";
   if (/\b(running|run|lopen|courir)\b/.test(lower)) return "running";
-  if (isBeachLocationPreference(message)) return "beach";
-
   return undefined;
 }
 
 function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string): string | undefined {
-  return inferShoppingFocus(message) ?? inferEmojiVibe(message) ?? inferTextVibe(message) ?? parsedVibe ?? previousVibe;
+  const explicitVibe = inferShoppingFocus(message) ?? inferEmojiVibe(message) ?? inferTextVibe(message);
+  if (explicitVibe) return explicitVibe;
+
+  // A new hard place preference starts a fresh choice of atmosphere. In
+  // particular, "eat at the beach" must not inherit a vibe from an older ask.
+  if (inferRequestedSubcategory(message)) return undefined;
+
+  return parsedVibe ?? previousVibe;
 }
 
 function mergeTravellerType(message: string, previousTravellerType?: TravellerType, parsedTravellerType?: TravellerType): TravellerType | undefined {
@@ -261,6 +271,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: mergeIntent(input.message, previous?.intent),
       timing,
+      requestedSubcategory: inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       vibe: messageIsKnownRegionOnly ? previous?.vibe : mergeVibe(input.message, previous?.vibe)
     },
     confidence: 0.55
@@ -288,6 +299,7 @@ Rules:
 - Normalize known Senegal regions.
 - Use "unknown" for unclear travellerType or intent.
 - Use "unknown" for unclear timing.
+- Treat beach/plage/strand as requestedSubcategory, not as vibe. Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.
 - Do not assume a place is child-friendly.`,
     input: JSON.stringify({
@@ -328,6 +340,10 @@ Rules:
       ),
       timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
       budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
+      requestedSubcategory:
+        inferRequestedSubcategory(input.message) ??
+        nullToUndefined(parsed.context.requestedSubcategory) ??
+        input.previousContext?.requestedSubcategory,
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
         : mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),

@@ -161,6 +161,7 @@ export function scorePlace(place: Place, context: UserContext): number {
     score += 30;
   }
   if (context.intent === "shopping" && placeMatchesShoppingFocus(place, context.vibe)) score += 25;
+  if (context.requestedSubcategory && placeMatchesSpecificFocus(place, context.requestedSubcategory)) score += 35;
   if (placeMatchesVibe(place, context.vibe)) score += isSpecificFocus(context.vibe) ? 35 : 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
