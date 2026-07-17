@@ -4,7 +4,7 @@ import type { UserContext } from "../types/userContext.js";
 const questions: Record<string, Record<MissingContextField, string>> = {
   nl: {
     location: "Waar ben je nu, of naar welke buurt/regio wil je gaan?",
-    travellerType: "Met wie reis je: solo, als koppel, met vrienden of met familie?",
+    travellerType: "Voor wie zoek je iets: voor jezelf, voor jou en je partner, voor vrienden of voor familie?",
     children: "Zijn er kinderen bij, en zo ja welke leeftijden ongeveer?",
     intent: "Waar heb je zin in: eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
     subcategory: "Wat zoek je daar precies binnen?",
@@ -13,7 +13,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
   },
   fr: {
     location: "Tu es où maintenant, ou vers quel quartier/région tu veux aller ?",
-    travellerType: "Tu voyages solo, en couple, avec des amis ou en famille ?",
+    travellerType: "Pour qui cherches-tu quelque chose : pour toi, pour toi et ton/ta partenaire, pour des amis ou pour la famille ?",
     children: "Il y a des enfants avec toi, et si oui quel âge environ ?",
     intent: "Tu cherches plutôt à manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
     subcategory: "Qu’est-ce que tu cherches exactement dans cette catégorie ?",
@@ -22,7 +22,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
   },
   de: {
     location: "Wo bist du gerade, oder in welches Viertel/welche Region möchtest du?",
-    travellerType: "Reist du solo, als Paar, mit Freunden oder mit Familie?",
+    travellerType: "Für wen suchst du etwas: für dich, für dich und deinen Partner oder deine Partnerin, für Freunde oder für die Familie?",
     children: "Sind Kinder dabei, und wenn ja, ungefähr wie alt?",
     intent: "Worauf hast du Lust: Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
     subcategory: "Was suchst du innerhalb dieser Kategorie genau?",
@@ -31,7 +31,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
   },
   en: {
     location: "Where are you now, or which neighbourhood or region do you want to go to?",
-    travellerType: "Who are you travelling with: solo, as a couple, with friends, or family?",
+    travellerType: "Who should the suggestion be for: just you, you and your partner, friends, or family?",
     children: "Are there children with you, and roughly how old are they?",
     intent: "What are you in the mood for: food, culture, sport, beach, nature, drinks, or something else?",
     subcategory: "What exactly are you looking for within that category?",

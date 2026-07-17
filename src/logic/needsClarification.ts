@@ -36,7 +36,13 @@ function canRecommendWithoutTravellerType(context: UserContext): boolean {
     hasSpecificLocation(context) &&
       context.intent &&
       context.intent !== "unknown" &&
-      (context.timing || context.vibe)
+      (
+        context.timing ||
+        context.vibe ||
+        context.requestedSubcategory ||
+        context.requestedStyle ||
+        context.budget
+      )
   );
 }
 
