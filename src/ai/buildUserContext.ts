@@ -149,6 +149,24 @@ function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(running|run|jogging|lopen|hardlopen|courir|course a pied|rennen|laufen)\b/.test(lower)) return "running";
   if (/\b(swim|swimming|zwemmen|natation|nager|schwimmen)\b/.test(lower)) return "swimming";
 
+  if (/\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/.test(lower)) return "breakfast";
+  if (/\b(coffee|cafe|koffie|kaffee)\b/.test(lower)) return "coffee";
+  if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
+  if (/\b(vegan|vegane|veganistisch)\b/.test(lower)) return "vegan";
+  if (/\b(vegetarian|vegetarisch|vegetarien|vegetarienne)\b/.test(lower)) return "vegetarian";
+  if (/\b(dessert|desserts|patisserie|gebak)\b/.test(lower)) return "dessert";
+  if (/\b(crepe|crepes|pannenkoek|pannenkoeken)\b/.test(lower)) return "crêpes";
+  if (/\b(chinese|chinees|chinois|chinesisch)\b/.test(lower)) return "chinese food";
+  if (/\b(japanese|japans|japonais|japanisch)\b/.test(lower)) return "japanese food";
+  if (/\b(mexican|mexicaans|mexicain|mexikanisch)\b/.test(lower)) return "mexican food";
+  if (/\b(cocktail|cocktails)\b/.test(lower)) return "cocktails";
+  if (/\b(karaoke)\b/.test(lower)) return "karaoke";
+  if (/\b(bar|bars)\b/.test(lower)) return "bar";
+  if (/\b(dance|dancing|dansen|danser|tanzen)\b/.test(lower)) return "dancing";
+  if (/\b(walk|walking|hike|hiking|wandelen|promenade|marcher|randonnee|wandern)\b/.test(lower)) return "walking";
+  if (/\b(excursion|tour|uitstap|ausflug)\b/.test(lower)) return "excursion";
+  if (/\b(view|scenic|landscape|uitzicht|landschap|vue|paysage|aussicht|landschaft)\b/.test(lower)) return "scenic";
+
   if (isBeachLocationPreference(message)) return "beach";
 
   if (/\b(fish|fish market|seafood market|vis|vismarkt|poisson|poissons|poissonnerie|marche aux poissons|fisch|fischmarkt)\b/.test(lower)) {
@@ -167,13 +185,16 @@ function inferRequestedSubcategory(message: string): string | undefined {
     return "artworks";
   }
   if (/\b(music|musical|concert|live music|muziek|concerten|musique|musical|konzert|musik)\b/.test(lower)) {
-    return "music";
+    return "live music";
   }
   if (/\b(architecture|architectural|architectuur|architectuur|architektur|batiment|batiments|building|buildings)\b/.test(lower)) {
     return "architecture";
   }
   if (/\b(monument|monuments|memorial|monumental|standbeeld|standbeelden|denkmal|denkmaler)\b/.test(lower)) {
     return "monuments";
+  }
+  if (/\b(religious|religion|mosque|church|religieus|moskee|kerk|religieux|religieuse|mosquee|eglise|religios|moschee|kirche)\b/.test(lower)) {
+    return "religious places";
   }
 
   return undefined;
