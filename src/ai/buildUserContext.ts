@@ -4,7 +4,7 @@ import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/open
 import type { TravellerType, UserContext, UserIntent } from "../types/userContext.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import { detectIntent } from "./detectIntent.js";
-import { detectLanguage } from "./detectLanguage.js";
+import { resolveConversationLanguage } from "./detectLanguage.js";
 import { systemPrompt } from "./systemPrompt.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
@@ -346,7 +346,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   return {
     context: {
       ...previous,
-      language: detectLanguage(input.message, previous?.language),
+      language: resolveConversationLanguage(input.message, previous?.language),
       targetRegion,
       travellerType: mergeTravellerType(input.message, previous?.travellerType),
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
@@ -378,7 +378,7 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 Extract updated user travel context as JSON.
 Rules:
 - Keep previous context unless the user clearly changes it.
-- Use the latest message to detect language.
+- Preserve the existing conversation language. Only change it when the user explicitly requests another language.
 - Normalize known Senegal regions.
 - Use "unknown" for unclear travellerType or intent.
 - Use "unknown" for unclear timing.
@@ -404,7 +404,11 @@ Rules:
 
   return {
     context: {
-      language: detectLanguage(input.message, input.previousContext?.language ?? parsed.context.language),
+      language: resolveConversationLanguage(
+        input.message,
+        input.previousContext?.language,
+        parsed.context.language
+      ),
       currentLocation: normalizeRegion(
         nullToUndefined(parsed.context.currentLocation) ?? input.previousContext?.currentLocation
       ),

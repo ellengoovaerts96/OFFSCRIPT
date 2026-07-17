@@ -1,5 +1,5 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
-import { detectLanguage, detectRequestedLanguage } from "../ai/detectLanguage.js";
+import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
   deleteConversationContext,
@@ -809,7 +809,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   if (isGreetingOnly(message)) {
     const context: UserContext = {
       ...previousContext,
-      language: detectLanguage(message, previousContext?.language)
+      language: resolveConversationLanguage(message, previousContext?.language)
     };
 
     await upsertConversationContext(userPhone, context);
@@ -822,7 +822,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const requestedLanguage = detectRequestedLanguage(message);
-  const storyLanguage = requestedLanguage ?? detectLanguage(message, previousContext?.language ?? "fr");
+  const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
   const knownRegion = findKnownRegion(message);
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
 

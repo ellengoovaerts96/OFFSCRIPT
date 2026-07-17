@@ -38,12 +38,23 @@ export function detectRequestedLanguage(message: string): string | undefined {
   const lower = message
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  if (/\b(nederlands|dutch)\b/.test(lower)) return "nl";
-  if (/\b(engels|english)\b/.test(lower)) return "en";
-  if (/\b(frans|francais|french)\b/.test(lower)) return "fr";
-  if (/\b(duits|deutsch|german)\b/.test(lower)) return "de";
+  if (/^(nederlands|dutch)$/.test(lower) || /\b(in het nederlands|in dutch|spreek nederlands|speak dutch|antwoord in het nederlands|switch to dutch)\b/.test(lower)) return "nl";
+  if (/^(engels|english|anglais)$/.test(lower) || /\b(in english|in het engels|en anglais|speak english|spreek engels|answer in english|antwoord in het engels|switch to english)\b/.test(lower)) return "en";
+  if (/^(frans|francais|french)$/.test(lower) || /\b(en francais|in french|in het frans|parle francais|speak french|spreek frans|reponds en francais|answer in french|antwoord in het frans|switch to french)\b/.test(lower)) return "fr";
+  if (/^(duits|deutsch|german|allemand)$/.test(lower) || /\b(auf deutsch|in german|in het duits|en allemand|sprich deutsch|speak german|spreek duits|answer in german|antwoord in het duits|switch to german)\b/.test(lower)) return "de";
 
   return undefined;
+}
+
+export function resolveConversationLanguage(
+  message: string,
+  existingLanguage?: string,
+  fallback = "fr"
+): string {
+  return detectRequestedLanguage(message) ?? existingLanguage ?? detectLanguage(message, fallback);
 }
