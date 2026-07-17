@@ -52,3 +52,17 @@ French as their stored factual source before response localization.
 To protect a manually corrected French translation, set `translation_status` to
 `manual` for that raw row. Later English changes retain the French text and mark the
 row `manual_review_required` instead of overwriting it.
+
+Places store the four content fields in explicit `_en` and `_fr` columns. Editorial
+stories use the normalized `story_translations` table instead: one row per story and
+locale. Generate or refresh missing French story translations with:
+
+```bash
+npm run translate:stories -- --dry-run
+npm run translate:stories
+```
+
+Story retrieval defaults to French, then falls back to English. Explicitly English
+conversations request the English translation first. Existing French story rows are
+treated as manual content and are never overwritten automatically; changed English
+source content marks them `manual_review_required`.

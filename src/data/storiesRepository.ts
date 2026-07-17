@@ -32,13 +32,14 @@ function normaliseText(value: string): string {
 }
 
 function baseLocale(language?: string): string {
-  return language?.split("-")[0]?.toLowerCase() || "en";
+  return language?.split("-")[0]?.toLowerCase() || "fr";
 }
 
 function chooseTranslation(translations: StoryTranslation[], language?: string): StoryTranslation | null {
   const locale = baseLocale(language);
   return (
     translations.find((translation) => translation.locale === locale) ??
+    translations.find((translation) => translation.locale === "fr") ??
     translations.find((translation) => translation.locale === "en") ??
     translations[0] ??
     null
@@ -141,16 +142,19 @@ export async function listRelatedStoriesForContext(
         stories.id,
         stories.slug,
         stories.category,
-        COALESCE(preferred.title, fallback.title, stories.title) AS title,
-        COALESCE(preferred.excerpt, fallback.excerpt, stories.excerpt) AS excerpt,
-        COALESCE(preferred.url_path, fallback.url_path, '/stories/' || stories.slug) AS url_path
+        COALESCE(preferred.title, french.title, english.title, stories.title) AS title,
+        COALESCE(preferred.excerpt, french.excerpt, english.excerpt, stories.excerpt) AS excerpt,
+        COALESCE(preferred.url_path, french.url_path, english.url_path, '/fr/stories/' || stories.slug) AS url_path
       FROM stories
       LEFT JOIN story_translations preferred
         ON preferred.story_id = stories.id
        AND preferred.locale = $1
-      LEFT JOIN story_translations fallback
-        ON fallback.story_id = stories.id
-       AND fallback.locale = 'en'
+      LEFT JOIN story_translations french
+        ON french.story_id = stories.id
+       AND french.locale = 'fr'
+      LEFT JOIN story_translations english
+        ON english.story_id = stories.id
+       AND english.locale = 'en'
       WHERE stories.status = 'published'
         AND ($2::boolean = false OR stories.category = ANY($3::text[]))
       ORDER BY
