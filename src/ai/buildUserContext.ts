@@ -34,6 +34,7 @@ const userContextSchema = z.object({
   timing: z.string().nullable(),
   budget: z.string().nullable(),
   requestedSubcategory: z.string().nullable(),
+  requestedStyle: z.string().nullable(),
   vibe: z.string().nullable(),
   safetyConcern: z.boolean().nullable()
 });
@@ -144,6 +145,29 @@ function inferRequestedSubcategory(message: string): string | undefined {
   return isBeachLocationPreference(message) ? "beach" : undefined;
 }
 
+function inferRequestedStyle(message: string): string | undefined {
+  const lower = normalizeContextText(message);
+  if (/\b(international|internationaal|internationale|internationales|cosmopolitan|cosmopolitain)\b/.test(lower)) {
+    return "international";
+  }
+  if (/\b(local|lokaal|lokale|locale|locales|lokal|authentic|authentiek|authentique)\b/.test(lower)) {
+    return "local";
+  }
+  return undefined;
+}
+
+function inferBudget(message: string): string | undefined {
+  const lower = normalizeContextText(message);
+  if (/\b(upscale|luxury|luxurious|chic|luxe|haut de gamme|duur|exclusief|gehoben|luxurios)\b/.test(lower)) {
+    return "upscale";
+  }
+  if (/\b(affordable|cheap|cheaper|budget|inexpensive|betaalbaar|goedkoop|moins cher|pas cher|abordable|gunstig|gunstig)\b/.test(lower)) {
+    return "affordable";
+  }
+  if (/\b(mid range|midrange|average|gemiddeld|moyen|mittelklasse)\b/.test(lower)) return "mid-range";
+  return undefined;
+}
+
 function hasExplicitActivityIntent(message: string): boolean {
   const lower = message
     .normalize("NFD")
@@ -222,7 +246,6 @@ function inferTextVibe(message: string): string | undefined {
 
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
   if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
-  if (/\b(local|lokaal|locale|lokal)\b/.test(lower)) return "local";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
@@ -271,7 +294,9 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: mergeIntent(input.message, previous?.intent),
       timing,
+      budget: inferBudget(input.message) ?? previous?.budget,
       requestedSubcategory: inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
+      requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
       vibe: messageIsKnownRegionOnly ? previous?.vibe : mergeVibe(input.message, previous?.vibe)
     },
     confidence: 0.55
@@ -299,7 +324,10 @@ Rules:
 - Normalize known Senegal regions.
 - Use "unknown" for unclear travellerType or intent.
 - Use "unknown" for unclear timing.
-- Treat beach/plage/strand as requestedSubcategory, not as vibe. Vibe describes atmosphere such as calm, lively or romantic.
+- Treat beach/plage/strand as requestedSubcategory, not as vibe.
+- Store local/international as requestedStyle, not as vibe.
+- Normalize price preference to affordable, mid-range or upscale in budget.
+- Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.
 - Do not assume a place is child-friendly.`,
     input: JSON.stringify({
@@ -339,11 +367,15 @@ Rules:
         messageIsKnownRegionOnly ? undefined : (nullToUndefined(parsed.context.intent) as UserIntent | undefined)
       ),
       timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
-      budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
+      budget: inferBudget(input.message) ?? nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
       requestedSubcategory:
         inferRequestedSubcategory(input.message) ??
         nullToUndefined(parsed.context.requestedSubcategory) ??
         input.previousContext?.requestedSubcategory,
+      requestedStyle:
+        inferRequestedStyle(input.message) ??
+        nullToUndefined(parsed.context.requestedStyle) ??
+        input.previousContext?.requestedStyle,
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
         : mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),

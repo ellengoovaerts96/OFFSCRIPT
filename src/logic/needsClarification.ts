@@ -41,7 +41,9 @@ function needsVibeForBroadIntent(context: UserContext): boolean {
     context.intent &&
       context.intent !== "unknown" &&
       VIBE_RELEVANT_INTENTS.has(context.intent) &&
-      !context.vibe
+      !context.vibe &&
+      !context.requestedStyle &&
+      !context.budget
   );
 }
 

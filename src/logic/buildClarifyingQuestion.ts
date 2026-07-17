@@ -55,7 +55,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   const intent = context.intent;
 
   if (language === "nl") {
-    if (intent === "food" && context.requestedSubcategory === "beach") return "Welke sfeer zoek je aan het strand: rustig en relaxed, levendig, romantisch of lokaal?";
+    if (intent === "food" && context.requestedSubcategory === "beach") return "Wat verkies je aan het strand: lokaal en betaalbaar, internationaal en wat chiquer, rustig en relaxed, of eerder levendig?";
     if (intent === "sports") return "Welke sport-vibe zoek je: fitness, surf, yoga, running, lokaal of iets anders?";
     if (intent === "food") return "Welke food-vibe zoek je: lokaal, pizza, seafood, beach, rustig, levendig, romantisch of iets anders?";
     if (intent === "drink" || intent === "nightlife") return "Welke vibe zoek je: rustig, lokaal, levendig, romantisch, sunset of iets anders?";
@@ -63,7 +63,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   }
 
   if (language === "fr") {
-    if (intent === "food" && context.requestedSubcategory === "beach") return "Quelle ambiance tu cherches pour manger à la plage : calme et relax, animée, romantique ou locale ?";
+    if (intent === "food" && context.requestedSubcategory === "beach") return "Tu préfères quoi pour manger à la plage : local et abordable, international et plus chic, calme et relax, ou plutôt animé ?";
     if (intent === "sports") return "Quelle vibe sport tu cherches : fitness, surf, yoga, running, local ou autre chose ?";
     if (intent === "food") return "Quelle vibe food tu cherches : local, pizza, seafood, beach, calme, animé, romantique ou autre chose ?";
     if (intent === "drink" || intent === "nightlife") return "Quelle ambiance tu cherches : calme, locale, animée, romantique, sunset ou autre chose ?";
@@ -71,14 +71,14 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   }
 
   if (language === "de") {
-    if (intent === "food" && context.requestedSubcategory === "beach") return "Welche Stimmung suchst du beim Essen am Strand: ruhig und entspannt, lebendig, romantisch oder lokal?";
+    if (intent === "food" && context.requestedSubcategory === "beach") return "Was bevorzugst du beim Essen am Strand: lokal und günstig, international und etwas gehobener, ruhig und entspannt oder eher lebendig?";
     if (intent === "sports") return "Welche Sport-Vibe suchst du: Fitness, Surfen, Yoga, Running, lokal oder etwas anderes?";
     if (intent === "food") return "Welche Food-Vibe suchst du: lokal, Pizza, Seafood, Beach, ruhig, lebendig, romantisch oder etwas anderes?";
     if (intent === "drink" || intent === "nightlife") return "Welche Stimmung suchst du: ruhig, lokal, lebendig, romantisch, Sunset oder etwas anderes?";
     return "Welche Stimmung oder Unterkategorie suchst du: lokal, ruhig, lebendig, romantisch, Beach oder etwas anderes?";
   }
 
-  if (intent === "food" && context.requestedSubcategory === "beach") return "What atmosphere do you want for eating at the beach: calm and relaxed, lively, romantic, or local?";
+  if (intent === "food" && context.requestedSubcategory === "beach") return "What do you prefer for eating at the beach: local and affordable, international and more upscale, calm and relaxed, or lively?";
   if (intent === "sports") return "What sport vibe do you want: fitness, surfing, yoga, running, local or something else?";
   if (intent === "food") return "What food vibe do you want: local, pizza, seafood, beach, calm, lively, romantic or something else?";
   if (intent === "drink" || intent === "nightlife") return "What vibe do you want: calm, local, lively, romantic, sunset or something else?";

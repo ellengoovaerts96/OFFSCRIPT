@@ -42,6 +42,17 @@ const VIBE_ALIASES: Record<string, string[]> = {
   artworks: ["artworks", "artwork", "art", "artist", "artists", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"]
 };
 
+const STYLE_ALIASES: Record<string, string[]> = {
+  local: ["local", "lokaal", "locale", "authentic", "authentiek", "authentique", "traditional", "traditioneel", "traditionnel"],
+  international: ["international", "internationaal", "cosmopolitan", "cosmopolitain", "world cuisine", "fusion"]
+};
+
+const BUDGET_ALIASES: Record<string, string[]> = {
+  affordable: ["affordable", "cheap", "budget", "inexpensive", "betaalbaar", "goedkoop", "abordable", "pas cher", "€", "$"],
+  "mid-range": ["mid-range", "midrange", "average", "gemiddeld", "moyen", "€€", "$$"],
+  upscale: ["upscale", "luxury", "luxurious", "chic", "luxe", "haut de gamme", "exclusief", "€€€", "$$$"]
+};
+
 const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running"]);
 
 function normalizeValue(value: string): string {
@@ -147,6 +158,20 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
   );
 }
 
+function placeMatchesPreference(place: Place, preference: string | undefined, aliasesByPreference: Record<string, string[]>): boolean {
+  if (!preference) return false;
+  const aliases = aliasesByPreference[normalizeValue(preference)] ?? [preference];
+  return (
+    place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
+    place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
+    textIncludesAny(place.vibe, aliases) ||
+    textIncludesAny(place.shortDescription, aliases) ||
+    textIncludesAny(place.practicalInfo, aliases) ||
+    textIncludesAny(place.personalTip, aliases) ||
+    textIncludesAny(place.priceLevel, aliases)
+  );
+}
+
 export function isSpecificFocus(focus: string | undefined): boolean {
   return Boolean(focus && STRUCTURED_ONLY_VIBES.has(normalizeValue(focus)));
 }
@@ -162,6 +187,8 @@ export function scorePlace(place: Place, context: UserContext): number {
   }
   if (context.intent === "shopping" && placeMatchesShoppingFocus(place, context.vibe)) score += 25;
   if (context.requestedSubcategory && placeMatchesSpecificFocus(place, context.requestedSubcategory)) score += 35;
+  if (placeMatchesPreference(place, context.requestedStyle, STYLE_ALIASES)) score += 20;
+  if (placeMatchesPreference(place, context.budget, BUDGET_ALIASES)) score += 20;
   if (placeMatchesVibe(place, context.vibe)) score += isSpecificFocus(context.vibe) ? 35 : 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;

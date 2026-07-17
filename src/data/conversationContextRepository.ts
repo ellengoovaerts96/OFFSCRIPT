@@ -12,6 +12,7 @@ type ConversationContextRow = {
   timing: string | null;
   budget: string | null;
   requested_subcategory: string | null;
+  requested_style: string | null;
   vibe: string | null;
   safety_concern: boolean | null;
 };
@@ -28,6 +29,7 @@ function mapContext(row: ConversationContextRow): UserContext {
     timing: row.timing ?? undefined,
     budget: row.budget ?? undefined,
     requestedSubcategory: row.requested_subcategory ?? undefined,
+    requestedStyle: row.requested_style ?? undefined,
     vibe: row.vibe ?? undefined,
     safetyConcern: row.safety_concern ?? undefined
   };
@@ -37,7 +39,7 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
   const result = await pool.query<ConversationContextRow>(
     `
       SELECT language, current_location, target_region, traveller_type, has_children,
-             children_ages, intent, timing, budget, requested_subcategory, vibe, safety_concern
+             children_ages, intent, timing, budget, requested_subcategory, requested_style, vibe, safety_concern
       FROM conversation_context
       WHERE user_phone = $1
       LIMIT 1
@@ -73,11 +75,12 @@ export async function upsertConversationContext(userPhone: string, context: User
         timing,
         budget,
         requested_subcategory,
+        requested_style,
         vibe,
         safety_concern,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
       ON CONFLICT (user_phone) DO UPDATE SET
         language = EXCLUDED.language,
         current_location = EXCLUDED.current_location,
@@ -89,6 +92,7 @@ export async function upsertConversationContext(userPhone: string, context: User
         timing = EXCLUDED.timing,
         budget = EXCLUDED.budget,
         requested_subcategory = EXCLUDED.requested_subcategory,
+        requested_style = EXCLUDED.requested_style,
         vibe = EXCLUDED.vibe,
         safety_concern = EXCLUDED.safety_concern,
         updated_at = NOW()
@@ -105,6 +109,7 @@ export async function upsertConversationContext(userPhone: string, context: User
       context.timing ?? null,
       context.budget ?? null,
       context.requestedSubcategory ?? null,
+      context.requestedStyle ?? null,
       context.vibe ?? null,
       context.safetyConcern ?? null
     ]

@@ -25,6 +25,7 @@ export type UserContext = {
   timing?: string;
   budget?: string;
   requestedSubcategory?: string;
+  requestedStyle?: string;
   vibe?: string;
   safetyConcern?: boolean;
 };
