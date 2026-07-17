@@ -1,4 +1,5 @@
 import { buildUserContext } from "../ai/buildUserContext.js";
+import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
@@ -381,6 +382,7 @@ function isAbsurdOrOffTopicRequest(message: string): boolean {
   const normalized = normalizeSearchText(trimmed);
 
   if (trimmed.length < 8) return false;
+  if (detectIntent(trimmed)) return false;
   if (containsTravelSignal(trimmed) || containsContextAnswerSignal(trimmed)) return false;
   if (containsOffTopicSignal(trimmed)) return true;
 

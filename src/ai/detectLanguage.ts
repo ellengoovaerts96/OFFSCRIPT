@@ -56,5 +56,21 @@ export function resolveConversationLanguage(
   existingLanguage?: string,
   fallback = "fr"
 ): string {
-  return detectRequestedLanguage(message) ?? existingLanguage ?? detectLanguage(message, fallback);
+  const requestedLanguage = detectRequestedLanguage(message);
+  if (requestedLanguage) return requestedLanguage;
+  if (!existingLanguage) return detectLanguage(message, fallback);
+
+  const wordCount = message
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+
+  // Short replies such as "culture", "solo" and "sport" are often shared by
+  // several languages. Keep the established conversation language for them.
+  if (wordCount <= 3) return existingLanguage;
+
+  // A complete sentence provides enough evidence to follow the language the
+  // user is actually speaking, even when the conversation started differently.
+  return detectLanguage(message, existingLanguage);
 }

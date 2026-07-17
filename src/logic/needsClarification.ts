@@ -31,7 +31,17 @@ function hasActionableMoodOrIntent(context: UserContext): boolean {
   return Boolean((context.intent && context.intent !== "unknown") || context.vibe);
 }
 
+function hasDirectSpecificRequest(context: UserContext): boolean {
+  return Boolean(
+    context.intent &&
+    context.intent !== "unknown" &&
+    context.requestedSubcategory
+  );
+}
+
 function canRecommendWithoutTravellerType(context: UserContext): boolean {
+  if (hasDirectSpecificRequest(context)) return true;
+
   return Boolean(
     hasSpecificLocation(context) &&
       context.intent &&
@@ -95,7 +105,7 @@ export function needsClarification(context: UserContext): MissingContextField | 
     return "travellerType";
   }
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
-  if (!hasSpecificLocation(context)) return "location";
+  if (!hasSpecificLocation(context) && !hasDirectSpecificRequest(context)) return "location";
   if (!context.intent || context.intent === "unknown") return "intent";
   if (needsSubcategory(context)) return "subcategory";
   if (needsVibeForBroadIntent(context)) return "vibe";
