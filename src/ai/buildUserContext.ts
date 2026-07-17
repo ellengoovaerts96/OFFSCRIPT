@@ -142,7 +142,23 @@ function isBeachLocationPreference(message: string): boolean {
 }
 
 function inferRequestedSubcategory(message: string): string | undefined {
-  return isBeachLocationPreference(message) ? "beach" : undefined;
+  if (isBeachLocationPreference(message)) return "beach";
+
+  const lower = normalizeContextText(message);
+  if (/\b(art|arts|artwork|artworks|artist|artists|kunst|kunstwerk|kunstwerken|galerie|gallery|galerij|oeuvre|oeuvres|museum|musee)\b/.test(lower)) {
+    return "artworks";
+  }
+  if (/\b(music|musical|concert|live music|muziek|concerten|musique|musical|konzert|musik)\b/.test(lower)) {
+    return "music";
+  }
+  if (/\b(architecture|architectural|architectuur|architectuur|architektur|batiment|batiments|building|buildings)\b/.test(lower)) {
+    return "architecture";
+  }
+  if (/\b(monument|monuments|memorial|monumental|standbeeld|standbeelden|denkmal|denkmaler)\b/.test(lower)) {
+    return "monuments";
+  }
+
+  return undefined;
 }
 
 function inferRequestedStyle(message: string): string | undefined {
@@ -257,12 +273,19 @@ function inferTextVibe(message: string): string | undefined {
 }
 
 function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string): string | undefined {
-  const explicitVibe = inferShoppingFocus(message) ?? inferEmojiVibe(message) ?? inferTextVibe(message);
+  const atmosphereVibe = inferEmojiVibe(message) ?? inferTextVibe(message);
+  if (atmosphereVibe) return atmosphereVibe;
+
+  // Cultural type is a subcategory, never an atmosphere.
+  const requestedSubcategory = inferRequestedSubcategory(message);
+  if (requestedSubcategory && requestedSubcategory !== "beach") return undefined;
+
+  const explicitVibe = inferShoppingFocus(message);
   if (explicitVibe) return explicitVibe;
 
   // A new hard place preference starts a fresh choice of atmosphere. In
   // particular, "eat at the beach" must not inherit a vibe from an older ask.
-  if (inferRequestedSubcategory(message)) return undefined;
+  if (requestedSubcategory) return undefined;
 
   return parsedVibe ?? previousVibe;
 }

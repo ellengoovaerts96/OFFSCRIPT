@@ -37,6 +37,8 @@ function canRecommendWithoutTravellerType(context: UserContext): boolean {
 }
 
 function needsVibeForBroadIntent(context: UserContext): boolean {
+  if (context.intent === "culture" && context.requestedSubcategory) return false;
+
   return Boolean(
     context.intent &&
       context.intent !== "unknown" &&
@@ -66,7 +68,13 @@ export function needsClarification(context: UserContext): MissingContextField | 
   if (!hasSpecificLocation(context)) return "location";
   if (!context.intent || context.intent === "unknown") return "intent";
   if (needsVibeForBroadIntent(context)) return "vibe";
-  if ((!context.timing || context.timing === "unknown") && !context.vibe) return "timing";
+  if (
+    (!context.timing || context.timing === "unknown") &&
+    !context.vibe &&
+    !context.requestedSubcategory &&
+    !context.requestedStyle &&
+    !context.budget
+  ) return "timing";
 
   return null;
 }
