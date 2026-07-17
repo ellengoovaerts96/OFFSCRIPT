@@ -145,6 +145,18 @@ function inferRequestedSubcategory(message: string): string | undefined {
   if (isBeachLocationPreference(message)) return "beach";
 
   const lower = normalizeContextText(message);
+  if (/\b(fish|fish market|seafood market|vis|vismarkt|poisson|poissons|poissonnerie|marche aux poissons|fisch|fischmarkt)\b/.test(lower)) {
+    return "fish market";
+  }
+  if (/\b(handbag|handbags|bag|bags|handtas|handtassen|sac|sacs|sac a main|sacs a main)\b/.test(lower)) {
+    return "handbags";
+  }
+  if (/\b(jewellery|jewelry|jewel|jewels|sieraden|juwelen|bijoux|schmuck)\b/.test(lower)) {
+    return "jewellery";
+  }
+  if (/\b(wood|woodwork|wooden|hout|houtwerk|bois|holz|holzarbeit)\b/.test(lower)) {
+    return "wood";
+  }
   if (/\b(art|arts|artwork|artworks|artist|artists|kunst|kunstwerk|kunstwerken|galerie|gallery|galerij|oeuvre|oeuvres|museum|musee)\b/.test(lower)) {
     return "artworks";
   }
@@ -276,7 +288,7 @@ function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string):
   const atmosphereVibe = inferEmojiVibe(message) ?? inferTextVibe(message);
   if (atmosphereVibe) return atmosphereVibe;
 
-  // Cultural type is a subcategory, never an atmosphere.
+  // Cultural and shopping types are subcategories, never atmospheres.
   const requestedSubcategory = inferRequestedSubcategory(message);
   if (requestedSubcategory && requestedSubcategory !== "beach") return undefined;
 
