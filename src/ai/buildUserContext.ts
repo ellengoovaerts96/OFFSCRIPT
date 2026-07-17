@@ -234,6 +234,11 @@ function hasExplicitActivityIntent(message: string): boolean {
   );
 }
 
+function isDirectRecommendationRequest(message: string): boolean {
+  const lower = normalizeContextText(message);
+  return /\b(waar kan ik|ik zoek|raad me|kan je .* aanraden|where can i|i am looking for|recommend me|can you recommend|ou puis je|je cherche|recommande moi|peux tu .* recommander|wo kann ich|ich suche|empfiehl mir|kannst du .* empfehlen)\b/.test(lower);
+}
+
 function inferHasChildren(message: string): boolean | undefined {
   const lower = message.toLowerCase();
 
@@ -355,7 +360,8 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       budget: inferBudget(input.message) ?? previous?.budget,
       requestedSubcategory: inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
-      vibe: messageIsKnownRegionOnly ? previous?.vibe : mergeVibe(input.message, previous?.vibe)
+      vibe: messageIsKnownRegionOnly ? previous?.vibe : mergeVibe(input.message, previous?.vibe),
+      directRequest: isDirectRecommendationRequest(input.message) || undefined
     },
     confidence: 0.55
   };
@@ -441,7 +447,8 @@ Rules:
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
         : mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
-      safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern
+      safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern,
+      directRequest: isDirectRecommendationRequest(input.message) || undefined
     },
     confidence: parsed.confidence
   };

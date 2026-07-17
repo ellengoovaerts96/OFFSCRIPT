@@ -6,7 +6,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     location: "Waar ben je nu, of naar welke buurt/regio wil je gaan?",
     travellerType: "Voor wie zoek je iets: voor jezelf, voor jou en je partner, voor vrienden of voor familie?",
     children: "Zijn er kinderen bij, en zo ja welke leeftijden ongeveer?",
-    intent: "Waar heb je zin in: eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
+    intent: "Waar ben je vandaag naar op zoek? Bijvoorbeeld eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
     subcategory: "Wat zoek je daar precies binnen?",
     vibe: "Welke vibe of subcategorie zoek je?",
     timing: "Wanneer wil je gaan: ochtend, middag, avond of vanavond?"
@@ -15,7 +15,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     location: "Tu es où maintenant, ou vers quel quartier/région tu veux aller ?",
     travellerType: "Pour qui cherches-tu quelque chose : pour toi, pour toi et ton/ta partenaire, pour des amis ou pour la famille ?",
     children: "Il y a des enfants avec toi, et si oui quel âge environ ?",
-    intent: "Tu cherches plutôt à manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
+    intent: "Qu’est-ce que tu cherches aujourd’hui ? Par exemple manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
     subcategory: "Qu’est-ce que tu cherches exactement dans cette catégorie ?",
     vibe: "Tu cherches quelle ambiance ou sous-catégorie ?",
     timing: "Tu veux y aller quand : matin, après-midi, soir ou ce soir ?"
@@ -24,7 +24,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     location: "Wo bist du gerade, oder in welches Viertel/welche Region möchtest du?",
     travellerType: "Für wen suchst du etwas: für dich, für dich und deinen Partner oder deine Partnerin, für Freunde oder für die Familie?",
     children: "Sind Kinder dabei, und wenn ja, ungefähr wie alt?",
-    intent: "Worauf hast du Lust: Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
+    intent: "Was suchst du heute? Zum Beispiel Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
     subcategory: "Was suchst du innerhalb dieser Kategorie genau?",
     vibe: "Welche Stimmung oder Unterkategorie suchst du?",
     timing: "Wann möchtest du gehen: morgens, nachmittags, abends oder heute Abend?"
@@ -33,7 +33,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     location: "Where are you now, or which neighbourhood or region do you want to go to?",
     travellerType: "Who should the suggestion be for: just you, you and your partner, friends, or family?",
     children: "Are there children with you, and roughly how old are they?",
-    intent: "What are you in the mood for: food, culture, sport, beach, nature, drinks, or something else?",
+    intent: "What are you looking for today? For example food, culture, sport, beach, nature, drinks, or something else?",
     subcategory: "What exactly are you looking for within that category?",
     vibe: "What vibe or subcategory do you want?",
     timing: "When do you want to go: morning, afternoon, evening, or tonight?"

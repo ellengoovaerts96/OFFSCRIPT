@@ -35,7 +35,8 @@ function hasDirectSpecificRequest(context: UserContext): boolean {
   return Boolean(
     context.intent &&
     context.intent !== "unknown" &&
-    context.requestedSubcategory
+    context.requestedSubcategory &&
+    context.directRequest === true
   );
 }
 
@@ -90,13 +91,10 @@ function needsSubcategory(context: UserContext): boolean {
 }
 
 export function needsClarification(context: UserContext): MissingContextField | null {
-  if (
-    hasSpecificLocation(context) &&
-    context.vibe &&
-    (!context.intent || context.intent === "unknown")
-  ) {
-    return "intent";
-  }
+  // Start with what the person actually wants. Audience and logistics only
+  // become useful after the request itself is understood.
+  if (!context.intent || context.intent === "unknown") return "intent";
+  if (needsSubcategory(context)) return "subcategory";
 
   if (
     (!context.travellerType || context.travellerType === "unknown") &&
@@ -106,8 +104,6 @@ export function needsClarification(context: UserContext): MissingContextField | 
   }
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
   if (!hasSpecificLocation(context) && !hasDirectSpecificRequest(context)) return "location";
-  if (!context.intent || context.intent === "unknown") return "intent";
-  if (needsSubcategory(context)) return "subcategory";
   if (needsVibeForBroadIntent(context)) return "vibe";
   if (
     (!context.timing || context.timing === "unknown") &&

@@ -28,4 +28,5 @@ export type UserContext = {
   requestedStyle?: string;
   vibe?: string;
   safetyConcern?: boolean;
+  directRequest?: boolean;
 };
