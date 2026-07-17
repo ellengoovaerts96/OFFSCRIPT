@@ -39,6 +39,7 @@ const VIBE_ALIASES: Record<string, string[]> = {
   surfing: ["surfing", "surf", "surf school"],
   yoga: ["yoga"],
   running: ["running", "run"],
+  swimming: ["swimming", "swim", "pool", "natation", "nager", "zwemmen"],
   artworks: ["artworks", "artwork", "art", "artist", "artists", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"]
 };
 

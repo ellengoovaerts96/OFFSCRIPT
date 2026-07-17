@@ -142,9 +142,15 @@ function isBeachLocationPreference(message: string): boolean {
 }
 
 function inferRequestedSubcategory(message: string): string | undefined {
+  const lower = normalizeContextText(message);
+  if (/\b(fitness|gym|workout|training|sportschool|salle de sport|fitnesstudio)\b/.test(lower)) return "fitness";
+  if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
+  if (/\b(yoga)\b/.test(lower)) return "yoga";
+  if (/\b(running|run|jogging|lopen|hardlopen|courir|course a pied|rennen|laufen)\b/.test(lower)) return "running";
+  if (/\b(swim|swimming|zwemmen|natation|nager|schwimmen)\b/.test(lower)) return "swimming";
+
   if (isBeachLocationPreference(message)) return "beach";
 
-  const lower = normalizeContextText(message);
   if (/\b(fish|fish market|seafood market|vis|vismarkt|poisson|poissons|poissonnerie|marche aux poissons|fisch|fischmarkt)\b/.test(lower)) {
     return "fish market";
   }
@@ -277,10 +283,6 @@ function inferTextVibe(message: string): string | undefined {
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
-  if (/\b(fitness|gym|workout|training)\b/.test(lower)) return "fitness";
-  if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
-  if (/\b(yoga)\b/.test(lower)) return "yoga";
-  if (/\b(running|run|lopen|courir)\b/.test(lower)) return "running";
   return undefined;
 }
 

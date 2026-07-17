@@ -38,7 +38,7 @@ function canRecommendWithoutTravellerType(context: UserContext): boolean {
 
 function needsVibeForBroadIntent(context: UserContext): boolean {
   if (
-    (context.intent === "culture" || context.intent === "shopping") &&
+    (context.intent === "culture" || context.intent === "shopping" || context.intent === "sports") &&
     context.requestedSubcategory
   ) return false;
 
