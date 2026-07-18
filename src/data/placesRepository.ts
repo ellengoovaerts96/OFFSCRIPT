@@ -7,6 +7,7 @@ type PlaceRow = {
   country: string;
   region: string;
   neighbourhood: string | null;
+  area: string | null;
   exact_area: string | null;
   vibe: string | null;
   categories: PlaceCategory[] | null;
@@ -100,6 +101,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     country: row.country,
     region: row.region,
     neighbourhood: row.neighbourhood ?? undefined,
+    area: row.area ?? undefined,
     exactArea: row.exact_area ?? undefined,
     vibe: row.vibe ?? undefined,
     categories: row.categories ?? [],

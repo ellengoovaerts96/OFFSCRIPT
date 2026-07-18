@@ -1,0 +1,3 @@
+ALTER TABLE public.places
+  ADD COLUMN IF NOT EXISTS area TEXT;
+

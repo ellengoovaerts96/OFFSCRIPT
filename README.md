@@ -39,6 +39,19 @@ removed only when a timestamp-keyed row with the same normalized place name exis
 
 ### Place image reconciliation
 
+Promote valid place rows from Raw into `places` before reconciling images:
+
+```bash
+npm run sync:places -- --dry-run
+npm run sync:places
+```
+
+The Places sync matches by immutable `source_row_id`, falling back to a unique
+normalized name only for legacy rows. It inserts missing places, updates mapped
+Sheet-owned fields and normalized subcategories, never deletes Places rows, and
+runs all writes in one transaction. Existing status values are preserved; new
+places start as `draft`.
+
 The field-research sync only updates `field_research_raw`. Reconcile its `image_1`,
 `image_2`, and `image_3` values with `place_images` in a separate, reviewable step:
 
