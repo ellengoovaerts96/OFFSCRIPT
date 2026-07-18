@@ -19,7 +19,10 @@ export function detectLanguage(message: string, fallback = "fr"): string {
     return "fr";
   }
 
-  if (/\b(hello|i|want|would like|what|means|mean|does|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)) {
+  if (
+    /\b(is there|are there|do you have|can i|could i|where can|irish pub)\b/.test(lower) ||
+    /\b(hello|i|want|would like|what|means|mean|does|where|with|children|morning|afternoon|evening|tonight|culture|food|beach|friends)\b/.test(lower)
+  ) {
     return "en";
   }
 

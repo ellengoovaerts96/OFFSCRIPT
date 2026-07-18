@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
 import { inferTextVibe } from "../src/ai/buildUserContext.js";
+import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
@@ -43,6 +44,7 @@ try {
         rastaBarSelection: rastaBarSelection?.place.name ?? null,
         rastaBarScore: rastaBarSelection?.score ?? null,
         inferredRastaVibe: inferTextVibe("Waar kan ik een rasta bar vinden?"),
+        englishAfterFrenchReset: resolveConversationLanguage("Is there an Irish pub?", "fr"),
         missingField,
         clarifyingQuestion: missingField ? buildClarifyingQuestion(missingField, incompleteContext) : null
       },
