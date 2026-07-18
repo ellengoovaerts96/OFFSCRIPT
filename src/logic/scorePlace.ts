@@ -1,6 +1,7 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
+import { vibeTagAliases } from "./vibeTags.js";
 
 const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
   food: ["food", "restaurant", "restaurants", "lunch", "dinner", "brunch", "breakfast", "cafe", "café", "seafood", "grill", "pizza", "pizzeria", "eat", "eating"],
@@ -29,6 +30,7 @@ const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
 };
 
 const VIBE_ALIASES: Record<string, string[]> = {
+  rasta_reggae: vibeTagAliases("rasta_reggae"),
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
   pizza: ["pizza", "pizzeria"],
   local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],
@@ -54,7 +56,7 @@ const BUDGET_ALIASES: Record<string, string[]> = {
   upscale: ["upscale", "luxury", "luxurious", "chic", "luxe", "haut de gamme", "exclusief", "€€€", "$$$"]
 };
 
-const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running"]);
+const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running", "rasta_reggae"]);
 
 function normalizeValue(value: string): string {
   return value
@@ -155,6 +157,7 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
+    place.vibeTags.some((tag) => matchesAny(tag, [normalizedFocus])) ||
     textIncludesAny(place.vibe, aliases)
   );
 }

@@ -301,9 +301,10 @@ function inferEmojiVibe(message: string): string | undefined {
   return undefined;
 }
 
-function inferTextVibe(message: string): string | undefined {
+export function inferTextVibe(message: string): string | undefined {
   const lower = message.toLowerCase();
 
+  if (/\b(rasta|reggae|rastabar)\b/.test(lower)) return "rasta_reggae";
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
   if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";

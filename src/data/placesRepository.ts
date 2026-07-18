@@ -11,6 +11,7 @@ type PlaceRow = {
   area_en: string | null;
   area_fr: string | null;
   vibe: string | null;
+  vibe_tags: string[] | null;
   categories: PlaceCategory[] | null;
   legacy_subcategories: string[] | null;
   subcategories: PlaceSubcategory[] | null;
@@ -104,6 +105,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     neighbourhood: row.neighbourhood ?? undefined,
     area: localizedText(language, row.area_en, row.area_fr, row.area),
     vibe: row.vibe ?? undefined,
+    vibeTags: row.vibe_tags ?? [],
     categories: row.categories ?? [],
     subcategories: mergeSubcategories(row),
     shortDescription: shortDescription ?? row.short_description,

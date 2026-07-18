@@ -1,5 +1,6 @@
 import "dotenv/config";
 import pg, { type PoolClient } from "pg";
+import { extractVibeTags } from "../src/logic/vibeTags.js";
 
 type RawPlace = Record<string, unknown> & {
   id: number;
@@ -45,6 +46,7 @@ type PlaceValues = {
   google_maps_url: string;
   safety_notes: string | null;
   vibe: string | null;
+  vibe_tags: string[];
   facebook_url: string | null;
   instagram_url: string | null;
   tiktok_url: string | null;
@@ -65,7 +67,7 @@ const syncedColumns = [
   "practical_info", "practical_info_en", "practical_info_fr", "personal_tip", "personal_tip_en",
   "personal_tip_fr", "story_en", "story_fr", "traveller_types", "child_friendly", "best_timing",
   "price_level", "google_maps_url", "safety_notes", "vibe", "facebook_url", "instagram_url",
-  "tiktok_url", "transport", "source"
+  "vibe_tags", "tiktok_url", "transport", "source"
 ] as const satisfies readonly (keyof PlaceValues)[];
 
 function text(value: unknown): string | null {
@@ -126,6 +128,7 @@ function mapRaw(row: RawPlace): PlaceValues {
     google_maps_url: maps,
     safety_notes: text(row.safety_notes),
     vibe: text(row.vibe),
+    vibe_tags: extractVibeTags(row.vibe),
     facebook_url: text(row.facebook_url),
     instagram_url: text(row.instagram_url),
     tiktok_url: text(row.tiktok_url),

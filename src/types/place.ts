@@ -35,6 +35,7 @@ export type Place = {
   neighbourhood?: string;
   area?: string;
   vibe?: string;
+  vibeTags: string[];
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];
   shortDescription: string;

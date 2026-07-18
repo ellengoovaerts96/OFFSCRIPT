@@ -135,6 +135,7 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     region: place.region,
     neighbourhood: place.neighbourhood,
     area: place.area,
+    vibeTags: place.vibeTags,
     categories: place.categories,
     subcategories: place.subcategories.map((subcategory) => ({
       name: subcategory.name,
