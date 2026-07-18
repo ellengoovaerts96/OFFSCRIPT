@@ -37,6 +37,23 @@ collapsed to the last occurrence, and unchanged rows remain untouched. A separat
 are also skipped. After a successful upsert, legacy rows without a source key are
 removed only when a timestamp-keyed row with the same normalized place name exists.
 
+### Place image reconciliation
+
+The field-research sync only updates `field_research_raw`. Reconcile its `image_1`,
+`image_2`, and `image_3` values with `place_images` in a separate, reviewable step:
+
+```bash
+npm run sync:place-images -- --dry-run
+npm run sync:place-images
+```
+
+The Sheet/Raw image order is authoritative for existing, uniquely matched place
+names. Existing image rows and metadata are preserved when their URL remains in
+Raw; new URLs are inserted, removed URLs are deleted, and `sort_order` is reset to
+0..2. Raw rows without an existing unique Places match are skipped with a warning.
+Always inspect the dry-run before running the write command. The write phase uses
+one PostgreSQL transaction and rolls back every image change if any operation fails.
+
 ### English and French content
 
 The Sheet fields `Short description`, `Practical info`, `Personal tip`, and `Story`
