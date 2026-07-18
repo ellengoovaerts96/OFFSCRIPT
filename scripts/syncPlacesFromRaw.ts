@@ -23,7 +23,8 @@ type PlaceValues = {
   region: string;
   neighbourhood: string | null;
   area: string | null;
-  exact_area: string | null;
+  area_en: string | null;
+  area_fr: string | null;
   categories: string[];
   subcategories: string[];
   short_description: string;
@@ -59,7 +60,7 @@ type SyncPlan = {
 };
 
 const syncedColumns = [
-  "source_row_id", "name", "country", "region", "neighbourhood", "area", "exact_area",
+  "source_row_id", "name", "country", "region", "neighbourhood", "area", "area_en", "area_fr",
   "categories", "subcategories", "short_description", "short_description_en", "short_description_fr",
   "practical_info", "practical_info_en", "practical_info_fr", "personal_tip", "personal_tip_en",
   "personal_tip_fr", "story_en", "story_fr", "traveller_types", "child_friendly", "best_timing",
@@ -103,7 +104,8 @@ function mapRaw(row: RawPlace): PlaceValues {
     region,
     neighbourhood: text(row.neighbourhood),
     area: text(row.area),
-    exact_area: text(row.area),
+    area_en: text(row.area_en) ?? text(row.area),
+    area_fr: text(row.area_fr),
     categories: list(row.categories),
     subcategories: list(row.subcategories),
     short_description: shortEn,
@@ -258,4 +260,3 @@ main().catch((error: unknown) => {
   console.error(`Places sync failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;
 });
-

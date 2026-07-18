@@ -725,7 +725,7 @@ function preferredSocialUrl(place: Place): string | undefined {
 }
 
 function placeAreaLabel(place: Place): string | undefined {
-  return place.area ?? place.exactArea ?? place.neighbourhood ?? place.region;
+  return place.area ?? place.neighbourhood ?? place.region;
 }
 
 function recommendationTitle(place: Place): string {

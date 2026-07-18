@@ -84,7 +84,7 @@ export function placeMatchesLocation(place: Place, targetLocation: string | unde
   return (
     textMatchesLocation(place.region, targetLocation) ||
     textMatchesLocation(place.neighbourhood, targetLocation) ||
-    textMatchesLocation(place.exactArea, targetLocation)
+    textMatchesLocation(place.area, targetLocation)
   );
 }
 
@@ -151,7 +151,7 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
 
   return (
     textIncludesAny(place.name, aliases) ||
-    textIncludesAny(place.exactArea, aliases) ||
+    textIncludesAny(place.area, aliases) ||
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||

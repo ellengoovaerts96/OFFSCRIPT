@@ -8,7 +8,8 @@ type PlaceRow = {
   region: string;
   neighbourhood: string | null;
   area: string | null;
-  exact_area: string | null;
+  area_en: string | null;
+  area_fr: string | null;
   vibe: string | null;
   categories: PlaceCategory[] | null;
   legacy_subcategories: string[] | null;
@@ -101,8 +102,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     country: row.country,
     region: row.region,
     neighbourhood: row.neighbourhood ?? undefined,
-    area: row.area ?? undefined,
-    exactArea: row.exact_area ?? undefined,
+    area: localizedText(language, row.area_en, row.area_fr, row.area),
     vibe: row.vibe ?? undefined,
     categories: row.categories ?? [],
     subcategories: mergeSubcategories(row),

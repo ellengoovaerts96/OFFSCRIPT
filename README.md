@@ -69,10 +69,10 @@ one PostgreSQL transaction and rolls back every image change if any operation fa
 
 ### English and French content
 
-The Sheet fields `Short description`, `Practical info`, `Personal tip`, and `Story`
+The Sheet fields `Neighbourhood/exact area`, `Short description`, `Practical info`, `Personal tip`, and `Story`
 are stored in their corresponding `_en` columns. On the first sync, and whenever
 one of those English values changes, the sync uses `OPENAI_API_KEY` to generate the
-four `_fr` values. A SHA-256 source hash prevents unchanged rows from being
+corresponding `_fr` values, including `area_fr`. A SHA-256 source hash prevents unchanged rows from being
 translated again.
 
 French is the chatbot default. It reads `_fr` first and falls back to `_en`; only

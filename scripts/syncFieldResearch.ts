@@ -16,6 +16,8 @@ const databaseColumns = [
   "region",
   "neighbourhood",
   "area",
+  "area_en",
+  "area_fr",
   "short_description",
   "short_description_en",
   "short_description_fr",
@@ -68,6 +70,7 @@ type SourceRow = {
 
 type ExistingTranslation = {
   source_row_id: string;
+  area_fr: string | null;
   short_description_fr: string | null;
   practical_info_fr: string | null;
   personal_tip_fr: string | null;
@@ -78,6 +81,7 @@ type ExistingTranslation = {
 };
 
 const englishContentColumns = [
+  "area_en",
   "short_description_en",
   "practical_info_en",
   "personal_tip_en",
@@ -85,6 +89,7 @@ const englishContentColumns = [
 ] as const satisfies readonly DatabaseColumn[];
 
 const frenchContentColumns = [
+  "area_fr",
   "short_description_fr",
   "practical_info_fr",
   "personal_tip_fr",
@@ -100,6 +105,7 @@ const translationMetadataColumns = [
 const translationBatchSchema = z.object({
   translations: z.array(z.object({
     sourceRowId: z.string(),
+    areaFr: z.string().nullable(),
     shortDescriptionFr: z.string().nullable(),
     practicalInfoFr: z.string().nullable(),
     personalTipFr: z.string().nullable(),
@@ -234,6 +240,7 @@ function applyExistingTranslation(
   sourceHash: string,
   status = existing.translation_status ?? "auto"
 ): void {
+  row.values.set("area_fr", existing.area_fr);
   row.values.set("short_description_fr", existing.short_description_fr);
   row.values.set("practical_info_fr", existing.practical_info_fr);
   row.values.set("personal_tip_fr", existing.personal_tip_fr);
@@ -249,6 +256,7 @@ async function translateChangedRows(client: PoolClient, rows: SourceRow[]): Prom
   const existingResult = await client.query<ExistingTranslation>(`
     SELECT
       source_row_id,
+      area_fr,
       short_description_fr,
       practical_info_fr,
       personal_tip_fr,
@@ -311,6 +319,7 @@ Rules:
 - Return exactly one result for every sourceRowId.`,
       input: JSON.stringify(batch.map((row) => ({
         sourceRowId: row.sourceRowId,
+        areaEn: textValue(row, "area_en"),
         shortDescriptionEn: textValue(row, "short_description_en"),
         practicalInfoEn: textValue(row, "practical_info_en"),
         personalTipEn: textValue(row, "personal_tip_en"),
@@ -331,6 +340,7 @@ Rules:
       if (!translation) {
         throw new Error(`OpenAI omitted translation for ${row.sourceRowId}.`);
       }
+      row.values.set("area_fr", translation.areaFr?.trim() || null);
       row.values.set("short_description_fr", translation.shortDescriptionFr?.trim() || null);
       row.values.set("practical_info_fr", translation.practicalInfoFr?.trim() || null);
       row.values.set("personal_tip_fr", translation.personalTipFr?.trim() || null);
@@ -391,6 +401,9 @@ async function syncRows(
   await client.query(`
     UPDATE public.places AS place
     SET
+      area = raw.area,
+      area_en = raw.area_en,
+      area_fr = raw.area_fr,
       short_description_en = raw.short_description_en,
       short_description_fr = raw.short_description_fr,
       practical_info_en = raw.practical_info_en,
@@ -486,6 +499,7 @@ async function main(): Promise<void> {
 
     // Keep legacy English columns populated while n8n's downstream processor
     // is being phased out. New bilingual consumers use the suffixed columns.
+    values.set("area_en", values.get("area") ?? null);
     values.set("short_description", values.get("short_description_en") ?? null);
     values.set("practical_info", values.get("practical_info_en") ?? null);
     values.set("personal_tip", values.get("personal_tip_en") ?? null);
@@ -529,6 +543,7 @@ async function main(): Promise<void> {
     const syncColumns = databaseColumns.filter((column) =>
       mappedColumns.includes(column)
       || [
+        "area_en",
         "short_description",
         "practical_info",
         "personal_tip",
