@@ -32,7 +32,6 @@ const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
 const VIBE_ALIASES: Record<string, string[]> = {
   rasta_reggae: vibeTagAliases("rasta_reggae"),
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
-  pizza: ["pizza", "pizzeria"],
   quick_casual: ["quick", "casual", "informal", "fast", "takeaway", "snelle", "informeel", "rapide", "décontracté"],
   italian_restaurant: ["italian", "italian restaurant", "italiaans", "restaurant italien", "italienisch"],
   local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],

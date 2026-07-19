@@ -56,6 +56,10 @@ if (pizzaQuestion !== "vibe") throw new Error(`Pizza should ask about style, rec
 if (inferTextVibe("je veux une pizza") !== undefined) {
   throw new Error("Pizza must be stored as a subcategory, never as a vibe.");
 }
+const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
+if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {
+  throw new Error("Food style questions must not list subcategories as vibes.");
+}
 
 const cultureQuestion = needsClarification({ language: "fr", intent: "culture", clarificationCount: 0 });
 if (cultureQuestion !== "subcategory") throw new Error(`Culture should ask for a subcategory, received ${cultureQuestion}`);
