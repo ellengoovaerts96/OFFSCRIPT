@@ -20,7 +20,12 @@ import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
-import { buildGreetingResponse, isGreetingOnly } from "./greeting.js";
+import {
+  buildGreetingResponse,
+  buildOffscriptWelcomeResponse,
+  isGreetingOnly,
+  isOffscriptStartMessage
+} from "./greeting.js";
 import { needsClarification, type MissingContextField } from "./needsClarification.js";
 import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
@@ -791,6 +796,20 @@ function wasPlaceAlreadyMentioned(place: Place, outgoingMessages: string[]): boo
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
   const previousContext = await getConversationContext(userPhone);
   const useWolofGreeting = !(await getLastOutgoingMessage(userPhone));
+
+  if (isOffscriptStartMessage(message)) {
+    const context: UserContext = { language: "fr" };
+
+    await deleteConversationContext(userPhone);
+    await deleteRecommendationHistoryForUser(userPhone);
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: buildOffscriptWelcomeResponse()
+    };
+  }
 
   if (isResetCommand(message)) {
     const context: UserContext = {

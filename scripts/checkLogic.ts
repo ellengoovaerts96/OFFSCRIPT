@@ -2,6 +2,7 @@ import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
 import { inferTextVibe } from "../src/ai/buildUserContext.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
+import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
@@ -45,6 +46,9 @@ try {
         rastaBarScore: rastaBarSelection?.score ?? null,
         inferredRastaVibe: inferTextVibe("Waar kan ik een rasta bar vinden?"),
         englishAfterFrenchReset: resolveConversationLanguage("Is there an Irish pub?", "fr"),
+        recognisesNewOffscriptStart: isOffscriptStartMessage("Bonjour OFFSCRIPT 👋"),
+        recognisesFlyerOffscriptStart: isOffscriptStartMessage("Start OFFSCRIPT 👋"),
+        offscriptWelcome: buildOffscriptWelcomeResponse(),
         missingField,
         clarifyingQuestion: missingField ? buildClarifyingQuestion(missingField, incompleteContext) : null
       },

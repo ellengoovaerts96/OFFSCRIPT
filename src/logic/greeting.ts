@@ -5,8 +5,18 @@ import { needsClarification } from "./needsClarification.js";
 const GREETING_ONLY_PATTERN =
   /^(?:hallo|hoi|hey|hi|hello|bonjour|bonsoir|salut|goedemorgen|goedemiddag|goedenavond)[!,.?\s]*$/i;
 
+const OFFSCRIPT_START_PATTERN = /^(?:bonjour|start)\s+offscript[!,.?👋\s]*$/iu;
+
 export function isGreetingOnly(message: string): boolean {
   return GREETING_ONLY_PATTERN.test(message.trim());
+}
+
+export function isOffscriptStartMessage(message: string): boolean {
+  return OFFSCRIPT_START_PATTERN.test(message.trim());
+}
+
+export function buildOffscriptWelcomeResponse(): string {
+  return "Na nga def! 👋\n\nJe suis ton ami local à Dakar. Qu’est-ce qui te ferait plaisir aujourd’hui ?\n\nRéponds dans la langue que tu veux.";
 }
 
 export function buildGreetingResponse(context: UserContext, options: { useWolofGreeting?: boolean } = {}): string {
