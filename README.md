@@ -67,6 +67,16 @@ Raw; new URLs are inserted, removed URLs are deleted, and `sort_order` is reset 
 Always inspect the dry-run before running the write command. The write phase uses
 one PostgreSQL transaction and rolls back every image change if any operation fails.
 
+### Editorial curation
+
+OFFSCRIPT's editorial judgement lives directly on `places`, separately from the
+field-research import. The protected fields include pick level and priority,
+Dutch/English/French reasons, authenticity, local-versus-western positioning,
+occasion tags, quick-meal suitability, and work friendliness. The Raw-to-Places
+sync deliberately does not write these columns, so a Form or Sheet sync cannot
+erase manual curation. Unknown boolean judgements remain `NULL`, rather than being
+treated as a confirmed `false`.
+
 ### English and French content
 
 The Sheet fields `Neighbourhood/exact area`, `Short description`, `Practical info`, `Personal tip`, and `Story`

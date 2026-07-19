@@ -12,6 +12,16 @@ type PlaceRow = {
   area_fr: string | null;
   vibe: string | null;
   vibe_tags: string[] | null;
+  offscript_pick_level: Place["offscriptPickLevel"];
+  offscript_priority: number;
+  offscript_reason_nl: string | null;
+  offscript_reason_en: string | null;
+  offscript_reason_fr: string | null;
+  authenticity: number | null;
+  local_vs_western: number | null;
+  occasion_tags: string[] | null;
+  quick_meal: boolean | null;
+  work_friendly: boolean | null;
   categories: PlaceCategory[] | null;
   legacy_subcategories: string[] | null;
   subcategories: PlaceSubcategory[] | null;
@@ -89,6 +99,17 @@ function localizedText(
   return value ?? undefined;
 }
 
+function localizedOffscriptReason(row: PlaceRow, language: string): string | undefined {
+  const normalized = language.toLowerCase();
+  if (normalized.startsWith("nl")) {
+    return row.offscript_reason_nl ?? row.offscript_reason_fr ?? row.offscript_reason_en ?? undefined;
+  }
+  if (normalized.startsWith("en")) {
+    return row.offscript_reason_en ?? row.offscript_reason_fr ?? row.offscript_reason_nl ?? undefined;
+  }
+  return row.offscript_reason_fr ?? row.offscript_reason_en ?? row.offscript_reason_nl ?? undefined;
+}
+
 function mapPlace(row: PlaceRow, language = "fr"): Place {
   const shortDescription = localizedText(
     language,
@@ -106,6 +127,14 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     area: localizedText(language, row.area_en, row.area_fr, row.area),
     vibe: row.vibe ?? undefined,
     vibeTags: row.vibe_tags ?? [],
+    offscriptPickLevel: row.offscript_pick_level,
+    offscriptPriority: row.offscript_priority,
+    offscriptReason: localizedOffscriptReason(row, language),
+    authenticity: row.authenticity ?? undefined,
+    localVsWestern: row.local_vs_western ?? undefined,
+    occasionTags: row.occasion_tags ?? [],
+    quickMeal: row.quick_meal ?? undefined,
+    workFriendly: row.work_friendly ?? undefined,
     categories: row.categories ?? [],
     subcategories: mergeSubcategories(row),
     shortDescription: shortDescription ?? row.short_description,

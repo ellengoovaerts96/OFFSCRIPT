@@ -36,6 +36,14 @@ export type Place = {
   area?: string;
   vibe?: string;
   vibeTags: string[];
+  offscriptPickLevel: 0 | 1 | 2 | 3;
+  offscriptPriority: number;
+  offscriptReason?: string;
+  authenticity?: number;
+  localVsWestern?: number;
+  occasionTags: string[];
+  quickMeal?: boolean;
+  workFriendly?: boolean;
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];
   shortDescription: string;

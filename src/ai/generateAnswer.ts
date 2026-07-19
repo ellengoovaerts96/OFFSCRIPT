@@ -136,6 +136,13 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     neighbourhood: place.neighbourhood,
     area: place.area,
     vibeTags: place.vibeTags,
+    offscriptPickLevel: place.offscriptPickLevel,
+    offscriptReason: place.offscriptReason,
+    authenticity: place.authenticity,
+    localVsWestern: place.localVsWestern,
+    occasionTags: place.occasionTags,
+    quickMeal: place.quickMeal,
+    workFriendly: place.workFriendly,
     categories: place.categories,
     subcategories: place.subcategories.map((subcategory) => ({
       name: subcategory.name,
