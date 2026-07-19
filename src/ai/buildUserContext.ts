@@ -314,7 +314,26 @@ export function inferTextVibe(message: string): string | undefined {
   return undefined;
 }
 
-function mergeVibe(message: string, previousVibe?: string, parsedVibe?: string): string | undefined {
+export function inferContextualFoodStyle(message: string, requestedSubcategory?: string): string | undefined {
+  if (requestedSubcategory !== "pizza") return undefined;
+
+  const lower = normalizeContextText(message);
+  if (/\b(bon restaurant|tres bon restaurant|restaurant italien|really good|good restaurant|italian restaurant|goed restaurant|echt goed|italiaans restaurant|gutes restaurant|italienisches restaurant)\b/.test(lower)) {
+    return "italian_restaurant";
+  }
+
+  return undefined;
+}
+
+function mergeVibe(
+  message: string,
+  previousVibe?: string,
+  parsedVibe?: string,
+  previousRequestedSubcategory?: string
+): string | undefined {
+  const contextualFoodStyle = inferContextualFoodStyle(message, previousRequestedSubcategory);
+  if (contextualFoodStyle) return contextualFoodStyle;
+
   const atmosphereVibe = inferEmojiVibe(message) ?? inferTextVibe(message);
   if (atmosphereVibe) return atmosphereVibe;
 
@@ -362,7 +381,9 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       budget: inferBudget(input.message) ?? previous?.budget,
       requestedSubcategory: inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
-      vibe: messageIsKnownRegionOnly ? previous?.vibe : mergeVibe(input.message, previous?.vibe),
+      vibe: messageIsKnownRegionOnly
+        ? previous?.vibe
+        : mergeVibe(input.message, previous?.vibe, undefined, previous?.requestedSubcategory),
       directRequest: isDirectRecommendationRequest(input.message) || undefined
     },
     confidence: 0.55
@@ -448,7 +469,12 @@ Rules:
         input.previousContext?.requestedStyle,
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
-        : mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
+        : mergeVibe(
+            input.message,
+            input.previousContext?.vibe,
+            nullToUndefined(parsed.context.vibe),
+            input.previousContext?.requestedSubcategory
+          ),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern,
       directRequest: isDirectRecommendationRequest(input.message) || undefined,
       clarificationCount: input.previousContext?.clarificationCount ?? 0

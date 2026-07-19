@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
-import { inferTextVibe } from "../src/ai/buildUserContext.js";
+import { inferContextualFoodStyle, inferTextVibe } from "../src/ai/buildUserContext.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
@@ -55,6 +55,12 @@ const pizzaQuestion = needsClarification({
 if (pizzaQuestion !== "vibe") throw new Error(`Pizza should ask about style, received ${pizzaQuestion}`);
 if (inferTextVibe("je veux une pizza") !== undefined) {
   throw new Error("Pizza must be stored as a subcategory, never as a vibe.");
+}
+if (inferContextualFoodStyle("bon restaurant", "pizza") !== "italian_restaurant") {
+  throw new Error("The restaurant answer to a pizza style question must be recognized.");
+}
+if (inferContextualFoodStyle("bon restaurant", "seafood") !== undefined) {
+  throw new Error("Pizza style answers must only be interpreted inside the pizza flow.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {
