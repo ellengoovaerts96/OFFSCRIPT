@@ -308,7 +308,6 @@ export function inferTextVibe(message: string): string | undefined {
   if (/\b(quick|casual|informal|snelle|snel|informeel|rapide|decontracte|décontracté|locker)\b/.test(lower)) return "quick_casual";
   if (/\b(good italian|italian restaurant|goed italiaans|italiaans restaurant|bon restaurant italien|restaurant italien|gutes italienisches|italienisches restaurant)\b/.test(lower)) return "italian_restaurant";
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
-  if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
