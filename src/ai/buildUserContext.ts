@@ -47,6 +47,7 @@ const buildUserContextSchema = z.object({
 export type BuildUserContextInput = {
   message: string;
   previousContext?: UserContext | null;
+  previousAssistantMessage?: string | null;
 };
 
 export type BuildUserContextResult = {
@@ -407,6 +408,9 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 Extract updated user travel context as JSON.
 Rules:
 - Keep previous context unless the user clearly changes it.
+- Interpret short replies in the context of the previous assistant message. A short reply often selects one of the options in that question.
+- Do not require the user to repeat the exact wording of an option. Resolve natural synonyms and partial answers semantically.
+- Examples: after a pizza-style question, "bon restaurant" means the good Italian restaurant option; after a children question, "oui" means children are joining; after a location question, "n’importe où" means Dakar-wide mobility.
 - Preserve the existing conversation language. Only change it when the user explicitly requests another language.
 - Normalize known Senegal regions.
 - Use "unknown" for unclear travellerType or intent.
@@ -419,7 +423,8 @@ Rules:
 - Do not assume a place is child-friendly.`,
     input: JSON.stringify({
       message: input.message,
-      previousContext: input.previousContext ?? null
+      previousContext: input.previousContext ?? null,
+      previousAssistantMessage: input.previousAssistantMessage ?? null
     }),
     text: {
       format: zodTextFormat(buildUserContextSchema, "build_user_context")

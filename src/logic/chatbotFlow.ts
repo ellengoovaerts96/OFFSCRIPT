@@ -818,7 +818,8 @@ function wasPlaceAlreadyMentioned(place: Place, outgoingMessages: string[]): boo
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
   const previousContext = await getConversationContext(userPhone);
-  const useWolofGreeting = !(await getLastOutgoingMessage(userPhone));
+  const previousAssistantMessage = await getLastOutgoingMessage(userPhone);
+  const useWolofGreeting = !previousAssistantMessage;
 
   if (isOffscriptStartMessage(message)) {
     const context: UserContext = { language: "fr", clarificationCount: 0 };
@@ -968,7 +969,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   const { context } = await buildUserContext({
     message,
-    previousContext
+    previousContext,
+    previousAssistantMessage
   });
 
   const missingField = needsClarification(context);
