@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
-import { inferContextualFoodStyle, inferTextVibe } from "../src/ai/buildUserContext.js";
+import { inferContextualBudget, inferContextualFoodStyle, inferTextVibe } from "../src/ai/buildUserContext.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
@@ -62,6 +62,9 @@ if (inferContextualFoodStyle("bon restaurant", "pizza") !== "italian_restaurant"
 if (inferContextualFoodStyle("bon restaurant", "seafood") !== undefined) {
   throw new Error("Pizza style answers must only be interpreted inside the pizza flow.");
 }
+if (inferContextualBudget("bon restaurant", "pizza") !== "upscale") {
+  throw new Error("The restaurant pizza option must prefer the more upscale match.");
+}
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {
   throw new Error("Food style questions must not list subcategories as vibes.");
@@ -84,6 +87,17 @@ try {
   const places = await listRecommendationPlaces();
   const selection = selectBestPlace(places, context);
   const rastaBarSelection = selectBestPlace(places, rastaBarContext);
+  const upscalePizzaSelection = selectBestPlace(places, {
+    language: "fr",
+    targetRegion: "Dakar",
+    intent: "food",
+    requestedSubcategory: "pizza",
+    vibe: "italian_restaurant",
+    budget: "upscale"
+  });
+  if (upscalePizzaSelection?.place.name !== "Pizzammore") {
+    throw new Error(`Upscale pizza should select Pizzammore, received ${upscalePizzaSelection?.place.name ?? "none"}.`);
+  }
   const missingField = needsClarification(incompleteContext);
 
   console.log(
@@ -93,6 +107,7 @@ try {
         score: selection?.score ?? null,
         rastaBarSelection: rastaBarSelection?.place.name ?? null,
         rastaBarScore: rastaBarSelection?.score ?? null,
+        upscalePizzaSelection: upscalePizzaSelection.place.name,
         inferredRastaVibe: inferTextVibe("Waar kan ik een rasta bar vinden?"),
         englishAfterFrenchReset: resolveConversationLanguage("Is there an Irish pub?", "fr"),
         recognisesNewOffscriptStart: isOffscriptStartMessage("Bonjour OFFSCRIPT 👋"),

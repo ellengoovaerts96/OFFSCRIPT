@@ -326,6 +326,20 @@ export function inferContextualFoodStyle(message: string, requestedSubcategory?:
   return undefined;
 }
 
+export function inferContextualBudget(message: string, requestedSubcategory?: string): string | undefined {
+  if (requestedSubcategory !== "pizza") return undefined;
+
+  const lower = normalizeContextText(message);
+  if (/\b(bon restaurant|tres bon restaurant|restaurant italien|really good|good restaurant|italian restaurant|goed restaurant|echt goed|italiaans restaurant|gutes restaurant|italienisches restaurant)\b/.test(lower)) {
+    return "upscale";
+  }
+  if (/\b(quick|casual|informal|fast|rapide|decontracte|snelle|snel|informeel|locker)\b/.test(lower)) {
+    return "affordable";
+  }
+
+  return undefined;
+}
+
 function mergeVibe(
   message: string,
   previousVibe?: string,
@@ -379,7 +393,10 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
       intent: mergeIntent(input.message, previous?.intent),
       timing,
-      budget: inferBudget(input.message) ?? previous?.budget,
+      budget:
+        inferBudget(input.message) ??
+        inferContextualBudget(input.message, previous?.requestedSubcategory) ??
+        previous?.budget,
       requestedSubcategory: inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
       vibe: messageIsKnownRegionOnly
@@ -463,7 +480,11 @@ Rules:
         messageIsKnownRegionOnly ? undefined : (nullToUndefined(parsed.context.intent) as UserIntent | undefined)
       ),
       timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
-      budget: inferBudget(input.message) ?? nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
+      budget:
+        inferBudget(input.message) ??
+        inferContextualBudget(input.message, input.previousContext?.requestedSubcategory) ??
+        nullToUndefined(parsed.context.budget) ??
+        input.previousContext?.budget,
       requestedSubcategory:
         inferRequestedSubcategory(input.message) ??
         nullToUndefined(parsed.context.requestedSubcategory) ??
