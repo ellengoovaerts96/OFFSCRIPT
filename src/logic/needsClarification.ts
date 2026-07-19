@@ -1,5 +1,10 @@
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
+import {
+  isSpecificDirectRequest,
+  MAX_CLARIFICATION_QUESTIONS,
+  recommendationReadiness
+} from "./recommendationReadiness.js";
 
 export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing";
 
@@ -31,17 +36,8 @@ function hasActionableMoodOrIntent(context: UserContext): boolean {
   return Boolean((context.intent && context.intent !== "unknown") || context.vibe);
 }
 
-function hasDirectSpecificRequest(context: UserContext): boolean {
-  return Boolean(
-    context.intent &&
-    context.intent !== "unknown" &&
-    context.requestedSubcategory &&
-    context.directRequest === true
-  );
-}
-
 function canRecommendWithoutTravellerType(context: UserContext): boolean {
-  if (hasDirectSpecificRequest(context)) return true;
+  if (isSpecificDirectRequest(context)) return true;
 
   return Boolean(
     hasSpecificLocation(context) &&
@@ -82,6 +78,10 @@ function hasMeaningfulSubcategory(context: UserContext): boolean {
 }
 
 function needsSubcategory(context: UserContext): boolean {
+  // A meal moment already makes a broad food request actionable. Asking what
+  // to eat as well would waste one of the three available questions.
+  if (context.intent === "food" && context.timing && context.timing !== "unknown") return false;
+
   return Boolean(
     context.intent &&
     context.intent !== "unknown" &&
@@ -94,7 +94,22 @@ export function needsClarification(context: UserContext): MissingContextField | 
   // Start with what the person actually wants. Audience and logistics only
   // become useful after the request itself is understood.
   if (!context.intent || context.intent === "unknown") return "intent";
+
+  if (isSpecificDirectRequest(context)) return null;
+  if ((context.clarificationCount ?? 0) >= MAX_CLARIFICATION_QUESTIONS) return null;
+
   if (needsSubcategory(context)) return "subcategory";
+
+  if (
+    context.intent === "food" &&
+    context.requestedSubcategory === "pizza" &&
+    !context.vibe &&
+    !context.requestedStyle &&
+    !context.budget
+  ) return "vibe";
+
+  const readiness = recommendationReadiness(context);
+  if (readiness.ready) return null;
 
   if (
     (!context.travellerType || context.travellerType === "unknown") &&
@@ -103,7 +118,7 @@ export function needsClarification(context: UserContext): MissingContextField | 
     return "travellerType";
   }
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
-  if (!hasSpecificLocation(context) && !hasDirectSpecificRequest(context)) return "location";
+  if (!hasSpecificLocation(context)) return "location";
   if (needsVibeForBroadIntent(context)) return "vibe";
   if (
     (!context.timing || context.timing === "unknown") &&

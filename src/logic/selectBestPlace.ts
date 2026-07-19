@@ -68,7 +68,11 @@ export function selectBestPlace(places: Place[], context: UserContext): PlaceSel
 
   const best = ranked[0];
 
-  if (!best || best.score < MIN_RECOMMENDATION_SCORE) {
+  const minimumScore = (context.clarificationCount ?? 0) >= 3
+    ? MIN_ALTERNATIVE_RECOMMENDATION_SCORE
+    : MIN_RECOMMENDATION_SCORE;
+
+  if (!best || best.score < minimumScore) {
     return null;
   }
 

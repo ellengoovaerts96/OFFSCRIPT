@@ -114,7 +114,7 @@ function acceptsAnyLocation(message: string): boolean {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(anywhere|anywhere in dakar|does not matter|doesnt matter|it does not matter|it doesnt matter|no preference|wherever|maakt niet uit|het maakt niet uit|eender waar|maakt me niet uit|maakt mij niet uit|peu importe|n importe ou|n'importe ou|egal|gelijk waar)\b/.test(
+  return /\b(anywhere|anywhere in dakar|taxi anywhere|happy to take a taxi|does not matter|doesnt matter|it does not matter|it doesnt matter|no preference|wherever|maakt niet uit|het maakt niet uit|eender waar|taxi is goed|taxi mag|maakt me niet uit|maakt mij niet uit|peu importe|taxi partout|un taxi peut|n importe ou|n'importe ou|egal|gelijk waar)\b/.test(
     lower
   );
 }
@@ -305,6 +305,8 @@ export function inferTextVibe(message: string): string | undefined {
   const lower = message.toLowerCase();
 
   if (/\b(rasta|reggae|rastabar)\b/.test(lower)) return "rasta_reggae";
+  if (/\b(quick|casual|informal|snelle|snel|informeel|rapide|decontracte|décontracté|locker)\b/.test(lower)) return "quick_casual";
+  if (/\b(good italian|italian restaurant|goed italiaans|italiaans restaurant|bon restaurant italien|restaurant italien|gutes italienisches|italienisches restaurant)\b/.test(lower)) return "italian_restaurant";
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
   if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
@@ -449,7 +451,8 @@ Rules:
         ? input.previousContext?.vibe
         : mergeVibe(input.message, input.previousContext?.vibe, nullToUndefined(parsed.context.vibe)),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern,
-      directRequest: isDirectRecommendationRequest(input.message) || undefined
+      directRequest: isDirectRecommendationRequest(input.message) || undefined,
+      clarificationCount: input.previousContext?.clarificationCount ?? 0
     },
     confidence: parsed.confidence
   };

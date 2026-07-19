@@ -15,6 +15,7 @@ type ConversationContextRow = {
   requested_style: string | null;
   vibe: string | null;
   safety_concern: boolean | null;
+  clarification_count: number | null;
 };
 
 function mapContext(row: ConversationContextRow): UserContext {
@@ -31,7 +32,8 @@ function mapContext(row: ConversationContextRow): UserContext {
     requestedSubcategory: row.requested_subcategory ?? undefined,
     requestedStyle: row.requested_style ?? undefined,
     vibe: row.vibe ?? undefined,
-    safetyConcern: row.safety_concern ?? undefined
+    safetyConcern: row.safety_concern ?? undefined,
+    clarificationCount: row.clarification_count ?? 0
   };
 }
 
@@ -39,7 +41,8 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
   const result = await pool.query<ConversationContextRow>(
     `
       SELECT language, current_location, target_region, traveller_type, has_children,
-             children_ages, intent, timing, budget, requested_subcategory, requested_style, vibe, safety_concern
+             children_ages, intent, timing, budget, requested_subcategory, requested_style, vibe, safety_concern,
+             clarification_count
       FROM conversation_context
       WHERE user_phone = $1
       LIMIT 1
@@ -78,9 +81,10 @@ export async function upsertConversationContext(userPhone: string, context: User
         requested_style,
         vibe,
         safety_concern,
+        clarification_count,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
       ON CONFLICT (user_phone) DO UPDATE SET
         language = EXCLUDED.language,
         current_location = EXCLUDED.current_location,
@@ -95,6 +99,7 @@ export async function upsertConversationContext(userPhone: string, context: User
         requested_style = EXCLUDED.requested_style,
         vibe = EXCLUDED.vibe,
         safety_concern = EXCLUDED.safety_concern,
+        clarification_count = EXCLUDED.clarification_count,
         updated_at = NOW()
     `,
     [
@@ -111,7 +116,8 @@ export async function upsertConversationContext(userPhone: string, context: User
       context.requestedSubcategory ?? null,
       context.requestedStyle ?? null,
       context.vibe ?? null,
-      context.safetyConcern ?? null
+      context.safetyConcern ?? null,
+      context.clarificationCount ?? 0
     ]
   );
 }

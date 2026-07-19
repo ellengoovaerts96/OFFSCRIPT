@@ -29,4 +29,5 @@ export type UserContext = {
   vibe?: string;
   safetyConcern?: boolean;
   directRequest?: boolean;
+  clarificationCount?: number;
 };

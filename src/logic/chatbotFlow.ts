@@ -119,6 +119,29 @@ function buildNoNewMatchResponse(context: UserContext): string {
   return `I searched more broadly, but I do not have a second strong ${focus} place yet without repeating the same spot. I can look for another sport, another vibe or something practical nearby.`;
 }
 
+function buildRecommendationAssumption(context: UserContext): string | undefined {
+  if ((context.clarificationCount ?? 0) < 3) return undefined;
+
+  const missingLocation = !normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const missingStyle = !context.requestedStyle && !context.budget && !context.vibe;
+  if (!missingLocation && !missingStyle) return undefined;
+
+  if (context.language.startsWith("nl")) {
+    if (missingLocation) return "Ik ga ervan uit dat je je binnen Dakar kunt verplaatsen.";
+    return "Ik kies de beste algemene match omdat je geen specifieke stijl of budget noemde.";
+  }
+  if (context.language.startsWith("fr")) {
+    if (missingLocation) return "Je pars du principe que tu peux te déplacer dans Dakar.";
+    return "Je choisis le meilleur choix général, car tu n’as pas indiqué de style ou de budget précis.";
+  }
+  if (context.language.startsWith("de")) {
+    if (missingLocation) return "Ich gehe davon aus, dass du dich innerhalb Dakars bewegen kannst.";
+    return "Ich wähle die beste allgemeine Option, da du keinen bestimmten Stil oder kein Budget genannt hast.";
+  }
+  if (missingLocation) return "I’m assuming you’re able to travel within Dakar.";
+  return "I’m choosing the strongest general match because you didn’t specify a style or budget.";
+}
+
 function buildLanguagePreferenceResponse(context: UserContext): string {
   const missingField = needsClarification(context);
 
@@ -798,7 +821,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const useWolofGreeting = !(await getLastOutgoingMessage(userPhone));
 
   if (isOffscriptStartMessage(message)) {
-    const context: UserContext = { language: "fr" };
+    const context: UserContext = { language: "fr", clarificationCount: 0 };
 
     await deleteConversationContext(userPhone);
     await deleteRecommendationHistoryForUser(userPhone);
@@ -812,7 +835,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   if (isResetCommand(message)) {
-    const context: UserContext = { language: "fr" };
+    const context: UserContext = { language: "fr", clarificationCount: 0 };
 
     await deleteConversationContext(userPhone);
     await deleteRecommendationHistoryForUser(userPhone);
@@ -948,22 +971,28 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     previousContext
   });
 
-  await upsertConversationContext(userPhone, context);
-
   const missingField = needsClarification(context);
   if (missingField) {
     const clarificationField = chooseClarificationFieldForMessage(message, context, missingField);
+    const contextAfterQuestion: UserContext = {
+      ...context,
+      clarificationCount: (context.clarificationCount ?? 0) + 1
+    };
     const messageText =
       clarificationField === "travellerType"
-        ? buildGreetingResponse(context, { useWolofGreeting })
-        : buildClarifyingQuestion(clarificationField, context);
+        ? buildGreetingResponse(contextAfterQuestion, { useWolofGreeting })
+        : buildClarifyingQuestion(clarificationField, contextAfterQuestion);
+
+    await upsertConversationContext(userPhone, contextAfterQuestion);
 
     return {
       type: "clarification",
-      context,
-      message: withEmojiAcknowledgement(message, context, messageText)
+      context: contextAfterQuestion,
+      message: withEmojiAcknowledgement(message, contextAfterQuestion, messageText)
     };
   }
+
+  await upsertConversationContext(userPhone, context);
 
   const places = await listRecommendationPlaces(context.language);
   const [recommendedPlaceIds, recentOutgoingMessages] = await Promise.all([
@@ -1059,6 +1088,7 @@ export async function handleChatMessage(input: {
           localizedRecommendation.shortDescription,
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
+          buildRecommendationAssumption(result.context),
           result.socialUrl,
           result.googleMapsUrl
         ].filter(

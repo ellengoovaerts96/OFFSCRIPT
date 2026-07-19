@@ -3,7 +3,7 @@ import type { UserContext } from "../types/userContext.js";
 
 const questions: Record<string, Record<MissingContextField, string>> = {
   nl: {
-    location: "Waar ben je nu, of naar welke buurt/regio wil je gaan?",
+    location: "Waar ben je nu, of mag een taxi je overal in Dakar brengen?",
     travellerType: "Voor wie zoek je iets: voor jezelf, voor jou en je partner, voor vrienden of voor familie?",
     children: "Zijn er kinderen bij, en zo ja welke leeftijden ongeveer?",
     intent: "Waar ben je vandaag naar op zoek? Bijvoorbeeld eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
@@ -12,7 +12,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     timing: "Wanneer wil je gaan: ochtend, middag, avond of vanavond?"
   },
   fr: {
-    location: "Tu es où maintenant, ou vers quel quartier/région tu veux aller ?",
+    location: "Tu es où maintenant, ou un taxi peut t’emmener n’importe où à Dakar ?",
     travellerType: "Pour qui cherches-tu quelque chose : pour toi, pour toi et ton/ta partenaire, pour des amis ou pour la famille ?",
     children: "Il y a des enfants avec toi, et si oui quel âge environ ?",
     intent: "Qu’est-ce que tu cherches aujourd’hui ? Par exemple manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
@@ -21,7 +21,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     timing: "Tu veux y aller quand : matin, après-midi, soir ou ce soir ?"
   },
   de: {
-    location: "Wo bist du gerade, oder in welches Viertel/welche Region möchtest du?",
+    location: "Wo bist du gerade, oder kann dich ein Taxi überall in Dakar hinbringen?",
     travellerType: "Für wen suchst du etwas: für dich, für dich und deinen Partner oder deine Partnerin, für Freunde oder für die Familie?",
     children: "Sind Kinder dabei, und wenn ja, ungefähr wie alt?",
     intent: "Was suchst du heute? Zum Beispiel Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
@@ -30,7 +30,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     timing: "Wann möchtest du gehen: morgens, nachmittags, abends oder heute Abend?"
   },
   en: {
-    location: "Where are you now, or which neighbourhood or region do you want to go to?",
+    location: "Where are you now, or are you happy to take a taxi anywhere in Dakar?",
     travellerType: "Who should the suggestion be for: just you, you and your partner, friends, or family?",
     children: "Are there children with you, and roughly how old are they?",
     intent: "What are you looking for today? For example food, culture, sport, beach, nature, drinks, or something else?",
@@ -110,6 +110,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   const intent = context.intent;
 
   if (language === "nl") {
+    if (intent === "food" && context.requestedSubcategory === "pizza") return "Zoek je een snelle, informele pizza, of een echt goed Italiaans restaurant?";
     if (intent === "culture") return "Wat interesseert je het meest: kunst, muziek, architectuur of monumenten?";
     if (intent === "shopping") return "Waar ben je precies naar op zoek of wat wil je kopen? Bijvoorbeeld vis, kunstwerken, handtassen, juwelen, houtwerk of iets anders?";
     if (intent === "food" && context.requestedSubcategory === "beach") return "Wat verkies je aan het strand: lokaal en betaalbaar, internationaal en wat chiquer, rustig en relaxed, of eerder levendig?";
@@ -120,6 +121,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   }
 
   if (language === "fr") {
+    if (intent === "food" && context.requestedSubcategory === "pizza") return "Tu cherches une pizza rapide et décontractée, ou un très bon restaurant italien ?";
     if (intent === "culture") return "Qu’est-ce qui t’intéresse le plus : l’art, la musique, l’architecture ou les monuments ?";
     if (intent === "shopping") return "Qu’est-ce qui t’intéresse exactement ou qu’est-ce que tu veux acheter ? Par exemple du poisson, des œuvres d’art, des sacs à main, des bijoux, des objets en bois ou autre chose ?";
     if (intent === "food" && context.requestedSubcategory === "beach") return "Tu préfères quoi pour manger à la plage : local et abordable, international et plus chic, calme et relax, ou plutôt animé ?";
@@ -130,6 +132,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   }
 
   if (language === "de") {
+    if (intent === "food" && context.requestedSubcategory === "pizza") return "Suchst du eine schnelle, lockere Pizza oder ein richtig gutes italienisches Restaurant?";
     if (intent === "culture") return "Was interessiert dich am meisten: Kunst, Musik, Architektur oder Denkmäler?";
     if (intent === "shopping") return "Was interessiert dich genau oder was möchtest du kaufen? Zum Beispiel Fisch, Kunstwerke, Handtaschen, Schmuck, Holzarbeiten oder etwas anderes?";
     if (intent === "food" && context.requestedSubcategory === "beach") return "Was bevorzugst du beim Essen am Strand: lokal und günstig, international und etwas gehobener, ruhig und entspannt oder eher lebendig?";
@@ -139,6 +142,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
     return "Welche Stimmung oder Unterkategorie suchst du: lokal, ruhig, lebendig, romantisch, Beach oder etwas anderes?";
   }
 
+  if (intent === "food" && context.requestedSubcategory === "pizza") return "Are you looking for a quick, casual pizza, or a really good Italian restaurant?";
   if (intent === "culture") return "What interests you most: art, music, architecture, or monuments?";
   if (intent === "shopping") return "What exactly are you interested in or looking to buy? For example fish, artworks, handbags, jewellery, woodwork, or something else?";
   if (intent === "food" && context.requestedSubcategory === "beach") return "What do you prefer for eating at the beach: local and affordable, international and more upscale, calm and relaxed, or lively?";
