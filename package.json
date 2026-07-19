@@ -15,7 +15,7 @@
     "logic:check": "tsx scripts/checkLogic.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/migrate.js && node dist/server.js"
   },
   "keywords": [],
   "author": "",
