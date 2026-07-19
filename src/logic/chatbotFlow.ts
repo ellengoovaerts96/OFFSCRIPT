@@ -812,9 +812,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   if (isResetCommand(message)) {
-    const context: UserContext = {
-      language: detectLanguage(message, "fr")
-    };
+    const context: UserContext = { language: "fr" };
 
     await deleteConversationContext(userPhone);
     await deleteRecommendationHistoryForUser(userPhone);
@@ -823,7 +821,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: buildGreetingResponse(context, { useWolofGreeting: true })
+      message: buildOffscriptWelcomeResponse()
     };
   }
 
@@ -1040,7 +1038,11 @@ export async function handleChatMessage(input: {
   afterMediaMessages: string[];
 }> {
   const result = await runChatbotFlow(input.userPhone, input.message);
-  const reply = await avoidRepeatedReply(input.userPhone, result);
+  const startsNewConversation =
+    isResetCommand(input.message) || isOffscriptStartMessage(input.message);
+  const reply = startsNewConversation
+    ? result.message
+    : await avoidRepeatedReply(input.userPhone, result);
   const locationActions: string[] = [];
   const localizedRecommendation =
     result.type === "recommendation" && reply === result.message
