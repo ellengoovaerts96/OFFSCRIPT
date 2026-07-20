@@ -61,7 +61,7 @@ export type Place = {
   bestTiming: string[];
   openingHours?: string;
   closedDays: string[];
-  priceLevel?: "low" | "medium" | "high" | "luxury";
+  priceLevel?: 1 | 2 | 3 | 4 | 5;
   paymentNotes?: string;
   reservationNeeded: boolean;
   reservationMethod?: "phone" | "whatsapp" | "instagram" | "website" | "manual" | "not_possible";

@@ -173,7 +173,7 @@ function placeMatchesPreference(place: Place, preference: string | undefined, al
     textIncludesAny(place.shortDescription, aliases) ||
     textIncludesAny(place.practicalInfo, aliases) ||
     textIncludesAny(place.personalTip, aliases) ||
-    textIncludesAny(place.priceLevel, aliases)
+    textIncludesAny(place.priceLevel?.toString(), aliases)
   );
 }
 
@@ -194,6 +194,9 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.requestedSubcategory && placeMatchesSpecificFocus(place, context.requestedSubcategory)) score += 35;
   if (placeMatchesPreference(place, context.requestedStyle, STYLE_ALIASES)) score += 20;
   if (placeMatchesPreference(place, context.budget, BUDGET_ALIASES)) score += 20;
+  if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel <= 2 ? 20 : -10;
+  if (context.budget === "mid-range" && place.priceLevel !== undefined) score += place.priceLevel === 3 ? 20 : 0;
+  if (context.budget === "upscale" && place.priceLevel !== undefined) score += place.priceLevel >= 4 ? 20 : -5;
   if (placeMatchesVibe(place, context.vibe)) score += isSpecificFocus(context.vibe) ? 35 : 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;

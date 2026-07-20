@@ -42,7 +42,7 @@ type PlaceValues = {
   traveller_types: string[];
   child_friendly: boolean;
   best_timing: string[];
-  price_level: string | null;
+  price_level: number | null;
   google_maps_url: string;
   safety_notes: string | null;
   vibe: string | null;
@@ -85,6 +85,19 @@ function bool(value: unknown): boolean {
   return /^(yes|true|ja|oui|1)$/i.test(text(value) ?? "");
 }
 
+function priceLevel(value: unknown): number | null {
+  const normalized = (text(value) ?? "").toLowerCase();
+  if (!normalized) return null;
+  const aliases: Record<string, number> = {
+    "1": 1, budget: 1, low: 1, "€": 1, "$": 1,
+    "2": 2, affordable: 2, betaalbaar: 2, "€€": 2, "$$": 2,
+    "3": 3, average: 3, medium: 3, "mid-range": 3, gemiddeld: 3,
+    "4": 4, chic: 4, high: 4, upscale: 4, "€€€": 4, "$$$": 4,
+    "5": 5, luxury: 5, luxe: 5, "€€€€": 5, "$$$$": 5
+  };
+  return aliases[normalized] ?? null;
+}
+
 function normalizeName(value: string): string {
   return value.trim().toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -124,7 +137,7 @@ function mapRaw(row: RawPlace): PlaceValues {
     traveller_types: list(row.traveller_types),
     child_friendly: bool(row.child_friendly),
     best_timing: list(row.best_timing),
-    price_level: text(row.price_level),
+    price_level: priceLevel(row.price_level),
     google_maps_url: maps,
     safety_notes: text(row.safety_notes),
     vibe: text(row.vibe),

@@ -132,6 +132,7 @@ npm run sync:editorial-ranking
 
 - `offscript_pick_level`: 0 ordinary, 1 recommended, 2 OFFSCRIPT Favourite, 3 Signature Experience.
 - `offscript_priority`: 0-100 editorial order among otherwise suitable matches.
+- `price_level`: 1 budget, 2 affordable, 3 average, 4 chic, 5 luxury.
 - `authenticity`: 0 not relevant/curated through 4 exceptionally authentic.
 - `food_orientation`: -2 very local food, -1 mainly local, 0 mixed, 1 mainly international, 2 very international; blank for non-food.
 - `audience_orientation`: -2 strongly local audience through 0 mixed to 2 strongly international/tourist.

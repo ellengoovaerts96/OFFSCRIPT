@@ -4,7 +4,7 @@ import pg from "pg";
 
 const SHEET_NAME = "Editorial Ranking";
 const headers = [
-  "timestamp", "place_name", "offscript_pick_level", "offscript_priority",
+  "timestamp", "place_name", "offscript_pick_level", "offscript_priority", "price_level",
   "offscript_reason_nl", "offscript_reason_fr", "offscript_reason_en", "authenticity",
   "food_orientation", "audience_orientation", "audience_tags", "adventure_level",
   "occasion_tags", "work_friendly", "review_status", "verified_by", "review_notes"
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
     };
 
     const result = await pool.query(`SELECT raw.timestamp, p.name, p.offscript_pick_level, p.offscript_priority,
-      p.offscript_reason_nl, p.offscript_reason_fr, p.offscript_reason_en, p.authenticity,
+      p.price_level, p.offscript_reason_nl, p.offscript_reason_fr, p.offscript_reason_en, p.authenticity,
       p.food_orientation, p.audience_orientation, p.audience_tags, p.adventure_level,
       p.occasion_tags, p.work_friendly, p.editorial_review_status, p.editorial_verified_by, p.editorial_review_notes
       FROM public.places p LEFT JOIN public.field_research_raw raw ON raw.source_row_id = p.source_row_id
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
       const oldRow = oldByTimestamp.get(key(timestamp)) ?? oldByName.get(key(db.name));
       const value = (name: string, fallback: unknown): unknown => previous(oldRow, name) !== "" ? previous(oldRow, name) : fallback ?? "";
       values.push([
-        timestamp, db.name, value("offscript_pick_level", db.offscript_pick_level), value("offscript_priority", db.offscript_priority),
+        timestamp, db.name, value("offscript_pick_level", db.offscript_pick_level), value("offscript_priority", db.offscript_priority), value("price_level", db.price_level),
         value("offscript_reason_nl", db.offscript_reason_nl), value("offscript_reason_fr", db.offscript_reason_fr), value("offscript_reason_en", db.offscript_reason_en),
         value("authenticity", db.authenticity), value("food_orientation", db.food_orientation), value("audience_orientation", db.audience_orientation),
         value("audience_tags", (db.audience_tags ?? []).join(", ")), value("adventure_level", db.adventure_level),
@@ -76,15 +76,15 @@ async function main(): Promise<void> {
       ]);
     }
     await sheets.spreadsheets.values.clear({ spreadsheetId, range: range("A:Z") });
-    await sheets.spreadsheets.values.update({ spreadsheetId, range: range(`A1:Q${values.length}`), valueInputOption: "RAW", requestBody: { values } });
+    await sheets.spreadsheets.values.update({ spreadsheetId, range: range(`A1:R${values.length}`), valueInputOption: "RAW", requestBody: { values } });
     const validation = (columnIndex: number, allowed: string[]) => ({ setDataValidation: { range: { sheetId, startRowIndex: 1, startColumnIndex: columnIndex, endColumnIndex: columnIndex + 1 }, rule: { condition: { type: "ONE_OF_LIST", values: allowed.map((userEnteredValue) => ({ userEnteredValue })) }, strict: true, showCustomUi: true } } });
     await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [
       { updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount: 1 } }, fields: "gridProperties.frozenRowCount" } },
       { repeatCell: { range: { sheetId, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { backgroundColor: { red: .20, green: .10, blue: .35 }, textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } } } }, fields: "userEnteredFormat" } },
-      validation(2, ["0", "1", "2", "3"]), validation(7, ["0", "1", "2", "3", "4"]),
-      validation(8, ["-2", "-1", "0", "1", "2"]), validation(9, ["-2", "-1", "0", "1", "2"]),
-      validation(11, ["0", "1", "2", "3"]), validation(13, ["TRUE", "FALSE"]),
-      validation(14, ["draft", "needs_review", "approved"])
+      validation(2, ["0", "1", "2", "3"]), validation(4, ["1", "2", "3", "4", "5"]), validation(8, ["0", "1", "2", "3", "4"]),
+      validation(9, ["-2", "-1", "0", "1", "2"]), validation(10, ["-2", "-1", "0", "1", "2"]),
+      validation(12, ["0", "1", "2", "3"]), validation(14, ["TRUE", "FALSE"]),
+      validation(15, ["draft", "needs_review", "approved"])
     ] } });
     console.log(`Editorial Ranking updated: ${result.rowCount} places; existing review values preserved.`);
   } finally { await pool.end(); }
