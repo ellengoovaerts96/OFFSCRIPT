@@ -199,6 +199,17 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;
   if (context.hasChildren === true && !place.childFriendly) score -= 50;
+  // Editorial judgement breaks ties after the factual intent match. A high
+  // priority can never compensate for an irrelevant category or hard safety
+  // mismatch because those are filtered/scored separately.
+  score += place.offscriptPickLevel * 6;
+  score += Math.round(place.offscriptPriority / 5);
+  if (context.requestedStyle === "local" && place.foodOrientation !== undefined) {
+    score += Math.max(-10, -place.foodOrientation * 5);
+  }
+  if (context.requestedStyle === "international" && place.foodOrientation !== undefined) {
+    score += Math.max(-10, place.foodOrientation * 5);
+  }
   if (place.status === "premium") score += 10;
   if (place.status === "archived") score -= 100;
 

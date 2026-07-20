@@ -139,9 +139,11 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     offscriptPickLevel: place.offscriptPickLevel,
     offscriptReason: place.offscriptReason,
     authenticity: place.authenticity,
-    localVsWestern: place.localVsWestern,
+    foodOrientation: place.foodOrientation,
+    audienceOrientation: place.audienceOrientation,
+    audienceTags: place.audienceTags,
+    adventureLevel: place.adventureLevel,
     occasionTags: place.occasionTags,
-    quickMeal: place.quickMeal,
     workFriendly: place.workFriendly,
     categories: place.categories,
     subcategories: place.subcategories.map((subcategory) => ({

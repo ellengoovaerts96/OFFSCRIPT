@@ -40,9 +40,11 @@ export type Place = {
   offscriptPriority: number;
   offscriptReason?: string;
   authenticity?: number;
-  localVsWestern?: number;
+  foodOrientation?: number;
+  audienceOrientation?: number;
+  audienceTags: string[];
+  adventureLevel?: number;
   occasionTags: string[];
-  quickMeal?: boolean;
   workFriendly?: boolean;
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];

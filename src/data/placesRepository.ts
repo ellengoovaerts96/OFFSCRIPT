@@ -18,9 +18,11 @@ type PlaceRow = {
   offscript_reason_en: string | null;
   offscript_reason_fr: string | null;
   authenticity: number | null;
-  local_vs_western: number | null;
+  food_orientation: number | null;
+  audience_orientation: number | null;
+  audience_tags: string[] | null;
+  adventure_level: number | null;
   occasion_tags: string[] | null;
-  quick_meal: boolean | null;
   work_friendly: boolean | null;
   categories: PlaceCategory[] | null;
   legacy_subcategories: string[] | null;
@@ -131,9 +133,11 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     offscriptPriority: row.offscript_priority,
     offscriptReason: localizedOffscriptReason(row, language),
     authenticity: row.authenticity ?? undefined,
-    localVsWestern: row.local_vs_western ?? undefined,
+    foodOrientation: row.food_orientation ?? undefined,
+    audienceOrientation: row.audience_orientation ?? undefined,
+    audienceTags: row.audience_tags ?? [],
+    adventureLevel: row.adventure_level ?? undefined,
     occasionTags: row.occasion_tags ?? [],
-    quickMeal: row.quick_meal ?? undefined,
     workFriendly: row.work_friendly ?? undefined,
     categories: row.categories ?? [],
     subcategories: mergeSubcategories(row),

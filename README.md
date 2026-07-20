@@ -71,8 +71,8 @@ one PostgreSQL transaction and rolls back every image change if any operation fa
 
 OFFSCRIPT's editorial judgement lives directly on `places`, separately from the
 field-research import. The protected fields include pick level and priority,
-Dutch/English/French reasons, authenticity, local-versus-western positioning,
-occasion tags, quick-meal suitability, and work friendliness. The Raw-to-Places
+Dutch/English/French reasons, authenticity, food and audience orientation,
+audience/occasion tags, adventure level, and work friendliness. The Raw-to-Places
 sync deliberately does not write these columns, so a Form or Sheet sync cannot
 erase manual curation. Unknown boolean judgements remain `NULL`, rather than being
 treated as a confirmed `false`.
@@ -84,8 +84,8 @@ configured Google service account Editor access to the spreadsheet:
 npm run setup:editorial-sheet
 ```
 
-The command exports current non-archived Places and editorial values, marks each
-row `needs_review`, and refuses to overwrite an already populated editorial sheet.
+The command exports current non-archived Places and editorial values, safely
+preserving existing review data while updating the worksheet structure.
 
 ### English and French content
 
@@ -116,3 +116,30 @@ Story retrieval defaults to French, then falls back to English. Explicitly Engli
 conversations request the English translation first. Existing French story rows are
 treated as manual content and are never overwritten automatically; changed English
 source content marks them `manual_review_required`.
+
+## Editorial ranking workflow
+
+The `Editorial Ranking` tab is separate from the Form responses. Safely create or
+refresh it (existing values are preserved by timestamp, with place name as legacy
+fallback) using `npm run setup:editorial-sheet`.
+
+Set `review_status` to `approved` only after review. Only approved rows sync:
+
+```bash
+npm run sync:editorial-ranking -- --dry-run
+npm run sync:editorial-ranking
+```
+
+- `offscript_pick_level`: 0 ordinary, 1 recommended, 2 OFFSCRIPT Favourite, 3 Signature Experience.
+- `offscript_priority`: 0-100 editorial order among otherwise suitable matches.
+- `authenticity`: 0 not relevant/curated through 4 exceptionally authentic.
+- `food_orientation`: -2 very local food, -1 mainly local, 0 mixed, 1 mainly international, 2 very international; blank for non-food.
+- `audience_orientation`: -2 strongly local audience through 0 mixed to 2 strongly international/tourist.
+- `audience_tags`: comma-separated audiences, for example `locals`, `african_expats`, `international_expats`, `adventurous_travellers`, `families`, `couples`, `friends`, `business`.
+- `adventure_level`: 0 easy/comfortable, 1 mildly adventurous, 2 adventurous, 3 far outside the average visitor's comfort zone.
+- `occasion_tags`: comma-separated use cases such as `family`, `couple`, `friends`, `drinks`, `live_music`, `budget_friendly`, `local_experience`, `nightlife`, `work_friendly`.
+- `work_friendly`: TRUE, FALSE, or blank.
+
+`quick_meal` is deliberately retired. Reasons can be written in Dutch; French and
+English have separate columns. Ranking is applied only after intent, location and
+hard suitability checks such as child safety.
