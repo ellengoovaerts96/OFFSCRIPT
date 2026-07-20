@@ -81,6 +81,10 @@ async function main(): Promise<void> {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [
       { updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount: 1 } }, fields: "gridProperties.frozenRowCount" } },
       { repeatCell: { range: { sheetId, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { backgroundColor: { red: .20, green: .10, blue: .35 }, textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } } } }, fields: "userEnteredFormat" } },
+      // Column insertion can leave old validation rules attached to the new
+      // neighbouring field. Clear every old rule before applying the current
+      // schema, otherwise audience_tags may inherit a numeric dropdown.
+      { setDataValidation: { range: { sheetId, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: headers.length } } },
       validation(2, ["0", "1", "2", "3"]), validation(4, ["1", "2", "3", "4", "5"]), validation(8, ["0", "1", "2", "3", "4"]),
       validation(9, ["-2", "-1", "0", "1", "2"]), validation(10, ["-2", "-1", "0", "1", "2"]),
       validation(12, ["0", "1", "2", "3"]), validation(14, ["TRUE", "FALSE"]),
