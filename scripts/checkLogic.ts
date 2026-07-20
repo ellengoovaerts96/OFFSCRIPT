@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
-import { inferContextualBudget, inferContextualFoodStyle, inferTextVibe } from "../src/ai/buildUserContext.js";
+import { inferContextualBudget, inferContextualFoodStyle, inferTextVibe, rejectsRequestedSubcategory } from "../src/ai/buildUserContext.js";
+import { detectIntent } from "../src/ai/detectIntent.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
@@ -64,6 +65,15 @@ if (inferContextualFoodStyle("bon restaurant", "seafood") !== undefined) {
 }
 if (inferContextualBudget("bon restaurant", "pizza") !== "upscale") {
   throw new Error("The restaurant pizza option must prefer the more upscale match.");
+}
+if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
+  throw new Error("A negated pizza must not override the positive drink intent.");
+}
+if (!rejectsRequestedSubcategory("Ik wil geen pizza, gewoon een chilled drink.", "pizza")) {
+  throw new Error("An explicitly rejected pizza preference must clear the previous subcategory.");
+}
+if (inferTextVibe("gewoon een chilled drink") !== "calm") {
+  throw new Error("Chill/chilled must be recognized as a calm vibe.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {

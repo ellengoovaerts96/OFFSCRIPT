@@ -152,7 +152,7 @@ function inferRequestedSubcategory(message: string): string | undefined {
 
   if (/\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/.test(lower)) return "breakfast";
   if (/\b(coffee|cafe|koffie|kaffee)\b/.test(lower)) return "coffee";
-  if (/\b(pizza|pizzeria)\b/.test(lower)) return "pizza";
+  if (/\b(pizza|pizzeria)\b/.test(lower) && !rejectsRequestedSubcategory(message, "pizza")) return "pizza";
   if (/\b(vegan|vegane|veganistisch)\b/.test(lower)) return "vegan";
   if (/\b(vegetarian|vegetarisch|vegetarien|vegetarienne)\b/.test(lower)) return "vegetarian";
   if (/\b(dessert|desserts|patisserie|gebak)\b/.test(lower)) return "dessert";
@@ -199,6 +199,20 @@ function inferRequestedSubcategory(message: string): string | undefined {
   }
 
   return undefined;
+}
+
+export function rejectsRequestedSubcategory(message: string, subcategory?: string): boolean {
+  if (!subcategory) return false;
+  const lower = normalizeContextText(message);
+  const aliases: Record<string, string> = {
+    pizza: "pizza|pizzeria",
+    bar: "bar|bars",
+    cocktails: "cocktail|cocktails",
+    coffee: "coffee|cafe|koffie|kaffee",
+    breakfast: "breakfast|ontbijt|petit dejeuner|fruhstuck"
+  };
+  const target = aliases[subcategory] ?? subcategory.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b(?:geen|niet|zonder|no|not|without|pas de|pas|sans|ne veux pas|don'?t want)\\b(?:\\s+\\w+){0,3}\\s+\\b(?:${target})\\b`, "i").test(lower);
 }
 
 function inferRequestedStyle(message: string): string | undefined {
@@ -310,7 +324,7 @@ export function inferTextVibe(message: string): string | undefined {
   if (/\b(good italian|italian restaurant|goed italiaans|italiaans restaurant|bon restaurant italien|restaurant italien|gutes italienisches|italienisches restaurant)\b/.test(lower)) return "italian_restaurant";
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
-  if (/\b(calm|quiet|rustig|calme|ruhig)\b/.test(lower)) return "calm";
+  if (/\b(calm|quiet|chill|chilled|chillen|rustig|calme|tranquille|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
   return undefined;
 }
@@ -384,6 +398,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const timing = inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previous?.timing);
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
+  const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, previous?.requestedSubcategory);
   return {
     context: {
       ...previous,
@@ -397,7 +412,9 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
         inferBudget(input.message) ??
         inferContextualBudget(input.message, previous?.requestedSubcategory) ??
         previous?.budget,
-      requestedSubcategory: inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
+      requestedSubcategory: rejectsPreviousSubcategory
+        ? inferRequestedSubcategory(input.message)
+        : inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
       vibe: messageIsKnownRegionOnly
         ? previous?.vibe
@@ -453,6 +470,7 @@ Rules:
     return fallbackBuildUserContext(input);
   }
 
+  const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
   return {
     context: {
       language: resolveConversationLanguage(
@@ -485,10 +503,11 @@ Rules:
         inferContextualBudget(input.message, input.previousContext?.requestedSubcategory) ??
         nullToUndefined(parsed.context.budget) ??
         input.previousContext?.budget,
-      requestedSubcategory:
-        inferRequestedSubcategory(input.message) ??
-        nullToUndefined(parsed.context.requestedSubcategory) ??
-        input.previousContext?.requestedSubcategory,
+      requestedSubcategory: rejectsPreviousSubcategory
+        ? inferRequestedSubcategory(input.message)
+        : inferRequestedSubcategory(input.message) ??
+          nullToUndefined(parsed.context.requestedSubcategory) ??
+          input.previousContext?.requestedSubcategory,
       requestedStyle:
         inferRequestedStyle(input.message) ??
         nullToUndefined(parsed.context.requestedStyle) ??

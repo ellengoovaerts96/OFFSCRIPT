@@ -1,7 +1,13 @@
 import type { UserIntent } from "../types/userContext.js";
 
 export function detectIntent(message: string): UserIntent | undefined {
-  const lower = message.toLowerCase();
+  // Never treat an explicitly rejected keyword as a positive intent. This is
+  // especially important for corrections such as "geen pizza, gewoon een
+  // chilled drink" where the rejected food word appears before the real ask.
+  const lower = message.toLowerCase().replace(
+    /\b(?:geen|niet|zonder|no|not|without|pas de|pas|sans|ne veux pas|don'?t want)\b(?:\s+\w+){0,3}\s+\b(?:food|restaurant|pizza|pizzeria|breakfast|lunch|dinner|drink|bar|cocktail|shopping|shop|beach|sport|sports|nightlife)\b/gi,
+    " "
+  );
 
   if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|eten|ontbijt|restaurant|manger|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
   if (/\b(drink|bar|cocktail|bier|drinken|boire|verre|trinken|getränk)\b/.test(lower)) return "drink";
