@@ -9,6 +9,7 @@
     "sync:field-research": "tsx scripts/syncFieldResearch.ts",
     "sync:places": "tsx scripts/syncPlacesFromRaw.ts",
     "sync:place-images": "tsx scripts/syncPlaceImagesFromRaw.ts",
+    "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
     "translate:stories": "tsx scripts/translateStories.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:check": "tsx scripts/checkRepositories.ts",

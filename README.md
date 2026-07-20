@@ -77,6 +77,16 @@ sync deliberately does not write these columns, so a Form or Sheet sync cannot
 erase manual curation. Unknown boolean judgements remain `NULL`, rather than being
 treated as a confirmed `false`.
 
+Create the protected `Editorial Ranking` worksheet once, after granting the
+configured Google service account Editor access to the spreadsheet:
+
+```bash
+npm run setup:editorial-sheet
+```
+
+The command exports current non-archived Places and editorial values, marks each
+row `needs_review`, and refuses to overwrite an already populated editorial sheet.
+
 ### English and French content
 
 The Sheet fields `Neighbourhood/exact area`, `Short description`, `Practical info`, `Personal tip`, and `Story`
