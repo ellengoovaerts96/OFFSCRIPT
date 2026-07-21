@@ -26,13 +26,24 @@ function candidateMatchesContextIntent(place: Place, context: UserContext): bool
   return placeMatchesIntent(place, context.intent as string);
 }
 
+export function placePassesHardConstraints(place: Place, context: UserContext): boolean {
+  if (!candidateMatchesContextIntent(place, context)) return false;
+  if ((context.excludedCategories ?? []).some((category) => place.categories.includes(category as Place["categories"][number]))) return false;
+  if ((context.excludedSubcategories ?? []).some((focus) => placeMatchesSpecificFocus(place, focus))) return false;
+  if ((context.dietaryExclusions ?? []).some((focus) => placeMatchesSpecificFocus(place, focus))) return false;
+  if (context.maximumPriceLevel !== undefined && place.priceLevel !== undefined && place.priceLevel > context.maximumPriceLevel) return false;
+  if ((context.avoidAudienceTags ?? []).some((tag) => place.audienceTags.includes(tag))) return false;
+  if (context.alcoholAllowed === false && (place.categories.includes("bar") || place.categories.includes("nightlife"))) return false;
+  return true;
+}
+
 function filterCandidates(places: Place[], context: UserContext): Place[] {
   const travellerCandidates =
     context.travellerType === "family" || context.hasChildren === true
       ? places.filter((place) => place.childFriendly)
       : places;
 
-  return travellerCandidates.filter((place) => candidateMatchesContextIntent(place, context));
+  return travellerCandidates.filter((place) => placePassesHardConstraints(place, context));
 }
 
 function targetLocationForContext(context: UserContext): string | undefined {

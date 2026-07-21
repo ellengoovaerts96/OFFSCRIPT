@@ -14,6 +14,12 @@ type ConversationContextRow = {
   requested_subcategory: string | null;
   requested_style: string | null;
   vibe: string | null;
+  excluded_categories: UserIntent[] | null;
+  excluded_subcategories: string[] | null;
+  dietary_exclusions: string[] | null;
+  avoid_audience_tags: string[] | null;
+  maximum_price_level: UserContext["maximumPriceLevel"] | null;
+  alcohol_allowed: boolean | null;
   safety_concern: boolean | null;
   clarification_count: number | null;
 };
@@ -32,6 +38,12 @@ function mapContext(row: ConversationContextRow): UserContext {
     requestedSubcategory: row.requested_subcategory ?? undefined,
     requestedStyle: row.requested_style ?? undefined,
     vibe: row.vibe ?? undefined,
+    excludedCategories: row.excluded_categories ?? [],
+    excludedSubcategories: row.excluded_subcategories ?? [],
+    dietaryExclusions: row.dietary_exclusions ?? [],
+    avoidAudienceTags: row.avoid_audience_tags ?? [],
+    maximumPriceLevel: row.maximum_price_level ?? undefined,
+    alcoholAllowed: row.alcohol_allowed ?? undefined,
     safetyConcern: row.safety_concern ?? undefined,
     clarificationCount: row.clarification_count ?? 0
   };
@@ -42,7 +54,8 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
     `
       SELECT language, current_location, target_region, traveller_type, has_children,
              children_ages, intent, timing, budget, requested_subcategory, requested_style, vibe, safety_concern,
-             clarification_count
+             excluded_categories, excluded_subcategories, dietary_exclusions, avoid_audience_tags,
+             maximum_price_level, alcohol_allowed, clarification_count
       FROM conversation_context
       WHERE user_phone = $1
       LIMIT 1
@@ -80,11 +93,17 @@ export async function upsertConversationContext(userPhone: string, context: User
         requested_subcategory,
         requested_style,
         vibe,
+        excluded_categories,
+        excluded_subcategories,
+        dietary_exclusions,
+        avoid_audience_tags,
+        maximum_price_level,
+        alcohol_allowed,
         safety_concern,
         clarification_count,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW())
       ON CONFLICT (user_phone) DO UPDATE SET
         language = EXCLUDED.language,
         current_location = EXCLUDED.current_location,
@@ -98,6 +117,12 @@ export async function upsertConversationContext(userPhone: string, context: User
         requested_subcategory = EXCLUDED.requested_subcategory,
         requested_style = EXCLUDED.requested_style,
         vibe = EXCLUDED.vibe,
+        excluded_categories = EXCLUDED.excluded_categories,
+        excluded_subcategories = EXCLUDED.excluded_subcategories,
+        dietary_exclusions = EXCLUDED.dietary_exclusions,
+        avoid_audience_tags = EXCLUDED.avoid_audience_tags,
+        maximum_price_level = EXCLUDED.maximum_price_level,
+        alcohol_allowed = EXCLUDED.alcohol_allowed,
         safety_concern = EXCLUDED.safety_concern,
         clarification_count = EXCLUDED.clarification_count,
         updated_at = NOW()
@@ -116,6 +141,12 @@ export async function upsertConversationContext(userPhone: string, context: User
       context.requestedSubcategory ?? null,
       context.requestedStyle ?? null,
       context.vibe ?? null,
+      context.excludedCategories ?? [],
+      context.excludedSubcategories ?? [],
+      context.dietaryExclusions ?? [],
+      context.avoidAudienceTags ?? [],
+      context.maximumPriceLevel ?? null,
+      context.alcoholAllowed ?? null,
       context.safetyConcern ?? null,
       context.clarificationCount ?? 0
     ]

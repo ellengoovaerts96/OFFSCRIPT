@@ -36,6 +36,12 @@ const userContextSchema = z.object({
   requestedSubcategory: z.string().nullable(),
   requestedStyle: z.string().nullable(),
   vibe: z.string().nullable(),
+  excludedCategories: z.array(intentSchema),
+  excludedSubcategories: z.array(z.string()),
+  dietaryExclusions: z.array(z.string()),
+  avoidAudienceTags: z.array(z.string()),
+  maximumPriceLevel: z.number().int().min(1).max(5).nullable(),
+  alcoholAllowed: z.boolean().nullable(),
   safetyConcern: z.boolean().nullable()
 });
 
@@ -48,6 +54,7 @@ export type BuildUserContextInput = {
   message: string;
   previousContext?: UserContext | null;
   previousAssistantMessage?: string | null;
+  conversationHistory?: Array<{ direction: "incoming" | "outgoing"; message: string }>;
 };
 
 export type BuildUserContextResult = {
@@ -57,6 +64,18 @@ export type BuildUserContextResult = {
 
 function nullToUndefined<T>(value: T | null | undefined): T | undefined {
   return value ?? undefined;
+}
+
+function semanticRequestedSubcategory(
+  parsed: string | null | undefined,
+  previous: string | undefined,
+  exclusions: string[],
+  explicitlyRejected: boolean
+): string | undefined {
+  if (explicitlyRejected) return undefined;
+  const candidate = nullToUndefined(parsed) ?? previous;
+  if (!candidate) return undefined;
+  return exclusions.some((value) => normalizeContextText(value) === normalizeContextText(candidate)) ? undefined : candidate;
 }
 
 function inferTravellerType(message: string): TravellerType | undefined {
@@ -399,6 +418,15 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, previous?.requestedSubcategory);
+  const rejectedPizza = rejectsRequestedSubcategory(input.message, "pizza");
+  const excludedSubcategories = new Set(previous?.excludedSubcategories ?? []);
+  if (rejectedPizza) excludedSubcategories.add("pizza");
+  const normalizedMessage = normalizeContextText(input.message);
+  const dietaryExclusions = new Set(previous?.dietaryExclusions ?? []);
+  if (/\b(?:geen|niet|zonder|no|not|without|pas de|sans)\b.{0,24}\b(?:vis|fish|seafood|poisson|fruits de mer)\b/.test(normalizedMessage)) dietaryExclusions.add("seafood");
+  const avoidAudienceTags = new Set(previous?.avoidAudienceTags ?? []);
+  if (/\b(?:geen|zonder|no|without|pas de|sans)\b.{0,24}\b(?:toeristen|tourists|touristes)\b/.test(normalizedMessage)) avoidAudienceTags.add("tourists");
+  const noAlcohol = /\b(?:geen|zonder|no|without|pas d alcool|sans alcool)\b.{0,24}\b(?:alcohol|alcool)\b/.test(normalizedMessage);
   return {
     context: {
       ...previous,
@@ -419,6 +447,12 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       vibe: messageIsKnownRegionOnly
         ? previous?.vibe
         : mergeVibe(input.message, previous?.vibe, undefined, previous?.requestedSubcategory),
+      excludedCategories: previous?.excludedCategories ?? [],
+      excludedSubcategories: [...excludedSubcategories],
+      dietaryExclusions: [...dietaryExclusions],
+      avoidAudienceTags: [...avoidAudienceTags],
+      maximumPriceLevel: /\b(niet te duur|not too expensive|pas trop cher)\b/.test(normalizedMessage) ? 2 : previous?.maximumPriceLevel,
+      alcoholAllowed: noAlcohol ? false : previous?.alcoholAllowed,
       directRequest: isDirectRecommendationRequest(input.message) || undefined
     },
     confidence: 0.55
@@ -442,6 +476,13 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 Extract updated user travel context as JSON.
 Rules:
 - Keep previous context unless the user clearly changes it.
+- Read the complete meaning of the sentence. Negated concepts are exclusions, never positive requests.
+- "no pizza" means pizza belongs in excludedSubcategories and requestedSubcategory must not be pizza.
+- "not too expensive" means maximumPriceLevel is 2, not an upscale preference.
+- "where no tourists go" means tourists belongs in avoidAudienceTags.
+- "no alcohol" means alcoholAllowed is false.
+- Corrections replace conflicting older preferences. If the user says "not pizza, just a chilled drink", set intent to drink, vibe to calm, exclude pizza and clear the old pizza subcategory.
+- Keep exclusions until the user explicitly reverses them or the conversation is reset.
 - Interpret short replies in the context of the previous assistant message. A short reply often selects one of the options in that question.
 - Do not require the user to repeat the exact wording of an option. Resolve natural synonyms and partial answers semantically.
 - Examples: after a pizza-style question, "bon restaurant" means the good Italian restaurant option; after a children question, "oui" means children are joining; after a location question, "n’importe où" means Dakar-wide mobility.
@@ -458,7 +499,8 @@ Rules:
     input: JSON.stringify({
       message: input.message,
       previousContext: input.previousContext ?? null,
-      previousAssistantMessage: input.previousAssistantMessage ?? null
+      previousAssistantMessage: input.previousAssistantMessage ?? null,
+      recentConversation: input.conversationHistory ?? []
     }),
     text: {
       format: zodTextFormat(buildUserContextSchema, "build_user_context")
@@ -471,6 +513,7 @@ Rules:
   }
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
+  const semanticExclusions = parsed.context.excludedSubcategories;
   return {
     context: {
       language: resolveConversationLanguage(
@@ -492,26 +535,18 @@ Rules:
         ),
       hasChildren: inferHasChildren(input.message) ?? nullToUndefined(parsed.context.hasChildren) ?? input.previousContext?.hasChildren,
       childrenAges: nullToUndefined(parsed.context.childrenAges) ?? input.previousContext?.childrenAges,
-      intent: mergeIntent(
-        input.message,
-        input.previousContext?.intent,
-        messageIsKnownRegionOnly ? undefined : (nullToUndefined(parsed.context.intent) as UserIntent | undefined)
-      ),
+      intent: messageIsKnownRegionOnly
+        ? input.previousContext?.intent
+        : (nullToUndefined(parsed.context.intent) as UserIntent | undefined) ?? mergeIntent(input.message, input.previousContext?.intent),
       timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
-      budget:
-        inferBudget(input.message) ??
-        inferContextualBudget(input.message, input.previousContext?.requestedSubcategory) ??
-        nullToUndefined(parsed.context.budget) ??
-        input.previousContext?.budget,
-      requestedSubcategory: rejectsPreviousSubcategory
-        ? inferRequestedSubcategory(input.message)
-        : inferRequestedSubcategory(input.message) ??
-          nullToUndefined(parsed.context.requestedSubcategory) ??
-          input.previousContext?.requestedSubcategory,
-      requestedStyle:
-        inferRequestedStyle(input.message) ??
-        nullToUndefined(parsed.context.requestedStyle) ??
-        input.previousContext?.requestedStyle,
+      budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
+      requestedSubcategory: semanticRequestedSubcategory(
+        parsed.context.requestedSubcategory,
+        input.previousContext?.requestedSubcategory,
+        semanticExclusions,
+        rejectsPreviousSubcategory
+      ),
+      requestedStyle: nullToUndefined(parsed.context.requestedStyle) ?? input.previousContext?.requestedStyle,
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
         : mergeVibe(
@@ -521,6 +556,12 @@ Rules:
             input.previousContext?.requestedSubcategory
           ),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern,
+      excludedCategories: parsed.context.excludedCategories,
+      excludedSubcategories: semanticExclusions,
+      dietaryExclusions: parsed.context.dietaryExclusions,
+      avoidAudienceTags: parsed.context.avoidAudienceTags,
+      maximumPriceLevel: nullToUndefined(parsed.context.maximumPriceLevel) as UserContext["maximumPriceLevel"],
+      alcoholAllowed: nullToUndefined(parsed.context.alcoholAllowed),
       directRequest: isDirectRecommendationRequest(input.message) || undefined,
       clarificationCount: input.previousContext?.clarificationCount ?? 0
     },

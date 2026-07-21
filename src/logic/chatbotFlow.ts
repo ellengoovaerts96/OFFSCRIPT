@@ -7,7 +7,7 @@ import {
   getConversationContext,
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
-import { getLastOutgoingMessage, listRecentOutgoingMessages } from "../data/chatMessagesRepository.js";
+import { getLastOutgoingMessage, listRecentConversationMessages, listRecentOutgoingMessages } from "../data/chatMessagesRepository.js";
 import { listPlaceContactDetails, type PlaceContactDetail } from "../data/contactsRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import {
@@ -967,10 +967,12 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
+  const conversationHistory = await listRecentConversationMessages(userPhone, 8);
   const { context } = await buildUserContext({
     message,
     previousContext,
-    previousAssistantMessage
+    previousAssistantMessage,
+    conversationHistory
   });
 
   const missingField = needsClarification(context);

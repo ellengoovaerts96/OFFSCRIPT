@@ -144,3 +144,14 @@ npm run sync:editorial-ranking
 `quick_meal` is deliberately retired. Reasons can be written in Dutch; French and
 English have separate columns. Ranking is applied only after intent, location and
 hard suitability checks such as child safety.
+
+### Semantic request parsing
+
+OpenAI first converts each message plus stored conversation context into validated
+JSON. Positive preferences and hard exclusions are stored separately in
+`excluded_categories`, `excluded_subcategories`, `dietary_exclusions`,
+`avoid_audience_tags`, `maximum_price_level`, and `alcohol_allowed`. Exclusions
+are applied before scoring and alternatives, so a rejected pizza, seafood dish,
+tourist audience, price level, or alcohol-led venue cannot return through ranking.
+Keyword parsing remains only as a fallback when the LLM is unavailable and never
+generates SQL.

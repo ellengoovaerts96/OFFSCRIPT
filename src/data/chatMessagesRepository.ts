@@ -67,6 +67,24 @@ export async function listRecentOutgoingMessages(userPhone: string, limit = 100)
   return result.rows.map((row) => row.message);
 }
 
+export async function listRecentConversationMessages(
+  userPhone: string,
+  limit = 8
+): Promise<Array<{ direction: ChatDirection; message: string }>> {
+  const safeLimit = Math.min(Math.max(limit, 1), 20);
+  const result = await pool.query<{ direction: ChatDirection; message: string }>(
+    `
+      SELECT direction, message
+      FROM chat_messages
+      WHERE user_phone = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `,
+    [userPhone, safeLimit]
+  );
+  return result.rows.reverse();
+}
+
 export async function listInboxItems(limit = 100): Promise<InboxItem[]> {
   const safeLimit = Math.min(Math.max(limit, 1), 250);
   const result = await pool.query<InboxRow>(

@@ -27,6 +27,12 @@ export type UserContext = {
   requestedSubcategory?: string;
   requestedStyle?: string;
   vibe?: string;
+  excludedCategories?: UserIntent[];
+  excludedSubcategories?: string[];
+  dietaryExclusions?: string[];
+  avoidAudienceTags?: string[];
+  maximumPriceLevel?: 1 | 2 | 3 | 4 | 5;
+  alcoholAllowed?: boolean;
   safetyConcern?: boolean;
   directRequest?: boolean;
   clarificationCount?: number;

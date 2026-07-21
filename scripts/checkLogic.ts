@@ -8,7 +8,8 @@ import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { recommendationReadiness } from "../src/logic/recommendationReadiness.js";
-import { selectBestPlace } from "../src/logic/selectBestPlace.js";
+import { placePassesHardConstraints, selectBestPlace } from "../src/logic/selectBestPlace.js";
+import type { Place } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
 const context: UserContext = {
@@ -74,6 +75,20 @@ if (!rejectsRequestedSubcategory("Ik wil geen pizza, gewoon een chilled drink.",
 }
 if (inferTextVibe("gewoon een chilled drink") !== "calm") {
   throw new Error("Chill/chilled must be recognized as a calm vibe.");
+}
+const semanticTestPlace = {
+  name: "Semantic test", categories: ["food"],
+  subcategories: [{ id: "pizza", name: "Pizza", displayOrder: 1, images: [] }],
+  bestFor: [], vibeTags: [], audienceTags: ["tourists"], priceLevel: 4, childFriendly: true
+} as unknown as Place;
+if (placePassesHardConstraints(semanticTestPlace, { language: "nl", intent: "food", excludedSubcategories: ["pizza"] })) {
+  throw new Error("An excluded subcategory must be removed before ranking.");
+}
+if (placePassesHardConstraints(semanticTestPlace, { language: "nl", intent: "food", avoidAudienceTags: ["tourists"] })) {
+  throw new Error("An avoided audience tag must be removed before ranking.");
+}
+if (placePassesHardConstraints(semanticTestPlace, { language: "nl", intent: "food", maximumPriceLevel: 2 })) {
+  throw new Error("A place above the maximum price level must be removed before ranking.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {
