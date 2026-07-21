@@ -155,3 +155,27 @@ are applied before scoring and alternatives, so a rejected pizza, seafood dish,
 tourist audience, price level, or alcohol-led venue cannot return through ranking.
 Keyword parsing remains only as a fallback when the LLM is unavailable and never
 generates SQL.
+
+## Field Notes inbox
+
+The French `OFFSCRIPT – Notes de terrain` Form writes fast, informal observations
+to the `Field Notes` tab. The draft is not imported directly into PostgreSQL.
+Configure the new spreadsheet separately:
+
+```text
+GOOGLE_FIELD_NOTES_SPREADSHEET_ID=<ID between /d/ and /edit>
+```
+
+Share that spreadsheet as Editor with `GOOGLE_SERVICE_ACCOUNT_EMAIL`. Then preview
+and process all rows whose status is `new`:
+
+```bash
+npm run process:field-notes -- --dry-run
+npm run process:field-notes
+```
+
+The processor creates the complete `Structured Import` header, sends the draft
+and the optional human observations to OpenAI using a strict schema, appends a
+`needs_review` proposal, and changes the source status to `ai_processed`. It never
+overwrites an existing structured note. Unmentioned facts remain blank and must
+not be invented. Human approval remains required before database import.
