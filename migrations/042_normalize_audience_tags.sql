@@ -13,7 +13,7 @@ WHERE audience_tags && ARRAY[
   'african_expat', 'african_expats', 'international_expat', 'international_expats', 'expat', 'expats'
 ]::TEXT[];
 
-UPDATE public.conversation_contexts
+UPDATE public.conversation_context
 SET avoid_audience_tags = ARRAY(
   SELECT DISTINCT CASE
     WHEN tag IN ('local', 'locals', 'resident', 'residents') THEN 'residents'
