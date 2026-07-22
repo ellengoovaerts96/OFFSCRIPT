@@ -26,10 +26,14 @@ const nullableText = z.string().nullable();
 const structuredNoteSchema = z.object({
   place_name: nullableText,
   entry_type: z.enum(["place", "story", "experience", "update", "unknown"]),
-  country: nullableText, region: nullableText, neighbourhood: nullableText, area: nullableText,
+  country: nullableText.describe("Country, for example Senegal"),
+  region: nullableText.describe("Large administrative region or city-region, for example Dakar"),
+  neighbourhood: nullableText.describe("OFFSCRIPT database field for the broader district or commune, for example Ngor, Yoff or Ouakam"),
+  area: nullableText.describe("OFFSCRIPT database field for the precise neighbourhood or micro-location, for example Almadies plage"),
   categories: z.array(z.string()), subcategories: z.array(z.string()),
   short_description_en: nullableText, short_description_fr: nullableText,
-  practical_info_en: nullableText, practical_info_fr: nullableText,
+  practical_info_en: nullableText.describe("Scannable English bullet list; one supported practical fact per line, formatted as '- emoji Fact'"),
+  practical_info_fr: nullableText.describe("Scannable French bullet list; one supported practical fact per line, formatted as '- emoji Fait'"),
   personal_tip_en: nullableText, personal_tip_fr: nullableText,
   story_en: nullableText, story_fr: nullableText, vibe: nullableText,
   audience_tags: z.array(z.string()), occasion_tags: z.array(z.string()), dietary_tags: z.array(z.string()),
@@ -103,9 +107,24 @@ Rules:
 - Never invent a fact. Use null or [] when the note does not support a field.
 - Preserve names, phone numbers, URLs, opening hours and practical facts exactly.
 - Produce concise editorial copy in both French and English only when the underlying fact is supported.
+- Format practical_info_en and practical_info_fr as compact multiline bullet lists, never as prose paragraphs.
+- Every practical-info line must use the exact pattern "- emoji Fact", with one relevant emoji and one fact per line.
+- Practical info may cover food, facilities, setting, suitability, recurring events and verified opening hours.
+- Keep related opening hours on one bullet. Do not add bullets for facts that are not present in the source note.
+- Example English formatting: "- 🍺 Pub & restaurant\n- 🌊 Oceanfront terrace\n- 🎤 Karaoke every Thursday evening".
 - Form selections supplied alongside the draft are human observations and take priority over inference.
+- Map geography to the existing OFFSCRIPT database convention, even though everyday geographic terminology may differ.
+- region is the large administrative or city-region level (for example Dakar).
+- neighbourhood is the broader district or commune in the OFFSCRIPT database (for example Ngor, Yoff or Ouakam).
+- area is the most precise named neighbourhood or micro-location in the OFFSCRIPT database (for example Almadies plage).
+- Example: Dakar must be region, Ngor must be neighbourhood and Almadies plage must be area.
 - Normalize tags to lowercase snake_case English.
 - categories and subcategories must describe the place, not incidental words.
+- Use "restaurant" as a category, never repeat it as a subcategory.
+- For restaurants, use the meal subcategories "lunch" and/or "dinner" when the source note or verified opening hours support them.
+- Opening from around midday through late evening supports both "lunch" and "dinner".
+- Daytime-only service supports "lunch"; evening-only service supports "dinner". Do not infer a meal when hours are absent or ambiguous.
+- Meal availability belongs in subcategories. A particularly recommended moment belongs in best_timing, for example "lunch" when the place is notably better by day.
 - offscript_priority is null unless explicitly supplied; do not manufacture editorial priority.
 - Add every uncertainty or missing safety-critical fact to review_notes.
 - confidence measures extraction confidence, not place quality.`,
@@ -113,7 +132,9 @@ Rules:
     text: { format: zodTextFormat(structuredNoteSchema, "structured_field_note") }
   });
   if (!response.output_parsed) throw new Error("OpenAI returned no structured field note.");
-  return response.output_parsed;
+  const note = response.output_parsed;
+  note.subcategories = note.subcategories.filter((subcategory) => normalize(subcategory) !== "restaurant");
+  return note;
 }
 
 async function main(): Promise<void> {
@@ -140,7 +161,23 @@ async function main(): Promise<void> {
   const existingSourceIndex = existingHeaders.map(normalize).indexOf("source_note_id");
   const existingIds = new Set(existing.slice(1).map((row) => String(row[existingSourceIndex] ?? "")).filter(Boolean));
   if (!dryRun) {
-    await sheets.spreadsheets.values.update({ spreadsheetId, range: range(STRUCTURED_SHEET, `A1:BA1`), valueInputOption: "RAW", requestBody: { values: [[...headers]] } });
+    const headerChanged = headers.some((header, index) => normalize(existingHeaders[index]) !== normalize(header));
+    if (headerChanged) {
+      const oldIndexes = new Map(existingHeaders.map((header, index) => [normalize(header), index]));
+      const reorderedRows = existing.slice(1).map((row) =>
+        headers.map((header) => {
+          const oldIndex = oldIndexes.get(normalize(header));
+          return oldIndex === undefined ? "" : row[oldIndex] ?? "";
+        })
+      );
+      await sheets.spreadsheets.values.clear({ spreadsheetId, range: range(STRUCTURED_SHEET, "A:ZZ") });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: range(STRUCTURED_SHEET, `A1:BA${reorderedRows.length + 1}`),
+        valueInputOption: "RAW",
+        requestBody: { values: [[...headers], ...reorderedRows] }
+      });
+    }
   }
 
   let processed = 0;

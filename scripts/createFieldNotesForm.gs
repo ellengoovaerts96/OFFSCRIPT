@@ -108,8 +108,8 @@ function createOffscriptFieldNotesForm() {
   responseSheet.setFrozenRows(1);
 
   const structured = spreadsheet.insertSheet('Structured Import');
-  structured.getRange(1, 1, 1, 6).setValues([[
-    'source_note_id', 'place_name', 'ai_confidence',
+  structured.getRange(1, 1, 1, 10).setValues([[
+    'source_note_id', 'place_name', 'country', 'region', 'neighbourhood', 'area', 'ai_confidence',
     'review_status', 'reviewed_by', 'review_notes'
   ]]);
   structured.setFrozenRows(1);
