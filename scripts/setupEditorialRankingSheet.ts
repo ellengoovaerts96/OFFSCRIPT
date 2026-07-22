@@ -17,6 +17,16 @@ function required(name: string): string {
 }
 function range(value: string): string { return `'${SHEET_NAME}'!${value}`; }
 function key(value: unknown): string { return String(value ?? "").trim().toLowerCase(); }
+function audienceTags(value: unknown): string {
+  const aliases: Record<string, string> = {
+    local: "residents", locals: "residents", resident: "residents", residents: "residents",
+    african_expat: "expats", african_expats: "expats",
+    international_expat: "expats", international_expats: "expats", expat: "expats", expats: "expats"
+  };
+  const tags = String(value ?? "").split(",").map(key).filter(Boolean)
+    .map((tag) => aliases[tag.replace(/\s+/g, "_")] ?? tag.replace(/\s+/g, "_"));
+  return [...new Set(tags)].join(", ");
+}
 
 async function main(): Promise<void> {
   const auth = new google.auth.JWT({
@@ -69,7 +79,7 @@ async function main(): Promise<void> {
         timestamp, db.name, value("offscript_pick_level", db.offscript_pick_level), value("offscript_priority", db.offscript_priority), value("price_level", db.price_level),
         value("offscript_reason_nl", db.offscript_reason_nl), value("offscript_reason_fr", db.offscript_reason_fr), value("offscript_reason_en", db.offscript_reason_en),
         value("authenticity", db.authenticity), value("food_orientation", db.food_orientation), value("audience_orientation", db.audience_orientation),
-        value("audience_tags", (db.audience_tags ?? []).join(", ")), value("adventure_level", db.adventure_level),
+        audienceTags(value("audience_tags", (db.audience_tags ?? []).join(", "))), value("adventure_level", db.adventure_level),
         value("occasion_tags", (db.occasion_tags ?? []).filter((tag: string) => tag !== "quick_meal").join(", ")), value("work_friendly", db.work_friendly),
         value("review_status", db.editorial_review_status === "draft" ? "needs_review" : db.editorial_review_status),
         value("verified_by", db.editorial_verified_by), value("review_notes", db.editorial_review_notes)

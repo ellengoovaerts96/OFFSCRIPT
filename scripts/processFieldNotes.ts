@@ -70,6 +70,15 @@ function findColumn(sourceHeaders: string[], aliases: string[]): number {
 }
 function cell(value: unknown): Cell { return value === null || value === undefined ? "" : value as Cell; }
 function list(value: string[]): string { return value.join(", "); }
+function normalizeAudienceTags(values: string[]): string[] {
+  const aliases: Record<string, string> = {
+    local: "residents", locals: "residents", resident: "residents", residents: "residents", habitants_locaux: "residents",
+    african_expat: "expats", african_expats: "expats",
+    international_expat: "expats", international_expats: "expats", expat: "expats", expats: "expats",
+    expatrie: "expats", expatries: "expats", expatries_africains: "expats", expatries_internationaux: "expats"
+  };
+  return [...new Set(values.map((value) => aliases[normalize(value).replace(/\s+/g, "_")] ?? normalize(value).replace(/\s+/g, "_")).filter(Boolean))];
+}
 function leadingInteger(value: unknown, min: number, max: number): number | null {
   const match = String(value ?? "").trim().match(/^(\d+)/);
   if (!match) return null;
@@ -119,6 +128,7 @@ Rules:
 - area is the most precise named neighbourhood or micro-location in the OFFSCRIPT database (for example Almadies plage).
 - Example: Dakar must be region, Ngor must be neighbourhood and Almadies plage must be area.
 - Normalize tags to lowercase snake_case English.
+- For audience_tags, always use "residents" instead of "locals" and use "expats" for all expats; never distinguish African from international expats.
 - categories and subcategories must describe the place, not incidental words.
 - Use "restaurant" as a category, never repeat it as a subcategory.
 - For restaurants, use the meal subcategories "lunch" and/or "dinner" when the source note or verified opening hours support them.
@@ -134,6 +144,7 @@ Rules:
   if (!response.output_parsed) throw new Error("OpenAI returned no structured field note.");
   const note = response.output_parsed;
   note.subcategories = note.subcategories.filter((subcategory) => normalize(subcategory) !== "restaurant");
+  note.audience_tags = normalizeAudienceTags(note.audience_tags);
   return note;
 }
 

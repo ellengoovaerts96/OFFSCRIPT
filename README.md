@@ -135,8 +135,8 @@ npm run sync:editorial-ranking
 - `price_level`: 1 budget, 2 affordable, 3 average, 4 chic, 5 luxury.
 - `authenticity`: 0 not relevant/curated through 4 exceptionally authentic.
 - `food_orientation`: -2 very local food, -1 mainly local, 0 mixed, 1 mainly international, 2 very international; blank for non-food.
-- `audience_orientation`: -2 strongly local audience through 0 mixed to 2 strongly international/tourist.
-- `audience_tags`: comma-separated audiences, for example `locals`, `african_expats`, `international_expats`, `adventurous_travellers`, `families`, `couples`, `friends`, `business`.
+- `audience_orientation`: -2 strongly resident-oriented audience through 0 mixed to 2 strongly visitor-oriented.
+- `audience_tags`: comma-separated audiences, for example `residents`, `expats`, `tourists`, `adventurous_travellers`, `families`, `couples`, `friends`, `business`. All expats use the single `expats` tag.
 - `adventure_level`: 0 easy/comfortable, 1 mildly adventurous, 2 adventurous, 3 far outside the average visitor's comfort zone.
 - `occasion_tags`: comma-separated use cases such as `family`, `couple`, `friends`, `drinks`, `live_music`, `budget_friendly`, `local_experience`, `nightlife`, `work_friendly`.
 - `work_friendly`: TRUE, FALSE, or blank.

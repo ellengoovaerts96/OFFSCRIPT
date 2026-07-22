@@ -7,6 +7,14 @@ const dryRun = process.argv.includes("--dry-run");
 function required(name: string): string { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is missing.`); return value; }
 function normalized(value: unknown): string { return String(value ?? "").trim().toLowerCase(); }
 function list(value: unknown): string[] { return String(value ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean).filter((item) => item !== "quick_meal"); }
+function audienceList(value: unknown): string[] {
+  const aliases: Record<string, string> = {
+    local: "residents", locals: "residents", resident: "residents", residents: "residents",
+    african_expat: "expats", african_expats: "expats",
+    international_expat: "expats", international_expats: "expats", expat: "expats", expats: "expats"
+  };
+  return [...new Set(list(value).map((item) => aliases[item.replace(/\s+/g, "_")] ?? item.replace(/\s+/g, "_")))];
+}
 function integer(value: unknown, min: number, max: number, field: string): number | null { if (String(value ?? "").trim() === "") return null; const number = Number(value); if (!Number.isInteger(number) || number < min || number > max) throw new Error(`${field} must be an integer from ${min} to ${max}.`); return number; }
 function bool(value: unknown): boolean | null { const text = normalized(value); if (!text) return null; if (["true", "yes", "ja", "oui", "1"].includes(text)) return true; if (["false", "no", "nee", "non", "0"].includes(text)) return false; throw new Error(`work_friendly must be TRUE, FALSE, or blank.`); }
 
@@ -34,7 +42,7 @@ async function main(): Promise<void> {
         integer(row[index("price_level")], 1, 5, "price_level"),
         row[index("offscript_reason_nl")] || null, row[index("offscript_reason_fr")] || null, row[index("offscript_reason_en")] || null,
         integer(row[index("authenticity")], 0, 4, "authenticity"), integer(row[index("food_orientation")], -2, 2, "food_orientation"),
-        integer(row[index("audience_orientation")], -2, 2, "audience_orientation"), list(row[index("audience_tags")]),
+        integer(row[index("audience_orientation")], -2, 2, "audience_orientation"), audienceList(row[index("audience_tags")]),
         integer(row[index("adventure_level")], 0, 3, "adventure_level"), list(row[index("occasion_tags")]), bool(row[index("work_friendly")]),
         row[index("verified_by")] || null, row[index("review_notes")] || null, sourceRowId, placeName
       ];

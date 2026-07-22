@@ -56,9 +56,8 @@ function createOffscriptFieldNotesForm() {
     .setTitle('Public observé')
     .setHelpText('Facultatif. Plusieurs réponses sont possibles.')
     .setChoiceValues([
-      'Habitants locaux',
-      'Expatriés africains',
-      'Expatriés internationaux',
+      'Résidents',
+      'Expatriés',
       'Touristes',
       'Familles',
       'Public jeune',
