@@ -80,6 +80,21 @@ function normalizeAudienceTags(values: string[]): string[] {
   };
   return [...new Set(values.map((value) => aliases[normalize(value).replace(/\s+/g, "_")] ?? normalize(value).replace(/\s+/g, "_")).filter(Boolean))];
 }
+function normalizeFoodTaxonomy(note: StructuredNote): void {
+  const categoryAliases = new Set(["restaurant", "restaurants", "cafe", "cafes", "food_and_drink"]);
+  const normalizedCategories = note.categories.map((value) => normalize(value).replace(/\s+/g, "_"));
+  const normalizedSubcategories = note.subcategories.map((value) => normalize(value).replace(/\s+/g, "_"));
+  const isFoodAndDrink = [...normalizedCategories, ...normalizedSubcategories].some((value) => categoryAliases.has(value));
+
+  note.categories = [...new Set([
+    ...normalizedCategories.filter((value) => !categoryAliases.has(value)),
+    ...(isFoodAndDrink ? ["food_and_drink"] : [])
+  ].filter(Boolean))];
+  note.subcategories = [...new Set(normalizedSubcategories
+    .filter((value) => !categoryAliases.has(value))
+    .map((value) => value === "diner" ? "dinner" : value)
+    .filter(Boolean))];
+}
 function leadingInteger(value: unknown, min: number, max: number): number | null {
   const match = String(value ?? "").trim().match(/^(\d+)/);
   if (!match) return null;
@@ -139,8 +154,8 @@ Rules:
 - Normalize tags to lowercase snake_case English.
 - For audience_tags, always use "residents" instead of "locals" and use "expats" for all expats; never distinguish African from international expats.
 - categories and subcategories must describe the place, not incidental words.
-- Use "restaurant" as a category, never repeat it as a subcategory.
-- For restaurants, use the meal subcategories "lunch" and/or "dinner" when the source note or verified opening hours support them.
+- Every restaurant, cafe, or restaurant-cafe uses the single category "food_and_drink". Never use "restaurant" or "cafe" as a category or subcategory.
+- Within food_and_drink, use "bar" when the source supports drinks, bar or cafe service, and use "lunch" and/or "dinner" when the source note or verified opening hours support those meal periods.
 - Opening from around midday through late evening supports both "lunch" and "dinner".
 - Daytime-only service supports "lunch"; evening-only service supports "dinner". Do not infer a meal when hours are absent or ambiguous.
 - Meal availability belongs in subcategories. A particularly recommended moment belongs in best_timing, for example "lunch" when the place is notably better by day.
@@ -152,7 +167,7 @@ Rules:
   });
   if (!response.output_parsed) throw new Error("OpenAI returned no structured field note.");
   const note = response.output_parsed;
-  note.subcategories = note.subcategories.filter((subcategory) => normalize(subcategory) !== "restaurant");
+  normalizeFoodTaxonomy(note);
   note.audience_tags = normalizeAudienceTags(note.audience_tags);
   return note;
 }
