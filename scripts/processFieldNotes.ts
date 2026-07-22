@@ -31,7 +31,8 @@ const structuredNoteSchema = z.object({
   neighbourhood: nullableText.describe("OFFSCRIPT database field for the broader district or commune, for example Ngor, Yoff or Ouakam"),
   area: nullableText.describe("OFFSCRIPT database field for the precise neighbourhood or micro-location, for example Almadies plage"),
   categories: z.array(z.string()), subcategories: z.array(z.string()),
-  short_description_en: nullableText, short_description_fr: nullableText,
+  short_description_en: nullableText.describe("Concise, warm English recommendation written like a trusted local friend suggesting the place"),
+  short_description_fr: nullableText.describe("Concise, warm French recommendation written like a trusted local friend suggesting the place"),
   practical_info_en: nullableText.describe("Scannable English bullet list; one supported practical fact per line, formatted as '- emoji Fact'"),
   practical_info_fr: nullableText.describe("Scannable French bullet list; one supported practical fact per line, formatted as '- emoji Fait'"),
   personal_tip_en: nullableText, personal_tip_fr: nullableText,
@@ -116,6 +117,10 @@ Rules:
 - Never invent a fact. Use null or [] when the note does not support a field.
 - Preserve names, phone numbers, URLs, opening hours and practical facts exactly.
 - Produce concise editorial copy in both French and English only when the underlying fact is supported.
+- Write short_description_en and short_description_fr as a warm, natural recommendation from a trusted local friend.
+- Keep each short description concise: preferably two or three sentences explaining why someone might enjoy the place.
+- Avoid generic tourism copy, exaggerated claims, sales language and database-style lists.
+- Do not claim personal experience (for example "we tried" or "I always go") unless the source note explicitly supports it.
 - Format practical_info_en and practical_info_fr as compact multiline bullet lists, never as prose paragraphs.
 - Every practical-info line must use the exact pattern "- emoji Fact", with one relevant emoji and one fact per line.
 - Practical info may cover food, facilities, setting, suitability, recurring events and verified opening hours.
