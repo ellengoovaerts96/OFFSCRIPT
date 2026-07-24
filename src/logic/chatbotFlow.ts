@@ -145,8 +145,7 @@ function buildRecommendationAssumption(context: UserContext): string | undefined
 }
 
 function buildLanguagePreferenceResponse(context: UserContext): string {
-  const places = await listRecommendationPlaces(context.language);
-  const missingField = needsClarification(context, places);
+  const missingField = needsClarification(context);
 
   const acknowledgement = context.language.startsWith("nl")
     ? "Helemaal, ik antwoord vanaf nu in het Nederlands."
@@ -993,7 +992,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     conversationHistory
   });
 
-  const missingField = needsClarification(context);
+  const places = await listRecommendationPlaces(context.language);
+  const missingField = needsClarification(context, places);
   if (missingField) {
     const clarificationField = chooseClarificationFieldForMessage(message, context, missingField);
     const contextAfterQuestion: UserContext = {
