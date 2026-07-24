@@ -1,6 +1,14 @@
 import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
-import { inferContextualBudget, inferContextualFoodStyle, inferTextVibe, rejectsRequestedSubcategory } from "../src/ai/buildUserContext.js";
+import {
+  inferContextualBudget,
+  inferContextualFoodStyle,
+  inferRequestedAmenities,
+  inferTextVibe,
+  mergeIntent,
+  rejectsRequestedSubcategory,
+  resolveRequestedSubcategory
+} from "../src/ai/buildUserContext.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
@@ -73,6 +81,15 @@ if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
 }
 if (detectIntent("Waar kan ik rustig werken met de airco?") !== "work") {
   throw new Error("A request for a quiet place to work must stay inside OFFSCRIPT scope.");
+}
+if (mergeIntent("Waar kan ik rustig werken met de airco?", undefined, "unknown") !== "work") {
+  throw new Error("Deterministic work intent must override an unclear AI interpretation.");
+}
+if (resolveRequestedSubcategory("Waar kan ik rustig werken met de airco?", "air conditioning", undefined, [], false) !== "working") {
+  throw new Error("Working must override an AI-generated air-conditioning subcategory.");
+}
+if (JSON.stringify(inferRequestedAmenities("Waar kan ik rustig werken met airco, wifi en stopcontacten?")) !== JSON.stringify(["air_conditioning", "wifi", "power_outlets"])) {
+  throw new Error("Explicit workplace facilities must be extracted as normalized amenities.");
 }
 if (!rejectsRequestedSubcategory("Ik wil geen pizza, gewoon een chilled drink.", "pizza")) {
   throw new Error("An explicitly rejected pizza preference must clear the previous subcategory.");
@@ -159,17 +176,22 @@ const workFriendlyPlace = {
   vibe: "Calm",
   vibeTags: ["calm"],
   occasionTags: ["working"],
+  amenities: ["air_conditioning", "wifi"],
   workFriendly: true
 } as unknown as Place;
 const workContext: UserContext = {
   language: "nl",
   intent: "work",
   requestedSubcategory: "working",
+  requestedAmenities: ["air_conditioning"],
   vibe: "calm",
   directRequest: true
 };
 if (selectBestPlace([workFriendlyPlace], workContext)?.place.name !== "Quiet workspace") {
   throw new Error("A quiet work request must select a work-friendly place.");
+}
+if (placePassesHardConstraints({ ...workFriendlyPlace, amenities: ["wifi"] } as Place, workContext)) {
+  throw new Error("A place without an explicitly requested amenity must be excluded.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {

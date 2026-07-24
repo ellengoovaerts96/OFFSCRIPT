@@ -34,6 +34,7 @@ function candidateMatchesContextIntent(place: Place, context: UserContext): bool
 
 export function placePassesHardConstraints(place: Place, context: UserContext): boolean {
   if (!candidateMatchesContextIntent(place, context)) return false;
+  if ((context.requestedAmenities ?? []).some((amenity) => !(place.amenities ?? []).includes(amenity as Place["amenities"][number]))) return false;
   if ((context.excludedCategories ?? []).some((category) => place.categories.includes(category as Place["categories"][number]))) return false;
   if ((context.excludedSubcategories ?? []).some((focus) => placeMatchesSpecificFocus(place, focus))) return false;
   if ((context.dietaryExclusions ?? []).some((focus) => placeMatchesSpecificFocus(place, focus))) return false;

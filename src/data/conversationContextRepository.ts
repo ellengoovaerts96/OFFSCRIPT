@@ -13,6 +13,7 @@ type ConversationContextRow = {
   budget: string | null;
   requested_subcategory: string | null;
   requested_style: string | null;
+  requested_amenities: string[] | null;
   vibe: string | null;
   excluded_categories: UserIntent[] | null;
   excluded_subcategories: string[] | null;
@@ -37,6 +38,7 @@ function mapContext(row: ConversationContextRow): UserContext {
     budget: row.budget ?? undefined,
     requestedSubcategory: row.requested_subcategory ?? undefined,
     requestedStyle: row.requested_style ?? undefined,
+    requestedAmenities: row.requested_amenities ?? [],
     vibe: row.vibe ?? undefined,
     excludedCategories: row.excluded_categories ?? [],
     excludedSubcategories: row.excluded_subcategories ?? [],
@@ -53,7 +55,7 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
   const result = await pool.query<ConversationContextRow>(
     `
       SELECT language, current_location, target_region, traveller_type, has_children,
-             children_ages, intent, timing, budget, requested_subcategory, requested_style, vibe, safety_concern,
+             children_ages, intent, timing, budget, requested_subcategory, requested_style, requested_amenities, vibe, safety_concern,
              excluded_categories, excluded_subcategories, dietary_exclusions, avoid_audience_tags,
              maximum_price_level, alcohol_allowed, clarification_count
       FROM conversation_context
@@ -92,6 +94,7 @@ export async function upsertConversationContext(userPhone: string, context: User
         budget,
         requested_subcategory,
         requested_style,
+        requested_amenities,
         vibe,
         excluded_categories,
         excluded_subcategories,
@@ -103,7 +106,7 @@ export async function upsertConversationContext(userPhone: string, context: User
         clarification_count,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
       ON CONFLICT (user_phone) DO UPDATE SET
         language = EXCLUDED.language,
         current_location = EXCLUDED.current_location,
@@ -116,6 +119,7 @@ export async function upsertConversationContext(userPhone: string, context: User
         budget = EXCLUDED.budget,
         requested_subcategory = EXCLUDED.requested_subcategory,
         requested_style = EXCLUDED.requested_style,
+        requested_amenities = EXCLUDED.requested_amenities,
         vibe = EXCLUDED.vibe,
         excluded_categories = EXCLUDED.excluded_categories,
         excluded_subcategories = EXCLUDED.excluded_subcategories,
@@ -140,6 +144,7 @@ export async function upsertConversationContext(userPhone: string, context: User
       context.budget ?? null,
       context.requestedSubcategory ?? null,
       context.requestedStyle ?? null,
+      context.requestedAmenities ?? [],
       context.vibe ?? null,
       context.excludedCategories ?? [],
       context.excludedSubcategories ?? [],

@@ -16,7 +16,7 @@ const headers = [
   "audience_tags", "occasion_tags", "dietary_tags", "offscript_pick_level",
   "offscript_priority", "offscript_reason_nl", "offscript_reason_fr", "offscript_reason_en",
   "authenticity", "food_orientation", "audience_orientation", "adventure_level", "price_level",
-  "traveller_types", "child_friendly", "work_friendly", "best_timing", "opening_hours",
+  "traveller_types", "child_friendly", "work_friendly", "amenities", "best_timing", "opening_hours",
   "contact_person", "phone", "facebook_url", "instagram_url", "tiktok_url", "google_maps_url",
   "transport", "safety_notes", "image_1", "image_2", "image_3", "ai_confidence",
   "review_status", "reviewed_by", "review_notes"
@@ -47,6 +47,7 @@ const structuredNoteSchema = z.object({
   adventure_level: z.number().int().min(0).max(3).nullable(),
   price_level: z.number().int().min(1).max(5).nullable(),
   traveller_types: z.array(z.enum(["solo", "couple", "friends", "family"])), child_friendly: z.boolean().nullable(), work_friendly: z.boolean().nullable(),
+  amenities: z.array(z.enum(["air_conditioning", "wifi", "power_outlets", "indoor_seating"])),
   best_timing: z.array(z.string()), opening_hours: nullableText, contact_person: nullableText, phone: nullableText,
   facebook_url: nullableText, instagram_url: nullableText, tiktok_url: nullableText, google_maps_url: nullableText,
   transport: nullableText, safety_notes: nullableText,
@@ -115,7 +116,8 @@ function structuredRow(sourceId: string, timestamp: string, visitDate: string, r
     offscript_reason_nl: cell(note.offscript_reason_nl), offscript_reason_fr: cell(note.offscript_reason_fr), offscript_reason_en: cell(note.offscript_reason_en),
     authenticity: cell(note.authenticity), food_orientation: cell(note.food_orientation), audience_orientation: cell(note.audience_orientation),
     adventure_level: cell(note.adventure_level), price_level: cell(note.price_level), traveller_types: list(note.traveller_types),
-    child_friendly: cell(note.child_friendly), work_friendly: cell(note.work_friendly), best_timing: list(note.best_timing), opening_hours: cell(note.opening_hours),
+    child_friendly: cell(note.child_friendly), work_friendly: cell(note.work_friendly), amenities: list(note.amenities),
+    best_timing: list(note.best_timing), opening_hours: cell(note.opening_hours),
     contact_person: cell(note.contact_person), phone: cell(note.phone), facebook_url: cell(note.facebook_url), instagram_url: cell(note.instagram_url),
     tiktok_url: cell(note.tiktok_url), google_maps_url: cell(note.google_maps_url), transport: cell(note.transport), safety_notes: cell(note.safety_notes),
     image_1: cell(note.image_1), image_2: cell(note.image_2), image_3: cell(note.image_3), ai_confidence: note.confidence,
@@ -130,6 +132,7 @@ async function structureDraft(input: Record<string, unknown>): Promise<Structure
     instructions: `You are OFFSCRIPT's careful field-research editor. Convert one informal field note into structured data.
 Rules:
 - Never invent a fact. Use null or [] when the note does not support a field.
+- Put explicitly supported facilities in amenities using only air_conditioning, wifi, power_outlets or indoor_seating.
 - Preserve names, phone numbers, URLs, opening hours and practical facts exactly.
 - Produce concise editorial copy in both French and English only when the underlying fact is supported.
 - Write short_description_en and short_description_fr in OFFSCRIPT's local-friend voice, not as a travel guide or database summary.

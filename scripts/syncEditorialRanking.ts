@@ -24,6 +24,13 @@ function required(name: string): string { const value = process.env[name]?.trim(
 function normalized(value: unknown): string { return String(value ?? "").trim().toLowerCase(); }
 function text(value: unknown): string | null { const result = String(value ?? "").trim(); return result || null; }
 function list(value: unknown): string[] { return String(value ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean).filter((item) => item !== "quick_meal"); }
+function amenityList(value: unknown): string[] {
+  const amenities = list(value).map((item) => item.replace(/\s+/g, "_"));
+  const allowed = new Set(["air_conditioning", "wifi", "power_outlets", "indoor_seating"]);
+  const invalid = amenities.filter((item) => !allowed.has(item));
+  if (invalid.length) throw new Error(`Unknown amenities: ${invalid.join(", ")}.`);
+  return [...new Set(amenities)];
+}
 function audienceList(value: unknown): string[] {
   const aliases: Record<string, string> = {
     local: "residents", locals: "residents", resident: "residents", residents: "residents",
@@ -73,9 +80,10 @@ async function main(): Promise<void> {
   const auth = new google.auth.JWT({ email: required("GOOGLE_SERVICE_ACCOUNT_EMAIL"), key: required("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"), scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"] });
   const sheets = google.sheets({ version: "v4", auth });
   const spreadsheetId = required("GOOGLE_SHEETS_SPREADSHEET_ID");
-  const values = (await sheets.spreadsheets.values.get({ spreadsheetId, range: `'${SHEET_NAME}'!A:R` })).data.values ?? [];
+  const values = (await sheets.spreadsheets.values.get({ spreadsheetId, range: `'${SHEET_NAME}'!A:S` })).data.values ?? [];
   const headers = (values[0] ?? []).map(normalized);
   const index = (name: string): number => { const found = headers.indexOf(name); if (found < 0) throw new Error(`Missing Sheet column: ${name}`); return found; };
+  const optionalIndex = (name: string): number => headers.indexOf(name);
   const pool = new pg.Pool({ connectionString: required("DATABASE_URL"), ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined });
   const client = await pool.connect();
   let approved = 0;
@@ -120,14 +128,16 @@ async function main(): Promise<void> {
         integer(row[index("authenticity")], 0, 4, "authenticity"), integer(row[index("food_orientation")], -2, 2, "food_orientation"),
         integer(row[index("audience_orientation")], -2, 2, "audience_orientation"), audienceList(row[index("audience_tags")]),
         integer(row[index("adventure_level")], 0, 3, "adventure_level"), list(row[index("occasion_tags")]), bool(row[index("work_friendly")]),
+        optionalIndex("amenities") >= 0 ? amenityList(row[optionalIndex("amenities")]) : null,
         row[index("verified_by")] || null, row[index("review_notes")] || null, sourceRowId, placeName
       ];
       const result = await client.query(`UPDATE public.places SET offscript_pick_level=$1, offscript_priority=$2, price_level=$3,
         offscript_reason_nl=$4, offscript_reason_fr=$5, offscript_reason_en=$6, authenticity=$7,
         food_orientation=$8, audience_orientation=$9, audience_tags=$10, adventure_level=$11,
-        occasion_tags=$12, work_friendly=$13, editorial_review_status='approved', editorial_verified_by=$14,
-        editorial_review_notes=$15, editorial_verified_at=NOW(), updated_at=NOW()
-        WHERE source_row_id=$16 OR lower(btrim(name))=lower(btrim($17))`, params);
+        occasion_tags=$12, work_friendly=$13, amenities=COALESCE($14::text[], amenities),
+        editorial_review_status='approved', editorial_verified_by=$15,
+        editorial_review_notes=$16, editorial_verified_at=NOW(), updated_at=NOW()
+        WHERE source_row_id=$17 OR lower(btrim(name))=lower(btrim($18))`, params);
       if (result.rowCount !== 1) throw new Error(`Sheet row ${offset + 2} (${placeName}) matched ${result.rowCount} places; expected exactly one.`);
       approved++;
     }

@@ -47,6 +47,7 @@ type PlaceValues = {
   safety_notes: string | null;
   vibe: string | null;
   vibe_tags: string[];
+  amenities: string[];
   facebook_url: string | null;
   instagram_url: string | null;
   tiktok_url: string | null;
@@ -67,7 +68,7 @@ const syncedColumns = [
   "practical_info", "practical_info_en", "practical_info_fr", "personal_tip", "personal_tip_en",
   "personal_tip_fr", "story_en", "story_fr", "traveller_types", "child_friendly", "best_timing",
   "price_level", "google_maps_url", "safety_notes", "vibe", "facebook_url", "instagram_url",
-  "vibe_tags", "tiktok_url", "transport", "source"
+  "vibe_tags", "amenities", "tiktok_url", "transport", "source"
 ] as const satisfies readonly (keyof PlaceValues)[];
 
 function text(value: unknown): string | null {
@@ -101,6 +102,24 @@ function priceLevel(value: unknown): number | null {
 function normalizeName(value: string): string {
   return value.trim().toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function inferredAmenities(row: RawPlace): string[] {
+  const allowed = new Set(["air_conditioning", "wifi", "power_outlets", "indoor_seating"]);
+  const supplied = list(row.amenities)
+    .map((value) => value.toLowerCase().replace(/\s+/g, "_"))
+    .filter((value) => allowed.has(value));
+  const searchable = [
+    row.short_description, row.short_description_en, row.short_description_fr,
+    row.practical_info, row.practical_info_en, row.practical_info_fr,
+    row.personal_tip, row.personal_tip_en, row.personal_tip_fr, row.vibe
+  ].map((value) => text(value) ?? "").join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const detected: string[] = [];
+  if (/\b(air[ -]?conditioning|airco|climatisation|climatise|a\/c)\b/.test(searchable)) detected.push("air_conditioning");
+  if (/\b(wi[ -]?fi|internet)\b/.test(searchable)) detected.push("wifi");
+  if (/\b(power outlets?|electrical outlets?|plug sockets?|sockets?|stopcontacten?|prises? electriques?)\b/.test(searchable)) detected.push("power_outlets");
+  if (/\b(indoor seating|inside seating|seats inside|zitplaatsen binnen|plaatsen binnen|salle interieure)\b/.test(searchable)) detected.push("indoor_seating");
+  return [...new Set([...supplied, ...detected])];
 }
 
 function mapRaw(row: RawPlace): PlaceValues {
@@ -142,6 +161,7 @@ function mapRaw(row: RawPlace): PlaceValues {
     safety_notes: text(row.safety_notes),
     vibe: text(row.vibe),
     vibe_tags: extractVibeTags(row.vibe),
+    amenities: inferredAmenities(row),
     facebook_url: text(row.facebook_url),
     instagram_url: text(row.instagram_url),
     tiktok_url: text(row.tiktok_url),

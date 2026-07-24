@@ -277,6 +277,10 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;
   if (context.hasChildren === true && !place.childFriendly) score -= 50;
+  score += Math.min(
+    (context.requestedAmenities ?? []).filter((amenity) => (place.amenities ?? []).includes(amenity as Place["amenities"][number])).length * 15,
+    30
+  );
   // Occasion tags express why someone would go there. They refine a valid
   // category/location match without overriding exclusions or safety filters.
   score += Math.min(occasionMatchCount(place, context) * 15, 30);

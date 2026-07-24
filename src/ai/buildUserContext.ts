@@ -36,6 +36,7 @@ const userContextSchema = z.object({
   budget: z.string().nullable(),
   requestedSubcategory: z.string().nullable(),
   requestedStyle: z.string().nullable(),
+  requestedAmenities: z.array(z.enum(["air_conditioning", "wifi", "power_outlets", "indoor_seating"])),
   vibe: z.string().nullable(),
   excludedCategories: z.array(intentSchema),
   excludedSubcategories: z.array(z.string()),
@@ -290,7 +291,7 @@ function clearsIntent(message: string): boolean {
   return /\b(niet|geen|zonder|not|no|without|pas|sans)\b.{0,24}\b(shop|shopping|winkel|winkelen|kopen|koop|boutique)\b/.test(lower);
 }
 
-function mergeIntent(message: string, previousIntent?: UserIntent, parsedIntent?: UserIntent): UserIntent | undefined {
+export function mergeIntent(message: string, previousIntent?: UserIntent, parsedIntent?: UserIntent): UserIntent | undefined {
   if (clearsIntent(message)) return undefined;
 
   if (acceptsAnyLocation(message) && isBeachLocationPreference(message) && !hasExplicitActivityIntent(message)) {
@@ -298,6 +299,37 @@ function mergeIntent(message: string, previousIntent?: UserIntent, parsedIntent?
   }
 
   return detectIntent(message) ?? inferEmojiIntent(message) ?? parsedIntent ?? previousIntent;
+}
+
+export function resolveRequestedSubcategory(
+  message: string,
+  parsed: string | null | undefined,
+  previous: string | undefined,
+  exclusions: string[],
+  explicitlyRejected: boolean
+): string | undefined {
+  return (
+    inferRequestedSubcategory(message) ??
+    semanticRequestedSubcategory(parsed, previous, exclusions, explicitlyRejected)
+  );
+}
+
+export function inferRequestedAmenities(message: string): string[] {
+  const lower = normalizeContextText(message);
+  const amenities: string[] = [];
+
+  if (/\b(air conditioning|airco|a c|climatisation|climatise|climatisee|klimaanlage)\b/.test(lower)) {
+    amenities.push("air_conditioning");
+  }
+  if (/\b(wifi|wi fi|internet)\b/.test(lower)) amenities.push("wifi");
+  if (/\b(power outlet|power outlets|electrical outlet|electrical outlets|plug socket|plug sockets|socket|sockets|stopcontact|stopcontacten|prise electrique|prises electriques|steckdose|steckdosen)\b/.test(lower)) {
+    amenities.push("power_outlets");
+  }
+  if (/\b(indoor seating|inside seating|seats inside|zitplaatsen binnen|plaatsen binnen|binnen zitten|salle interieure|assis a l interieur|innenbereich)\b/.test(lower)) {
+    amenities.push("indoor_seating");
+  }
+
+  return amenities;
 }
 
 function inferShoppingFocus(message: string): string | undefined {
@@ -446,6 +478,9 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
         ? inferRequestedSubcategory(input.message)
         : inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
+      requestedAmenities: [
+        ...new Set([...(previous?.requestedAmenities ?? []), ...inferRequestedAmenities(input.message)])
+      ],
       vibe: messageIsKnownRegionOnly
         ? previous?.vibe
         : mergeVibe(input.message, previous?.vibe, undefined, previous?.requestedSubcategory),
@@ -494,6 +529,7 @@ Rules:
 - Use "unknown" for unclear timing.
 - Treat beach/plage/strand as requestedSubcategory, not as vibe.
 - Store local/international as requestedStyle, not as vibe.
+- Store explicitly requested facilities in requestedAmenities using only air_conditioning, wifi, power_outlets or indoor_seating.
 - Normalize price preference to affordable, mid-range or upscale in budget.
 - Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.
@@ -539,16 +575,29 @@ Rules:
       childrenAges: nullToUndefined(parsed.context.childrenAges) ?? input.previousContext?.childrenAges,
       intent: messageIsKnownRegionOnly
         ? input.previousContext?.intent
-        : (nullToUndefined(parsed.context.intent) as UserIntent | undefined) ?? mergeIntent(input.message, input.previousContext?.intent),
+        : mergeIntent(
+            input.message,
+            input.previousContext?.intent,
+            nullToUndefined(parsed.context.intent) as UserIntent | undefined
+          ),
       timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
       budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
-      requestedSubcategory: semanticRequestedSubcategory(
-        parsed.context.requestedSubcategory,
-        input.previousContext?.requestedSubcategory,
-        semanticExclusions,
-        rejectsPreviousSubcategory
-      ),
+      requestedSubcategory:
+        resolveRequestedSubcategory(
+          input.message,
+          parsed.context.requestedSubcategory,
+          input.previousContext?.requestedSubcategory,
+          semanticExclusions,
+          rejectsPreviousSubcategory
+        ),
       requestedStyle: nullToUndefined(parsed.context.requestedStyle) ?? input.previousContext?.requestedStyle,
+      requestedAmenities: [
+        ...new Set([
+          ...(input.previousContext?.requestedAmenities ?? []),
+          ...parsed.context.requestedAmenities,
+          ...inferRequestedAmenities(input.message)
+        ])
+      ],
       vibe: messageIsKnownRegionOnly
         ? input.previousContext?.vibe
         : mergeVibe(

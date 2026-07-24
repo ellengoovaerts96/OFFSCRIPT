@@ -7,7 +7,7 @@ const headers = [
   "timestamp", "place_name", "offscript_pick_level", "offscript_priority", "price_level",
   "offscript_reason_nl", "offscript_reason_fr", "offscript_reason_en", "authenticity",
   "food_orientation", "audience_orientation", "audience_tags", "adventure_level",
-  "occasion_tags", "work_friendly", "review_status", "verified_by", "review_notes"
+  "occasion_tags", "work_friendly", "amenities", "review_status", "verified_by", "review_notes"
 ] as const;
 
 function required(name: string): string {
@@ -67,7 +67,7 @@ async function main(): Promise<void> {
     const result = await pool.query(`SELECT raw.timestamp, p.name, p.offscript_pick_level, p.offscript_priority,
       p.price_level, p.offscript_reason_nl, p.offscript_reason_fr, p.offscript_reason_en, p.authenticity,
       p.food_orientation, p.audience_orientation, p.audience_tags, p.adventure_level,
-      p.occasion_tags, p.work_friendly, p.editorial_review_status, p.editorial_verified_by, p.editorial_review_notes
+      p.occasion_tags, p.work_friendly, p.amenities, p.editorial_review_status, p.editorial_verified_by, p.editorial_review_notes
       FROM public.places p LEFT JOIN public.field_research_raw raw ON raw.source_row_id = p.source_row_id
       WHERE p.status <> 'archived' ORDER BY p.name`);
     const values: unknown[][] = [[...headers]];
@@ -81,12 +81,13 @@ async function main(): Promise<void> {
         value("authenticity", db.authenticity), value("food_orientation", db.food_orientation), value("audience_orientation", db.audience_orientation),
         audienceTags(value("audience_tags", (db.audience_tags ?? []).join(", "))), value("adventure_level", db.adventure_level),
         value("occasion_tags", (db.occasion_tags ?? []).filter((tag: string) => tag !== "quick_meal").join(", ")), value("work_friendly", db.work_friendly),
+        value("amenities", (db.amenities ?? []).join(", ")),
         value("review_status", db.editorial_review_status === "draft" ? "needs_review" : db.editorial_review_status),
         value("verified_by", db.editorial_verified_by), value("review_notes", db.editorial_review_notes)
       ]);
     }
     await sheets.spreadsheets.values.clear({ spreadsheetId, range: range("A:Z") });
-    await sheets.spreadsheets.values.update({ spreadsheetId, range: range(`A1:R${values.length}`), valueInputOption: "RAW", requestBody: { values } });
+    await sheets.spreadsheets.values.update({ spreadsheetId, range: range(`A1:S${values.length}`), valueInputOption: "RAW", requestBody: { values } });
     const validation = (columnIndex: number, allowed: string[]) => ({ setDataValidation: { range: { sheetId, startRowIndex: 1, startColumnIndex: columnIndex, endColumnIndex: columnIndex + 1 }, rule: { condition: { type: "ONE_OF_LIST", values: allowed.map((userEnteredValue) => ({ userEnteredValue })) }, strict: true, showCustomUi: true } } });
     await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [
       { updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount: 1 } }, fields: "gridProperties.frozenRowCount" } },
@@ -98,7 +99,7 @@ async function main(): Promise<void> {
       validation(2, ["0", "1", "2", "3"]), validation(4, ["1", "2", "3", "4", "5"]), validation(8, ["0", "1", "2", "3", "4"]),
       validation(9, ["-2", "-1", "0", "1", "2"]), validation(10, ["-2", "-1", "0", "1", "2"]),
       validation(12, ["0", "1", "2", "3"]), validation(14, ["TRUE", "FALSE"]),
-      validation(15, ["draft", "needs_review", "approved"])
+      validation(16, ["draft", "needs_review", "approved"])
     ] } });
     console.log(`Editorial Ranking updated: ${result.rowCount} places; existing review values preserved.`);
   } finally { await pool.end(); }

@@ -27,6 +27,12 @@ export type PlaceSubcategory = {
   images: PlaceImage[];
 };
 
+export type PlaceAmenity =
+  | "air_conditioning"
+  | "wifi"
+  | "power_outlets"
+  | "indoor_seating";
+
 export type Place = {
   id: string;
   name: string;
@@ -45,6 +51,7 @@ export type Place = {
   audienceTags: string[];
   adventureLevel?: number;
   occasionTags: string[];
+  amenities: PlaceAmenity[];
   workFriendly?: boolean;
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];

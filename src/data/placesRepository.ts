@@ -1,5 +1,5 @@
 import { pool } from "../integrations/postgres.js";
-import type { Place, PlaceCategory, PlaceImage, PlaceSubcategory } from "../types/place.js";
+import type { Place, PlaceAmenity, PlaceCategory, PlaceImage, PlaceSubcategory } from "../types/place.js";
 
 type PlaceRow = {
   id: string;
@@ -23,6 +23,7 @@ type PlaceRow = {
   audience_tags: string[] | null;
   adventure_level: number | null;
   occasion_tags: string[] | null;
+  amenities: PlaceAmenity[] | null;
   work_friendly: boolean | null;
   categories: PlaceCategory[] | null;
   legacy_subcategories: string[] | null;
@@ -138,6 +139,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     audienceTags: row.audience_tags ?? [],
     adventureLevel: row.adventure_level ?? undefined,
     occasionTags: row.occasion_tags ?? [],
+    amenities: row.amenities ?? [],
     workFriendly: row.work_friendly ?? undefined,
     categories: row.categories ?? [],
     subcategories: mergeSubcategories(row),

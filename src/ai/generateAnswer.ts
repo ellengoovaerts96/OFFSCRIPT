@@ -144,6 +144,7 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
     audienceTags: place.audienceTags,
     adventureLevel: place.adventureLevel,
     occasionTags: place.occasionTags,
+    amenities: place.amenities,
     workFriendly: place.workFriendly,
     categories: place.categories,
     subcategories: place.subcategories.map((subcategory) => ({

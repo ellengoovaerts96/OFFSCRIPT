@@ -27,6 +27,7 @@ export type UserContext = {
   budget?: string;
   requestedSubcategory?: string;
   requestedStyle?: string;
+  requestedAmenities?: string[];
   vibe?: string;
   excludedCategories?: UserIntent[];
   excludedSubcategories?: string[];
