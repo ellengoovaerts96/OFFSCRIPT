@@ -16,7 +16,7 @@ import { detectIntent } from "../src/ai/detectIntent.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
-import { buildClarifyingQuestion } from "../src/logic/buildClarifyingQuestion.js";
+import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { recommendationReadiness } from "../src/logic/recommendationReadiness.js";
 import { placePassesHardConstraints, selectBestPlace } from "../src/logic/selectBestPlace.js";
@@ -92,6 +92,12 @@ for (const dish of ["Thiéboudienne", "Yassa", "Mafé"]) {
   if (!isLocalSenegaleseDishRequest(dish) || inferRequestedStyle(dish) !== "local") {
     throw new Error(`${dish} must be recognized as local Senegalese food.`);
   }
+}
+if (!/buurt/i.test(buildLocalDishLocationQuestion({ language: "nl", intent: "food", requestedStyle: "local" }))) {
+  throw new Error("A broad local dish request must ask for the neighbourhood.");
+}
+if (detectIntent("Ik wil lokale gerechten eten") !== "food" || inferRequestedStyle("Ik wil lokale gerechten eten") !== "local") {
+  throw new Error("A general request for local food must be recognized as local food.");
 }
 if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
   throw new Error("A negated pizza must not override the positive drink intent.");

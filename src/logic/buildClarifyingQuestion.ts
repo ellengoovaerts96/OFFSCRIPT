@@ -60,6 +60,15 @@ export function buildClarifyingQuestion(field: MissingContextField, context: Use
   return questions[language][field];
 }
 
+export function buildLocalDishLocationQuestion(context: UserContext): string {
+  const language = languageKey(context.language);
+
+  if (language === "nl") return "In welke buurt wil je eten, of mag het overal in Dakar zijn?";
+  if (language === "fr") return "Dans quel quartier veux-tu manger, ou ça peut être n’importe où à Dakar ?";
+  if (language === "de") return "In welchem Viertel möchtest du essen, oder kann es überall in Dakar sein?";
+  return "Which neighbourhood would you like to eat in, or can it be anywhere in Dakar?";
+}
+
 function buildSubcategoryQuestion(language: "nl" | "fr" | "de" | "en", context: UserContext): string {
   const intent = context.intent;
 

@@ -1,4 +1,8 @@
-import { buildUserContext } from "../ai/buildUserContext.js";
+import {
+  buildUserContext,
+  inferRequestedStyle,
+  isLocalSenegaleseDishRequest
+} from "../ai/buildUserContext.js";
 import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
@@ -19,7 +23,7 @@ import {
 import { findStoryKnowledgeMatch } from "../data/storiesRepository.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
-import { buildClarifyingQuestion } from "./buildClarifyingQuestion.js";
+import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "./buildClarifyingQuestion.js";
 import {
   buildGreetingResponse,
   buildOffscriptWelcomeResponse,
@@ -993,15 +997,28 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   });
 
   const places = await listRecommendationPlaces(context.language);
-  const missingField = needsClarification(context, places);
+  const contextLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const isBroadLocalFoodRequest =
+    context.intent === "food" &&
+    (
+      isLocalSenegaleseDishRequest(message) ||
+      inferRequestedStyle(message) === "local"
+    );
+  const needsLocalFoodNeighbourhood =
+    isBroadLocalFoodRequest &&
+    (!contextLocation || contextLocation === "Dakar");
+  const missingField: MissingContextField | null = needsLocalFoodNeighbourhood
+    ? "location"
+    : needsClarification(context, places);
   if (missingField) {
     const clarificationField = chooseClarificationFieldForMessage(message, context, missingField);
     const contextAfterQuestion: UserContext = {
       ...context,
       clarificationCount: (context.clarificationCount ?? 0) + 1
     };
-    const messageText =
-      clarificationField === "travellerType"
+    const messageText = needsLocalFoodNeighbourhood
+      ? buildLocalDishLocationQuestion(contextAfterQuestion)
+      : clarificationField === "travellerType"
         ? buildGreetingResponse(contextAfterQuestion, { useWolofGreeting })
         : buildClarifyingQuestion(clarificationField, contextAfterQuestion);
 
