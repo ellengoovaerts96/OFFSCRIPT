@@ -73,7 +73,13 @@ function focusCandidatesForContext(places: Place[], context: UserContext): Place
 
   if (!isSpecificFocus(context.vibe)) return subcategoryCandidates;
 
-  return subcategoryCandidates.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
+  const exactCandidates = subcategoryCandidates.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
+  if (exactCandidates.length || !requestedSubcategory) return exactCandidates;
+
+  // When two strong signals are supplied, prefer places matching both. If the
+  // database is missing one descriptive tag, retain the distinctive structured
+  // focus (for example reggae) instead of returning no match at all.
+  return places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
 }
 
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {

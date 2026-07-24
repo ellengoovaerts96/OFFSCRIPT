@@ -120,6 +120,34 @@ if (!placePassesHardConstraints(surfTestPlace, surfContext)) {
 if (scorePlace(surfTestPlace, surfContext) < 60) {
   throw new Error("A specific surfing match must reach the recommendation threshold.");
 }
+const beachReggaePlace = {
+  name: "La Payotte",
+  region: "Dakar",
+  neighbourhood: "Yoff",
+  categories: ["drink"],
+  subcategories: [{ id: "bar", name: "Bar", displayOrder: 1, images: [] }],
+  bestFor: [],
+  vibe: "Rasta & Reggae",
+  vibeTags: ["rasta_reggae"],
+  audienceTags: [],
+  occasionTags: ["drinks", "live_music", "nightlife"],
+  travellerTypes: [],
+  images: [],
+  offscriptPickLevel: 0,
+  offscriptPriority: 50,
+  childFriendly: false,
+  status: "published"
+} as unknown as Place;
+const beachReggaeContext: UserContext = {
+  language: "nl",
+  targetRegion: "Dakar",
+  intent: "drink",
+  requestedSubcategory: "beach",
+  vibe: "rasta_reggae"
+};
+if (selectBestPlace([beachReggaePlace], beachReggaeContext)?.place.name !== "La Payotte") {
+  throw new Error("A reggae drink request must retain La Payotte when only the beach metadata is incomplete.");
+}
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {
   throw new Error("Food style questions must not list subcategories as vibes.");

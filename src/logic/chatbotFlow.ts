@@ -70,36 +70,37 @@ export type ChatbotFlowResult =
 
 function buildNoMatchResponse(context: UserContext): string {
   const location = context.targetRegion ?? context.currentLocation;
+  const hasSpecificLocation = Boolean(location && normalizeRegion(location) !== "Dakar");
 
   if (context.language?.startsWith("nl")) {
-    if (location) {
+    if (hasSpecificLocation) {
       return `Ik heb nog geen sterke OFFSCRIPT-match in ${location}. Wil je naar een andere buurt in Dakar gaan? Dan kan ik breder zoeken.`;
     }
 
-    return "Ik heb daar nog geen sterke OFFSCRIPT-match voor. Vertel me waar je bent en welke vibe je zoekt, dan probeer ik met wat ik wel al weet.";
+    return "Ik heb daar nog geen sterke OFFSCRIPT-match voor in mijn huidige data.";
   }
 
   if (context.language?.startsWith("fr")) {
-    if (location) {
+    if (hasSpecificLocation) {
       return `Je n’ai pas encore de match OFFSCRIPT vraiment solide à ${location}. Est-ce que tu veux te déplacer dans un autre quartier de Dakar ? Je peux chercher plus largement.`;
     }
 
-    return "Je n’ai pas encore de match OFFSCRIPT vraiment solide pour ça. Dis-moi où tu es et l’ambiance que tu cherches, et j’essaie avec ce que j’ai.";
+    return "Je n’ai pas encore de match OFFSCRIPT vraiment solide pour ça dans mes données actuelles.";
   }
 
   if (context.language?.startsWith("de")) {
-    if (location) {
+    if (hasSpecificLocation) {
       return `Ich habe noch keinen starken OFFSCRIPT-Match in ${location}. Wärst du offen für ein anderes Viertel in Dakar? Dann kann ich breiter suchen.`;
     }
 
-    return "Ich habe dafür noch keinen starken OFFSCRIPT-Match. Sag mir, wo du bist und welche Stimmung du suchst, dann versuche ich es mit dem, was ich habe.";
+    return "Ich habe dafür in meinen aktuellen Daten noch keinen starken OFFSCRIPT-Match.";
   }
 
-  if (location) {
+  if (hasSpecificLocation) {
     return `I do not have a strong OFFSCRIPT match in ${location} yet. Would you be open to another Dakar neighbourhood? I can search more broadly.`;
   }
 
-  return "I do not have a strong OFFSCRIPT match for that yet. Tell me where you are and what kind of vibe you want, and I will try with what I do have.";
+  return "I do not have a strong OFFSCRIPT match for that in my current data yet.";
 }
 
 function buildNoNewMatchResponse(context: UserContext): string {
