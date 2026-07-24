@@ -80,6 +80,9 @@ if (inferContextualBudget("bon restaurant", "pizza") !== "upscale") {
 if (inferBudget("chic") !== "upscale") {
   throw new Error("A direct answer of chic must be stored as an upscale budget preference.");
 }
+if (inferBudget("luxe") !== "luxury") {
+  throw new Error("A direct answer of luxe must be stored as a luxury budget preference.");
+}
 if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
   throw new Error("A negated pizza must not override the positive drink intent.");
 }
@@ -131,6 +134,14 @@ if (
   )?.place.name !== "Pizzammore"
 ) {
   throw new Error("An explicit chic pizza request must outrank editorial priority and select the upscale place.");
+}
+if (
+  selectBestPlace(
+    [budgetPizza, chicPizza],
+    { language: "nl", intent: "food", requestedSubcategory: "pizza", budget: "luxury" }
+  )?.place.name !== "Pizzammore"
+) {
+  throw new Error("A luxury request without a luxury match must fall back to the chic place.");
 }
 const japaneseContext: UserContext = {
   language: "en",

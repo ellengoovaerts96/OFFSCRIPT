@@ -55,7 +55,8 @@ const STYLE_ALIASES: Record<string, string[]> = {
 const BUDGET_ALIASES: Record<string, string[]> = {
   affordable: ["affordable", "cheap", "budget", "inexpensive", "betaalbaar", "goedkoop", "abordable", "pas cher", "€", "$"],
   "mid-range": ["mid-range", "midrange", "average", "gemiddeld", "moyen", "€€", "$$"],
-  upscale: ["upscale", "luxury", "luxurious", "chic", "luxe", "haut de gamme", "exclusief", "€€€", "$$$"]
+  upscale: ["upscale", "chic", "haut de gamme", "exclusief", "€€€", "$$$"],
+  luxury: ["luxury", "luxurious", "luxe", "luxueus", "€€€€", "$$$$"]
 };
 
 const OCCASION_ALIASES: Record<string, string[]> = {
@@ -275,6 +276,9 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel <= 2 ? 40 : -30;
   if (context.budget === "mid-range" && place.priceLevel !== undefined) score += place.priceLevel === 3 ? 40 : -15;
   if (context.budget === "upscale" && place.priceLevel !== undefined) score += place.priceLevel >= 4 ? 40 : -30;
+  if (context.budget === "luxury" && place.priceLevel !== undefined) {
+    score += place.priceLevel === 5 ? 50 : place.priceLevel === 4 ? 35 : -30;
+  }
   if (placeMatchesVibe(place, context.vibe)) score += isSpecificFocus(context.vibe) ? 35 : 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;

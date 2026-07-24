@@ -250,7 +250,10 @@ function inferRequestedStyle(message: string): string | undefined {
 
 export function inferBudget(message: string): string | undefined {
   const lower = normalizeContextText(message);
-  if (/\b(upscale|luxury|luxurious|chic|luxe|haut de gamme|duur|exclusief|gehoben|luxurios)\b/.test(lower)) {
+  if (/\b(luxury|luxurious|luxe|luxueus|luxurios)\b/.test(lower)) {
+    return "luxury";
+  }
+  if (/\b(upscale|chic|haut de gamme|duur|exclusief|gehoben)\b/.test(lower)) {
     return "upscale";
   }
   if (/\b(affordable|cheap|cheaper|budget|inexpensive|betaalbaar|goedkoop|moins cher|pas cher|abordable|gunstig|gunstig)\b/.test(lower)) {
@@ -530,7 +533,7 @@ Rules:
 - Treat beach/plage/strand as requestedSubcategory, not as vibe.
 - Store local/international as requestedStyle, not as vibe.
 - Store explicitly requested facilities in requestedAmenities using only air_conditioning, wifi, power_outlets or indoor_seating.
-- Normalize price preference to affordable, mid-range or upscale in budget.
+- Normalize price preference to affordable, mid-range, upscale or luxury in budget.
 - Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.
 - Do not assume a place is child-friendly.`,
