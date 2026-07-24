@@ -3,6 +3,7 @@ import { pool } from "../src/integrations/postgres.js";
 import {
   inferContextualBudget,
   inferContextualFoodStyle,
+  inferBudget,
   inferRequestedAmenities,
   inferTextVibe,
   mergeIntent,
@@ -76,6 +77,9 @@ if (inferContextualFoodStyle("bon restaurant", "seafood") !== undefined) {
 if (inferContextualBudget("bon restaurant", "pizza") !== "upscale") {
   throw new Error("The restaurant pizza option must prefer the more upscale match.");
 }
+if (inferBudget("chic") !== "upscale") {
+  throw new Error("A direct answer of chic must be stored as an upscale budget preference.");
+}
 if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
   throw new Error("A negated pizza must not override the positive drink intent.");
 }
@@ -102,6 +106,32 @@ const semanticTestPlace = {
   subcategories: [{ id: "pizza", name: "Pizza", displayOrder: 1, images: [] }],
   bestFor: [], vibeTags: [], audienceTags: ["tourists"], priceLevel: 4, childFriendly: true
 } as unknown as Place;
+const budgetPizza = {
+  ...semanticTestPlace,
+  id: "budget-pizza",
+  name: "Anima Pizzeria",
+  offscriptPickLevel: 3,
+  offscriptPriority: 100,
+  priceLevel: 1,
+  audienceTags: []
+} as unknown as Place;
+const chicPizza = {
+  ...semanticTestPlace,
+  id: "chic-pizza",
+  name: "Pizzammore",
+  offscriptPickLevel: 0,
+  offscriptPriority: 0,
+  priceLevel: 4,
+  audienceTags: []
+} as unknown as Place;
+if (
+  selectBestPlace(
+    [budgetPizza, chicPizza],
+    { language: "nl", intent: "food", requestedSubcategory: "pizza", budget: "upscale" }
+  )?.place.name !== "Pizzammore"
+) {
+  throw new Error("An explicit chic pizza request must outrank editorial priority and select the upscale place.");
+}
 const japaneseContext: UserContext = {
   language: "en",
   intent: "food",

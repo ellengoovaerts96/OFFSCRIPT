@@ -248,7 +248,7 @@ function inferRequestedStyle(message: string): string | undefined {
   return undefined;
 }
 
-function inferBudget(message: string): string | undefined {
+export function inferBudget(message: string): string | undefined {
   const lower = normalizeContextText(message);
   if (/\b(upscale|luxury|luxurious|chic|luxe|haut de gamme|duur|exclusief|gehoben|luxurios)\b/.test(lower)) {
     return "upscale";
@@ -581,7 +581,11 @@ Rules:
             nullToUndefined(parsed.context.intent) as UserIntent | undefined
           ),
       timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
-      budget: nullToUndefined(parsed.context.budget) ?? input.previousContext?.budget,
+      budget:
+        inferBudget(input.message) ??
+        inferContextualBudget(input.message, input.previousContext?.requestedSubcategory) ??
+        nullToUndefined(parsed.context.budget) ??
+        input.previousContext?.budget,
       requestedSubcategory:
         resolveRequestedSubcategory(
           input.message,

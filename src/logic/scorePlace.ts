@@ -269,9 +269,12 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (matchesRequestedFocus) score += 35;
   if (placeMatchesPreference(place, context.requestedStyle, STYLE_ALIASES)) score += 20;
   if (placeMatchesPreference(place, context.budget, BUDGET_ALIASES)) score += 20;
-  if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel <= 2 ? 20 : -10;
-  if (context.budget === "mid-range" && place.priceLevel !== undefined) score += place.priceLevel === 3 ? 20 : 0;
-  if (context.budget === "upscale" && place.priceLevel !== undefined) score += place.priceLevel >= 4 ? 20 : -5;
+  // An explicit price preference must outweigh general editorial priority.
+  // Editorial judgement ranks comparable matches; it must not turn a
+  // budget-friendly pizzeria into the answer to an upscale request.
+  if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel <= 2 ? 40 : -30;
+  if (context.budget === "mid-range" && place.priceLevel !== undefined) score += place.priceLevel === 3 ? 40 : -15;
+  if (context.budget === "upscale" && place.priceLevel !== undefined) score += place.priceLevel >= 4 ? 40 : -30;
   if (placeMatchesVibe(place, context.vibe)) score += isSpecificFocus(context.vibe) ? 35 : 25;
   if (context.timing && placeMatchesTiming(place, context.timing)) score += 15;
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
