@@ -10,6 +10,7 @@
     "sync:places": "tsx scripts/syncPlacesFromRaw.ts",
     "sync:place-images": "tsx scripts/syncPlaceImagesFromRaw.ts",
     "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
+    "setup:field-notes-sheet": "tsx scripts/processFieldNotes.ts --headers-only",
     "process:field-notes": "tsx scripts/processFieldNotes.ts",
     "sync:editorial-ranking": "tsx scripts/syncEditorialRanking.ts",
     "translate:stories": "tsx scripts/translateStories.ts",

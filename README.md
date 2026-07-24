@@ -173,6 +173,7 @@ Share that spreadsheet as Editor with `GOOGLE_SERVICE_ACCOUNT_EMAIL`. Then previ
 and process all rows whose status is `new`:
 
 ```bash
+npm run setup:field-notes-sheet
 npm run process:field-notes -- --dry-run
 npm run process:field-notes
 ```

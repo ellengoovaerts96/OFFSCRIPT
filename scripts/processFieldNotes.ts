@@ -7,6 +7,7 @@ import { getOpenAIClient, openaiModel } from "../src/integrations/openai.js";
 const FIELD_NOTES_SHEET = "Field Notes";
 const STRUCTURED_SHEET = "Structured Import";
 const dryRun = process.argv.includes("--dry-run");
+const headersOnly = process.argv.includes("--headers-only");
 
 const headers = [
   "source_note_id", "source_timestamp", "visit_date", "researcher", "place_name", "entry_type",
@@ -179,7 +180,6 @@ Rules:
 }
 
 async function main(): Promise<void> {
-  required("OPENAI_API_KEY");
   const spreadsheetId = required("GOOGLE_FIELD_NOTES_SPREADSHEET_ID");
   const auth = new google.auth.JWT({
     email: required("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
@@ -221,6 +221,12 @@ async function main(): Promise<void> {
       });
     }
   }
+  if (headersOnly) {
+    console.log(`Structured Import headers updated: ${headers.length} columns.`);
+    return;
+  }
+
+  required("OPENAI_API_KEY");
 
   let processed = 0;
   for (const [offset, row] of fieldValues.slice(1).entries()) {
