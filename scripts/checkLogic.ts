@@ -4,6 +4,8 @@ import {
   inferContextualBudget,
   inferContextualFoodStyle,
   inferBudget,
+  inferRequestedStyle,
+  isLocalSenegaleseDishRequest,
   inferRequestedAmenities,
   inferTextVibe,
   mergeIntent,
@@ -82,6 +84,14 @@ if (inferBudget("chic") !== "upscale") {
 }
 if (inferBudget("luxe") !== "luxury") {
   throw new Error("A direct answer of luxe must be stored as a luxury budget preference.");
+}
+for (const dish of ["Thiéboudienne", "Yassa", "Mafé"]) {
+  if (detectIntent(`Ik wil ${dish} eten`) !== "food") {
+    throw new Error(`${dish} must be recognized as a food request.`);
+  }
+  if (!isLocalSenegaleseDishRequest(dish) || inferRequestedStyle(dish) !== "local") {
+    throw new Error(`${dish} must be recognized as local Senegalese food.`);
+  }
 }
 if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
   throw new Error("A negated pizza must not override the positive drink intent.");

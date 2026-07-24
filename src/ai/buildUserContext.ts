@@ -237,12 +237,20 @@ export function rejectsRequestedSubcategory(message: string, subcategory?: strin
   return new RegExp(`\\b(?:geen|niet|zonder|no|not|without|pas de|pas|sans|ne veux pas|don'?t want)\\b(?:\\s+\\w+){0,3}\\s+\\b(?:${target})\\b`, "i").test(lower);
 }
 
-function inferRequestedStyle(message: string): string | undefined {
+export function isLocalSenegaleseDishRequest(message: string): boolean {
+  const lower = normalizeContextText(message);
+  return /\b(thieboudienne|thiebou dienne|yassa|mafe)\b/.test(lower);
+}
+
+export function inferRequestedStyle(message: string): string | undefined {
   const lower = normalizeContextText(message);
   if (/\b(international|internationaal|internationale|internationales|cosmopolitan|cosmopolitain)\b/.test(lower)) {
     return "international";
   }
-  if (/\b(local|lokaal|lokale|locale|locales|lokal|authentic|authentiek|authentique)\b/.test(lower)) {
+  if (
+    /\b(local|lokaal|lokale|locale|locales|lokal|authentic|authentiek|authentique)\b/.test(lower) ||
+    isLocalSenegaleseDishRequest(message)
+  ) {
     return "local";
   }
   return undefined;
@@ -477,9 +485,11 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
         inferBudget(input.message) ??
         inferContextualBudget(input.message, previous?.requestedSubcategory) ??
         previous?.budget,
-      requestedSubcategory: rejectsPreviousSubcategory
-        ? inferRequestedSubcategory(input.message)
-        : inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
+      requestedSubcategory: isLocalSenegaleseDishRequest(input.message)
+        ? undefined
+        : rejectsPreviousSubcategory
+          ? inferRequestedSubcategory(input.message)
+          : inferRequestedSubcategory(input.message) ?? previous?.requestedSubcategory,
       requestedStyle: inferRequestedStyle(input.message) ?? previous?.requestedStyle,
       requestedAmenities: [
         ...new Set([...(previous?.requestedAmenities ?? []), ...inferRequestedAmenities(input.message)])
@@ -532,6 +542,7 @@ Rules:
 - Use "unknown" for unclear timing.
 - Treat beach/plage/strand as requestedSubcategory, not as vibe.
 - Store local/international as requestedStyle, not as vibe.
+- Treat Thiéboudienne, Yassa and Mafé as local Senegalese food: set intent to food and requestedStyle to local. Do not store the dish name as requestedSubcategory.
 - Store explicitly requested facilities in requestedAmenities using only air_conditioning, wifi, power_outlets or indoor_seating.
 - Normalize price preference to affordable, mid-range, upscale or luxury in budget.
 - Vibe describes atmosphere such as calm, lively or romantic.
@@ -589,15 +600,19 @@ Rules:
         inferContextualBudget(input.message, input.previousContext?.requestedSubcategory) ??
         nullToUndefined(parsed.context.budget) ??
         input.previousContext?.budget,
-      requestedSubcategory:
-        resolveRequestedSubcategory(
-          input.message,
-          parsed.context.requestedSubcategory,
-          input.previousContext?.requestedSubcategory,
-          semanticExclusions,
-          rejectsPreviousSubcategory
-        ),
-      requestedStyle: nullToUndefined(parsed.context.requestedStyle) ?? input.previousContext?.requestedStyle,
+      requestedSubcategory: isLocalSenegaleseDishRequest(input.message)
+        ? undefined
+        : resolveRequestedSubcategory(
+            input.message,
+            parsed.context.requestedSubcategory,
+            input.previousContext?.requestedSubcategory,
+            semanticExclusions,
+            rejectsPreviousSubcategory
+          ),
+      requestedStyle:
+        inferRequestedStyle(input.message) ??
+        nullToUndefined(parsed.context.requestedStyle) ??
+        input.previousContext?.requestedStyle,
       requestedAmenities: [
         ...new Set([
           ...(input.previousContext?.requestedAmenities ?? []),

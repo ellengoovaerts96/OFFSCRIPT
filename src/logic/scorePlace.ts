@@ -297,10 +297,26 @@ export function scorePlace(place: Place, context: UserContext): number {
   score += place.offscriptPickLevel * 6;
   score += Math.round(place.offscriptPriority / 5);
   if (context.requestedStyle === "local" && place.foodOrientation !== undefined) {
-    score += Math.max(-10, -place.foodOrientation * 5);
+    score += place.foodOrientation <= -2
+      ? 30
+      : place.foodOrientation === -1
+        ? 20
+        : place.foodOrientation === 0
+          ? 0
+          : place.foodOrientation === 1
+            ? -15
+            : -30;
   }
   if (context.requestedStyle === "international" && place.foodOrientation !== undefined) {
-    score += Math.max(-10, place.foodOrientation * 5);
+    score += place.foodOrientation >= 2
+      ? 30
+      : place.foodOrientation === 1
+        ? 20
+        : place.foodOrientation === 0
+          ? 0
+          : place.foodOrientation === -1
+            ? -15
+            : -30;
   }
   if (place.status === "premium") score += 10;
   if (place.status === "archived") score -= 100;

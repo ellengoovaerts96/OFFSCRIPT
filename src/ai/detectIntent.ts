@@ -9,7 +9,7 @@ export function detectIntent(message: string): UserIntent | undefined {
     " "
   );
 
-  if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|eten|ontbijt|restaurant|manger|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
+  if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|thieboudienne|thiéboudienne|thiebou dienne|yassa|mafe|mafé|eten|ontbijt|restaurant|manger|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
   if (/\b(drink|bar|cocktail|bier|drinken|boire|verre|trinken|getränk)\b/.test(lower)) return "drink";
   if (/\b(culture|museum|market|art|artwork|artworks|artist|artists|craft|crafts|gallery|galerie|atelier|cultuur|kunst|kunstenaar|kunstenaars|markt|culture|marché|artiste|artistes|artisanat|artisanal|kultur|kunst|markt)\b/.test(lower)) return "culture";
   if (/\b(beach|strand|plage)\b/.test(lower)) return "beach";
