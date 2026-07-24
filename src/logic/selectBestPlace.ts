@@ -83,8 +83,15 @@ function focusCandidatesForContext(places: Place[], context: UserContext): Place
   return places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
 }
 
+export function findMatchingCandidates(places: Place[], context: UserContext): Place[] {
+  return localCandidatesForContext(
+    focusCandidatesForContext(filterCandidates(places, context), context),
+    context
+  );
+}
+
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
-  const candidates = localCandidatesForContext(focusCandidatesForContext(filterCandidates(places, context), context), context);
+  const candidates = findMatchingCandidates(places, context);
 
   const ranked = candidates
     .map((place) => ({ place, score: scorePlace(place, context) }))

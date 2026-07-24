@@ -145,7 +145,8 @@ function buildRecommendationAssumption(context: UserContext): string | undefined
 }
 
 function buildLanguagePreferenceResponse(context: UserContext): string {
-  const missingField = needsClarification(context);
+  const places = await listRecommendationPlaces(context.language);
+  const missingField = needsClarification(context, places);
 
   const acknowledgement = context.language.startsWith("nl")
     ? "Helemaal, ik antwoord vanaf nu in het Nederlands."
@@ -1015,7 +1016,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   await upsertConversationContext(userPhone, context);
 
-  const places = await listRecommendationPlaces(context.language);
   const [recommendedPlaceIds, recentOutgoingMessages] = await Promise.all([
     listRecommendedPlaceIds(userPhone),
     listRecentOutgoingMessages(userPhone)

@@ -9,7 +9,8 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     intent: "Waar ben je vandaag naar op zoek? Bijvoorbeeld eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
     subcategory: "Wat zoek je daar precies binnen?",
     vibe: "Welke vibe of subcategorie zoek je?",
-    timing: "Wanneer wil je gaan: ochtend, middag, avond of vanavond?"
+    timing: "Wanneer wil je gaan: ochtend, middag, avond of vanavond?",
+    budget: "Welk budget past het best: budgetvriendelijk, gemiddeld, chic of luxe?"
   },
   fr: {
     location: "Tu es où maintenant, ou un taxi peut t’emmener n’importe où à Dakar ?",
@@ -18,7 +19,8 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     intent: "Qu’est-ce que tu cherches aujourd’hui ? Par exemple manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
     subcategory: "Qu’est-ce que tu cherches exactement dans cette catégorie ?",
     vibe: "Tu cherches quelle ambiance ou sous-catégorie ?",
-    timing: "Tu veux y aller quand : matin, après-midi, soir ou ce soir ?"
+    timing: "Tu veux y aller quand : matin, après-midi, soir ou ce soir ?",
+    budget: "Quel budget te convient le mieux : abordable, moyen, chic ou luxe ?"
   },
   de: {
     location: "Wo bist du gerade, oder kann dich ein Taxi überall in Dakar hinbringen?",
@@ -27,7 +29,8 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     intent: "Was suchst du heute? Zum Beispiel Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
     subcategory: "Was suchst du innerhalb dieser Kategorie genau?",
     vibe: "Welche Stimmung oder Unterkategorie suchst du?",
-    timing: "Wann möchtest du gehen: morgens, nachmittags, abends oder heute Abend?"
+    timing: "Wann möchtest du gehen: morgens, nachmittags, abends oder heute Abend?",
+    budget: "Welches Budget passt am besten: günstig, mittel, gehoben oder luxuriös?"
   },
   en: {
     location: "Where are you now, or are you happy to take a taxi anywhere in Dakar?",
@@ -36,7 +39,8 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     intent: "What are you looking for today? For example food, culture, sport, beach, nature, drinks, or something else?",
     subcategory: "What exactly are you looking for within that category?",
     vibe: "What vibe or subcategory do you want?",
-    timing: "When do you want to go: morning, afternoon, evening, or tonight?"
+    timing: "When do you want to go: morning, afternoon, evening, or tonight?",
+    budget: "What budget suits you best: affordable, mid-range, upscale, or luxury?"
   }
 };
 
@@ -115,7 +119,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
     if (intent === "shopping") return "Waar ben je precies naar op zoek of wat wil je kopen? Bijvoorbeeld vis, kunstwerken, handtassen, juwelen, houtwerk of iets anders?";
     if (intent === "food" && context.requestedSubcategory === "beach") return "Wat verkies je aan het strand: lokaal en betaalbaar, internationaal en wat chiquer, rustig en relaxed, of eerder levendig?";
     if (intent === "sports") return "Welke sport of activiteit wil je precies doen: fitness, surfen, yoga, lopen, zwemmen of iets anders?";
-    if (intent === "food") return "Welke stijl zoek je: snel en informeel, lokaal en betaalbaar, internationaal en wat chiquer, rustig, levendig of romantisch?";
+    if (intent === "food") return questions.nl.budget;
     if (intent === "drink" || intent === "nightlife") return "Welke vibe zoek je: rustig, lokaal, levendig, romantisch, sunset of iets anders?";
     return "Welke vibe of subcategorie zoek je: lokaal, rustig, levendig, romantisch, beach of iets anders?";
   }
@@ -126,7 +130,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
     if (intent === "shopping") return "Qu’est-ce qui t’intéresse exactement ou qu’est-ce que tu veux acheter ? Par exemple du poisson, des œuvres d’art, des sacs à main, des bijoux, des objets en bois ou autre chose ?";
     if (intent === "food" && context.requestedSubcategory === "beach") return "Tu préfères quoi pour manger à la plage : local et abordable, international et plus chic, calme et relax, ou plutôt animé ?";
     if (intent === "sports") return "Quel sport ou quelle activité veux-tu faire exactement : fitness, surf, yoga, course à pied, natation ou autre chose ?";
-    if (intent === "food") return "Quel style tu cherches : rapide et décontracté, local et abordable, international et plus chic, calme, animé ou romantique ?";
+    if (intent === "food") return questions.fr.budget;
     if (intent === "drink" || intent === "nightlife") return "Quelle ambiance tu cherches : calme, locale, animée, romantique, sunset ou autre chose ?";
     return "Quelle ambiance ou sous-catégorie tu cherches : local, calme, animé, romantique, beach ou autre chose ?";
   }
@@ -137,7 +141,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
     if (intent === "shopping") return "Was interessiert dich genau oder was möchtest du kaufen? Zum Beispiel Fisch, Kunstwerke, Handtaschen, Schmuck, Holzarbeiten oder etwas anderes?";
     if (intent === "food" && context.requestedSubcategory === "beach") return "Was bevorzugst du beim Essen am Strand: lokal und günstig, international und etwas gehobener, ruhig und entspannt oder eher lebendig?";
     if (intent === "sports") return "Welche Sportart oder Aktivität möchtest du genau machen: Fitness, Surfen, Yoga, Laufen, Schwimmen oder etwas anderes?";
-    if (intent === "food") return "Welchen Stil suchst du: schnell und locker, lokal und günstig, international und etwas gehobener, ruhig, lebendig oder romantisch?";
+    if (intent === "food") return questions.de.budget;
     if (intent === "drink" || intent === "nightlife") return "Welche Stimmung suchst du: ruhig, lokal, lebendig, romantisch, Sunset oder etwas anderes?";
     return "Welche Stimmung oder Unterkategorie suchst du: lokal, ruhig, lebendig, romantisch, Beach oder etwas anderes?";
   }
@@ -147,7 +151,7 @@ function buildVibeQuestion(language: "nl" | "fr" | "de" | "en", context: UserCon
   if (intent === "shopping") return "What exactly are you interested in or looking to buy? For example fish, artworks, handbags, jewellery, woodwork, or something else?";
   if (intent === "food" && context.requestedSubcategory === "beach") return "What do you prefer for eating at the beach: local and affordable, international and more upscale, calm and relaxed, or lively?";
   if (intent === "sports") return "Which sport or activity do you specifically want to do: fitness, surfing, yoga, running, swimming, or something else?";
-  if (intent === "food") return "What style do you want: quick and casual, local and affordable, international and more upscale, calm, lively, or romantic?";
+  if (intent === "food") return questions.en.budget;
   if (intent === "drink" || intent === "nightlife") return "What vibe do you want: calm, local, lively, romantic, sunset or something else?";
   return "What vibe or subcategory do you want: local, calm, lively, romantic, beach or something else?";
 }

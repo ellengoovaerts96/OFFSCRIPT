@@ -1,12 +1,14 @@
 import type { UserContext } from "../types/userContext.js";
+import type { Place } from "../types/place.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 import {
   isSpecificDirectRequest,
   MAX_CLARIFICATION_QUESTIONS,
   recommendationReadiness
 } from "./recommendationReadiness.js";
+import { findMatchingCandidates } from "./selectBestPlace.js";
 
-export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing";
+export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing" | "budget";
 
 const VIBE_RELEVANT_INTENTS = new Set([
   "food",
@@ -90,23 +92,28 @@ function needsSubcategory(context: UserContext): boolean {
   );
 }
 
-export function needsClarification(context: UserContext): MissingContextField | null {
+export function needsClarification(context: UserContext, places?: Place[]): MissingContextField | null {
   // Start with what the person actually wants. Audience and logistics only
   // become useful after the request itself is understood.
   if (!context.intent || context.intent === "unknown") return "intent";
 
-  if (isSpecificDirectRequest(context)) return null;
   if ((context.clarificationCount ?? 0) >= MAX_CLARIFICATION_QUESTIONS) return null;
 
   if (needsSubcategory(context)) return "subcategory";
 
-  if (
-    context.intent === "food" &&
-    context.requestedSubcategory === "pizza" &&
-    !context.vibe &&
-    !context.requestedStyle &&
-    !context.budget
-  ) return "vibe";
+  if (places) {
+    const candidates = findMatchingCandidates(places, context);
+
+    // One clear database match needs no logistical questionnaire. With several
+    // valid choices, location and price are useful discriminators. With none,
+    // proceed to the normal no-match response instead of asking irrelevant
+    // preference questions.
+    if (candidates.length <= 1) return null;
+    if (!hasSpecificLocation(context)) return "location";
+    if (!context.budget) return "budget";
+  }
+
+  if (isSpecificDirectRequest(context)) return null;
 
   const readiness = recommendationReadiness(context);
   if (readiness.ready) return null;
@@ -119,7 +126,7 @@ export function needsClarification(context: UserContext): MissingContextField | 
   }
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
   if (!hasSpecificLocation(context)) return "location";
-  if (needsVibeForBroadIntent(context)) return "vibe";
+  if (!places && needsVibeForBroadIntent(context)) return "vibe";
   if (
     (!context.timing || context.timing === "unknown") &&
     !context.vibe &&

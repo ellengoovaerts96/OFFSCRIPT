@@ -102,6 +102,47 @@ const semanticTestPlace = {
   subcategories: [{ id: "pizza", name: "Pizza", displayOrder: 1, images: [] }],
   bestFor: [], vibeTags: [], audienceTags: ["tourists"], priceLevel: 4, childFriendly: true
 } as unknown as Place;
+const japaneseContext: UserContext = {
+  language: "en",
+  intent: "food",
+  requestedSubcategory: "japanese",
+  clarificationCount: 0
+};
+const japanesePlace = {
+  ...semanticTestPlace,
+  name: "Tokyo Yo",
+  region: "Dakar",
+  neighbourhood: "Almadies",
+  subcategories: [{ id: "japanese", name: "Japanese", displayOrder: 1, images: [] }],
+  audienceTags: [],
+  occasionTags: [],
+  travellerTypes: [],
+  amenities: [],
+  images: []
+} as unknown as Place;
+if (needsClarification(japaneseContext, [japanesePlace]) !== null) {
+  throw new Error("One clear database match must be recommended without asking for a neighbourhood.");
+}
+const secondJapanesePlace = {
+  ...japanesePlace,
+  id: "second-japanese-place",
+  name: "Second Japanese place",
+  neighbourhood: "Plateau"
+} as Place;
+if (needsClarification(japaneseContext, [japanesePlace, secondJapanesePlace]) !== "location") {
+  throw new Error("Several matches in different areas should ask for location.");
+}
+if (
+  needsClarification(
+    { ...japaneseContext, targetRegion: "Dakar", clarificationCount: 1 },
+    [japanesePlace, secondJapanesePlace]
+  ) !== "budget"
+) {
+  throw new Error("Several city-wide matches should ask for budget after mobility is known.");
+}
+if (/quick|casual|local|romantic/i.test(buildClarifyingQuestion("budget", japaneseContext))) {
+  throw new Error("The budget question must not fall back to the former broad style questionnaire.");
+}
 if (placePassesHardConstraints(semanticTestPlace, { language: "nl", intent: "food", excludedSubcategories: ["pizza"] })) {
   throw new Error("An excluded subcategory must be removed before ranking.");
 }
