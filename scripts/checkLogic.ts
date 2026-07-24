@@ -5,6 +5,8 @@ import {
   inferContextualFoodStyle,
   inferBudget,
   inferRequestedStyle,
+  inferRequestedSubcategory,
+  inferTiming,
   isLocalSenegaleseDishRequest,
   inferRequestedAmenities,
   inferTextVibe,
@@ -282,6 +284,35 @@ const beachReggaeContext: UserContext = {
 };
 if (selectBestPlace([beachReggaePlace], beachReggaeContext)?.place.name !== "La Payotte") {
   throw new Error("A reggae drink request must retain La Payotte when only the beach metadata is incomplete.");
+}
+const beachCocktailMessage = "Waar kan ik een cocktail drinken aan het strand bij sunset?";
+const beachCocktailContext: UserContext = {
+  language: "nl",
+  intent: detectIntent(beachCocktailMessage),
+  requestedSubcategory: inferRequestedSubcategory(beachCocktailMessage),
+  timing: inferTiming(beachCocktailMessage),
+  vibe: inferTextVibe(beachCocktailMessage),
+  directRequest: true
+};
+if (
+  beachCocktailContext.intent !== "drink" ||
+  beachCocktailContext.requestedSubcategory !== "beach" ||
+  beachCocktailContext.timing !== "sunset"
+) {
+  throw new Error(
+    `Cocktail beach sunset context mismatch: ${JSON.stringify(beachCocktailContext)}`
+  );
+}
+const sunsetCocktailPlace = {
+  ...beachReggaePlace,
+  name: "Sunset beach cocktails",
+  area: "Beachfront",
+  occasionTags: ["drinks", "beach_day", "sunset"],
+  vibe: "Sunset ocean view",
+  vibeTags: ["sunset"]
+} as unknown as Place;
+if (selectBestPlace([sunsetCocktailPlace], beachCocktailContext)?.place.name !== "Sunset beach cocktails") {
+  throw new Error("A cocktail-at-the-beach sunset request must produce a matching recommendation.");
 }
 const workFriendlyPlace = {
   ...beachReggaePlace,

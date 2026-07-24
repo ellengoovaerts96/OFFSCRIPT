@@ -118,9 +118,10 @@ function isKnownRegionOnly(message: string): boolean {
   return normalizeContextText(message) === normalizeContextText(knownRegion);
 }
 
-function inferTiming(message: string): string | undefined {
+export function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
+  if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "sunset";
   if (/\b(morning|breakfast|ochtend|ontbijt|matin|petit déjeuner|frühstück)\b/.test(lower)) return "morning";
   if (/\b(lunch|noon|midday|middageten|lunchpauze|dejeuner|déjeuner|mittagessen)\b/.test(lower)) return "lunch";
   if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
@@ -163,7 +164,7 @@ function isBeachLocationPreference(message: string): boolean {
   );
 }
 
-function inferRequestedSubcategory(message: string): string | undefined {
+export function inferRequestedSubcategory(message: string): string | undefined {
   const lower = normalizeContextText(message);
   if (/\b(work|working|remote work|cowork|coworking|laptop|werken|werkplek|thuiswerken|telewerken|travailler|travail|teletravail|arbeiten|arbeitsplatz)\b/.test(lower)) return "working";
   if (/\b(fitness|gym|workout|training|sportschool|salle de sport|fitnesstudio)\b/.test(lower)) return "fitness";
@@ -182,6 +183,11 @@ function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(chinese|chinees|chinois|chinesisch)\b/.test(lower)) return "chinese food";
   if (/\b(japanese|japans|japonais|japanisch)\b/.test(lower)) return "japanese food";
   if (/\b(mexican|mexicaans|mexicain|mexikanisch)\b/.test(lower)) return "mexican food";
+  // In a combined request such as "cocktails at the beach", `drink` already
+  // captures the activity. Keep the beach as the requested subcategory so it
+  // remains a hard place-selection signal instead of requiring a literal
+  // `cocktails` label in the database.
+  if (isBeachLocationPreference(message)) return "beach";
   if (/\b(cocktail|cocktails)\b/.test(lower)) return "cocktails";
   if (/\b(karaoke)\b/.test(lower)) return "karaoke";
   if (/\b(bar|bars)\b/.test(lower)) return "bar";
@@ -189,8 +195,6 @@ function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(walk|walking|hike|hiking|wandelen|promenade|marcher|randonnee|wandern)\b/.test(lower)) return "walking";
   if (/\b(excursion|tour|uitstap|ausflug)\b/.test(lower)) return "excursion";
   if (/\b(view|scenic|landscape|uitzicht|landschap|vue|paysage|aussicht|landschaft)\b/.test(lower)) return "scenic";
-
-  if (isBeachLocationPreference(message)) return "beach";
 
   if (/\b(fish|fish market|seafood market|vis|vismarkt|poisson|poissons|poissonnerie|marche aux poissons|fisch|fischmarkt)\b/.test(lower)) {
     return "fish market";
