@@ -482,6 +482,21 @@ function preferredPhoneContact(details: PlaceContactDetail[]): PlaceContactDetai
     details.find((detail) => ["tel", "telephone", "mobile"].includes(detail.type.toLowerCase()));
 }
 
+function mentionsWhatsApp(messages: Array<string | undefined>): boolean {
+  return messages.some((message) => /\bwhats\s*app\b/i.test(message ?? ""));
+}
+
+function buildWhatsAppContactLine(
+  context: UserContext,
+  details: PlaceContactDetail[]
+): string | undefined {
+  const contact = preferredPhoneContact(details);
+  if (!contact) return undefined;
+
+  if (context.language?.startsWith("fr")) return `WhatsApp : ${contact.value}`;
+  return `WhatsApp: ${contact.value}`;
+}
+
 function buildContactInfoResponse(
   context: UserContext,
   placeName: string,
@@ -1090,12 +1105,27 @@ export async function handleChatMessage(input: {
           practicalInfo: result.practicalInfo
         })
       : null;
+  const recommendationMessages = localizedRecommendation
+    ? [
+        localizedRecommendation.shortDescription,
+        localizedRecommendation.personalTip,
+        localizedRecommendation.practicalInfo
+      ]
+    : [];
+  const whatsAppContactLine =
+    result.type === "recommendation" && mentionsWhatsApp(recommendationMessages)
+      ? buildWhatsAppContactLine(
+          result.context,
+          await listPlaceContactDetails(result.placeId)
+        )
+      : undefined;
   const followUpMessages =
     result.type === "recommendation" && localizedRecommendation
       ? [
           localizedRecommendation.shortDescription,
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
+          whatsAppContactLine,
           buildRecommendationAssumption(result.context),
           result.socialUrl,
           result.googleMapsUrl
