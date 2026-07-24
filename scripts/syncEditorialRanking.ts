@@ -51,7 +51,7 @@ async function main(): Promise<void> {
         food_orientation=$8, audience_orientation=$9, audience_tags=$10, adventure_level=$11,
         occasion_tags=$12, work_friendly=$13, editorial_review_status='approved', editorial_verified_by=$14,
         editorial_review_notes=$15, editorial_verified_at=NOW(), updated_at=NOW()
-        WHERE source_row_id=$16 OR (source_row_id IS NULL AND lower(name)=lower($17))`, params);
+        WHERE source_row_id=$16 OR lower(btrim(name))=lower(btrim($17))`, params);
       if (result.rowCount !== 1) throw new Error(`Sheet row ${offset + 2} (${placeName}) matched ${result.rowCount} places; expected exactly one.`);
       approved++;
     }
