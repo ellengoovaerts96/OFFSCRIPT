@@ -17,6 +17,7 @@ const intentSchema = z.enum([
   "nature",
   "nightlife",
   "shopping",
+  "work",
   "stay",
   "guide",
   "reservation",
@@ -163,6 +164,7 @@ function isBeachLocationPreference(message: string): boolean {
 
 function inferRequestedSubcategory(message: string): string | undefined {
   const lower = normalizeContextText(message);
+  if (/\b(work|working|remote work|cowork|coworking|laptop|werken|werkplek|thuiswerken|telewerken|travailler|travail|teletravail|arbeiten|arbeitsplatz)\b/.test(lower)) return "working";
   if (/\b(fitness|gym|workout|training|sportschool|salle de sport|fitnesstudio)\b/.test(lower)) return "fitness";
   if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
   if (/\b(yoga)\b/.test(lower)) return "yoga";

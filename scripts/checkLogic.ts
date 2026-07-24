@@ -71,6 +71,9 @@ if (inferContextualBudget("bon restaurant", "pizza") !== "upscale") {
 if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
   throw new Error("A negated pizza must not override the positive drink intent.");
 }
+if (detectIntent("Waar kan ik rustig werken met de airco?") !== "work") {
+  throw new Error("A request for a quiet place to work must stay inside OFFSCRIPT scope.");
+}
 if (!rejectsRequestedSubcategory("Ik wil geen pizza, gewoon een chilled drink.", "pizza")) {
   throw new Error("An explicitly rejected pizza preference must clear the previous subcategory.");
 }
@@ -147,6 +150,26 @@ const beachReggaeContext: UserContext = {
 };
 if (selectBestPlace([beachReggaePlace], beachReggaeContext)?.place.name !== "La Payotte") {
   throw new Error("A reggae drink request must retain La Payotte when only the beach metadata is incomplete.");
+}
+const workFriendlyPlace = {
+  ...beachReggaePlace,
+  name: "Quiet workspace",
+  categories: ["food"],
+  subcategories: [{ id: "cafe", name: "Café", displayOrder: 1, images: [] }],
+  vibe: "Calm",
+  vibeTags: ["calm"],
+  occasionTags: ["working"],
+  workFriendly: true
+} as unknown as Place;
+const workContext: UserContext = {
+  language: "nl",
+  intent: "work",
+  requestedSubcategory: "working",
+  vibe: "calm",
+  directRequest: true
+};
+if (selectBestPlace([workFriendlyPlace], workContext)?.place.name !== "Quiet workspace") {
+  throw new Error("A quiet work request must select a work-friendly place.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {

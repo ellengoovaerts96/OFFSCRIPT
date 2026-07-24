@@ -9,6 +9,7 @@ export type UserIntent =
   | "nature"
   | "nightlife"
   | "shopping"
+  | "work"
   | "stay"
   | "guide"
   | "reservation"

@@ -16,6 +16,7 @@ export function detectIntent(message: string): UserIntent | undefined {
   if (/\b(sport|sports|fitness|gym|workout|training|voetbal|football|surf|surfing|surfen|surfer|yoga|tennis|running|lopen|courir)\b/.test(lower)) return "sports";
   if (/\b(nature|walk|hike|natuur|wandelen|nature|randonnée)\b/.test(lower)) return "nature";
   if (/\b(nightlife|dance|club|uitgaan|nachtleven|soirée|danser)\b/.test(lower)) return "nightlife";
+  if (/\b(work|working|remote work|cowork|coworking|laptop|werken|werkplek|thuiswerken|telewerken|travailler|travail|télétravail|teletravail|arbeiten|arbeitsplatz)\b/.test(lower)) return "work";
   if (/\b(shop|shopping|craft|crafts|artwork|artworks|buying art|winkel|winkelen|kopen|koop|kunst kopen|boutique|artisanat|artisanal|acheter de l art|acheter de l'art|handtas|handtassen|tas|tassen|sac|sacs|einkaufen|kaufen|kunst kaufen|tasche|taschen)\b/.test(lower)) return "shopping";
   if (/\b(stay|hotel|sleep|verblijven|slapen|dormir|hôtel|übernachten|schlafen)\b/.test(lower)) return "stay";
   if (/\b(guide|gids|guide local|führer|guide lokal)\b/.test(lower)) return "guide";

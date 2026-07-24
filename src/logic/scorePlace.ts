@@ -8,6 +8,7 @@ const INTENT_CATEGORY_ALIASES: Record<string, string[]> = {
   drink: ["drink", "bar", "cocktail", "cocktails", "drinks", "cafe", "café"],
   culture: ["culture", "market", "museum", "art", "artist", "artists", "artwork", "artworks", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"],
   shopping: ["shopping", "shop", "market", "buying art", "art", "artist", "artists", "artwork", "artworks", "gallery", "galerie", "atelier", "craft", "crafts", "artisanat", "artisanal"],
+  work: ["working", "work_friendly", "remote_work", "coworking", "laptop"],
   sports: ["sports", "sport", "fitness", "gym", "workout", "training", "surf", "surfing", "yoga", "running"],
   beach: ["beach", "sea", "ocean"],
   nightlife: ["nightlife", "club", "dance", "bar"]
@@ -111,6 +112,7 @@ export function placeMatchesIntent(place: Place, intent: string): boolean {
   const aliases = INTENT_CATEGORY_ALIASES[intent] ?? [intent];
 
   return (
+    (intent === "work" && place.workFriendly === true) ||
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
     place.occasionTags.some((tag) => matchesAny(tag, aliases)) ||
@@ -167,6 +169,7 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
   if (!focus) return false;
 
   const normalizedFocus = normalizeValue(focus);
+  if (normalizedFocus === "working" && place.workFriendly === true) return true;
   const aliases = VIBE_ALIASES[normalizedFocus] ?? [normalizedFocus];
   const structuredMatch = (
     textIncludesAny(place.name, aliases) ||
