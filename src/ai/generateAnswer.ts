@@ -332,6 +332,19 @@ function ensurePracticalInfo(text: string, place: Place, language: SupportedAnsw
   return `${text} ${practicalInfoLabel(language)}: ${place.practicalInfo}`;
 }
 
+function editorialExplanation(place: Place, fallback: string): string {
+  const reason = place.offscriptReason?.trim();
+  const description = place.shortDescription?.trim();
+  if (reason && description) {
+    const normalizedReason = reason.toLowerCase();
+    const normalizedDescription = description.toLowerCase();
+    if (normalizedReason.includes(normalizedDescription)) return reason;
+    if (normalizedDescription.includes(normalizedReason)) return description;
+    return `${reason} ${description}`;
+  }
+  return reason ?? description ?? fallback;
+}
+
 function fallbackAnswer(input: GenerateAnswerInput): string {
   const place = input.selectedPlace;
   const language = answerLanguage(input.context.language);
@@ -339,29 +352,33 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
 
   if (language === "nl") {
     const fit = intent ? `Deze plek past goed als je zin hebt in ${intent}.` : "Deze plek past goed bij wat je zoekt.";
+    const explanation = editorialExplanation(place, fit);
     const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
     const reservation = place.reservationNeeded ? "Ik raad aan om vooraf te reserveren." : undefined;
-    return [`Ik zou je naar ${place.name} sturen.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
+    return [`Ik zou je naar ${place.name} sturen.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "fr") {
     const fit = intent ? `Cet endroit te convient bien si tu cherches ${intent}.` : "Cet endroit correspond bien à ce que tu cherches.";
+    const explanation = editorialExplanation(place, fit);
     const practicalInfo = place.practicalInfo ? `Pratique : ${place.practicalInfo}` : undefined;
     const reservation = place.reservationNeeded ? "Je te conseille de réserver à l’avance." : undefined;
-    return [`Je t’enverrais à ${place.name}.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
+    return [`Je t’enverrais à ${place.name}.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "de") {
     const fit = intent ? `Dieser Ort passt gut, wenn du Lust auf ${intent} hast.` : "Dieser Ort passt gut zu dem, was du suchst.";
+    const explanation = editorialExplanation(place, fit);
     const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
     const reservation = place.reservationNeeded ? "Ich würde vorher reservieren." : undefined;
-    return [`Ich würde dich zu ${place.name} schicken.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
+    return [`Ich würde dich zu ${place.name} schicken.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
   }
 
   const fit = intent ? `This place is a good fit if you are looking for ${intent}.` : "This place is a good fit for what you want.";
+  const explanation = editorialExplanation(place, fit);
   const practicalInfo = place.practicalInfo ? `Practical info: ${place.practicalInfo}` : undefined;
   const reservation = place.reservationNeeded ? "I recommend booking in advance." : undefined;
-  return [`I would send you to ${place.name}.`, fit, practicalInfo, reservation].filter(Boolean).join(" ");
+  return [`I would send you to ${place.name}.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
 }
 
 export async function generateAnswer(input: GenerateAnswerInput): Promise<string> {
@@ -385,6 +402,10 @@ Use only the provided selectedPlace facts.
 You may use retrievedFacts.stories and retrievedFacts.experiences only when they directly support the answer.
 Maximum 3 short sentences.
 Include the place name, why it fits, and practicalInfo when selectedPlace.practicalInfo is available.
+When selectedPlace.offscriptReason is available, treat it as OFFSCRIPT's raw editorial rationale, not as finished copy. Combine its distinctive reason with the atmosphere and concrete context from selectedPlace.shortDescription into one fluent, conversational recommendation in the target language.
+Do not quote either field mechanically, repeat the same idea, or concatenate two separate database texts. Rewrite them into natural sentences that sound like a trusted local friend.
+The offscriptReason supplies why OFFSCRIPT cares about the place; shortDescription supplies what the visit feels like and why it fits the user. Preserve only supported facts.
+The offscriptReason explains the recommendation but never overrides a mismatch with the user's request, exclusions, location or safety needs.
 Add at most one extra useful tip beyond practicalInfo.
 Do not include a Google Maps link.
 Only include a URL if it comes from retrievedFacts.stories or retrievedFacts.experiences and is directly relevant.

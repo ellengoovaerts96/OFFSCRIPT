@@ -9,7 +9,7 @@ const STRUCTURED_SHEET = "Structured Import";
 const dryRun = process.argv.includes("--dry-run");
 
 const headers = [
-  "source_note_id", "source_timestamp", "researcher", "place_name", "entry_type",
+  "source_note_id", "source_timestamp", "visit_date", "researcher", "place_name", "entry_type",
   "country", "region", "neighbourhood", "area", "categories", "subcategories",
   "short_description_en", "short_description_fr", "practical_info_en", "practical_info_fr",
   "personal_tip_en", "personal_tip_fr", "story_en", "story_fr", "vibe",
@@ -46,7 +46,7 @@ const structuredNoteSchema = z.object({
   audience_orientation: z.number().int().min(-2).max(2).nullable(),
   adventure_level: z.number().int().min(0).max(3).nullable(),
   price_level: z.number().int().min(1).max(5).nullable(),
-  traveller_types: z.array(z.string()), child_friendly: z.boolean().nullable(), work_friendly: z.boolean().nullable(),
+  traveller_types: z.array(z.enum(["solo", "couple", "friends", "family"])), child_friendly: z.boolean().nullable(), work_friendly: z.boolean().nullable(),
   best_timing: z.array(z.string()), opening_hours: nullableText, contact_person: nullableText, phone: nullableText,
   facebook_url: nullableText, instagram_url: nullableText, tiktok_url: nullableText, google_maps_url: nullableText,
   transport: nullableText, safety_notes: nullableText,
@@ -102,9 +102,9 @@ function leadingInteger(value: unknown, min: number, max: number): number | null
   return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : null;
 }
 
-function structuredRow(sourceId: string, timestamp: string, researcher: string, note: StructuredNote): Cell[] {
+function structuredRow(sourceId: string, timestamp: string, visitDate: string, researcher: string, note: StructuredNote): Cell[] {
   const values: Record<(typeof headers)[number], Cell> = {
-    source_note_id: sourceId, source_timestamp: timestamp, researcher,
+    source_note_id: sourceId, source_timestamp: timestamp, visit_date: visitDate, researcher,
     place_name: cell(note.place_name), entry_type: note.entry_type, country: cell(note.country), region: cell(note.region),
     neighbourhood: cell(note.neighbourhood), area: cell(note.area), categories: list(note.categories), subcategories: list(note.subcategories),
     short_description_en: cell(note.short_description_en), short_description_fr: cell(note.short_description_fr),
@@ -153,6 +153,9 @@ Rules:
 - Example: Dakar must be region, Ngor must be neighbourhood and Almadies plage must be area.
 - Normalize tags to lowercase snake_case English.
 - For audience_tags, always use "residents" instead of "locals" and use "expats" for all expats; never distinguish African from international expats.
+- audience_orientation is only the numeric resident-to-visitor orientation from -2 to 2; it never contains tags.
+- audience_tags describes the people commonly observed at the place, such as residents, expats or tourists.
+- traveller_types describes who the recommendation is suitable for and may contain only solo, couple, friends or family. Never put residents, expats or tourists in traveller_types.
 - categories and subcategories must describe the place, not incidental words.
 - Every restaurant, cafe, or restaurant-cafe uses the single category "food_and_drink". Never use "restaurant" or "cafe" as a category or subcategory.
 - Within food_and_drink, use "bar" when the source supports drinks, bar or cafe service, and use "lunch" and/or "dinner" when the source note or verified opening hours support those meal periods.
@@ -188,6 +191,7 @@ async function main(): Promise<void> {
   const timestampIndex = findColumn(fieldHeaders, ["timestamp", "horodateur"]);
   const draftIndex = findColumn(fieldHeaders, ["note de terrain", "draft"]);
   const researcherIndex = findColumn(fieldHeaders, ["nom de la personne qui fait la recherche", "researcher"]);
+  const visitDateIndex = findColumn(fieldHeaders, ["date de la visite", "visit_date", "visit date", "date visited"]);
   const statusIndex = findColumn(fieldHeaders, ["status", "statut"]);
   if ([timestampIndex, draftIndex, statusIndex].some((index) => index < 0)) throw new Error("Field Notes must contain timestamp, Note de terrain, and status.");
 
@@ -208,7 +212,7 @@ async function main(): Promise<void> {
       await sheets.spreadsheets.values.clear({ spreadsheetId, range: range(STRUCTURED_SHEET, "A:ZZ") });
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: range(STRUCTURED_SHEET, `A1:BA${reorderedRows.length + 1}`),
+        range: range(STRUCTURED_SHEET, `A1:BB${reorderedRows.length + 1}`),
         valueInputOption: "RAW",
         requestBody: { values: [[...headers], ...reorderedRows] }
       });
@@ -232,7 +236,7 @@ async function main(): Promise<void> {
     note.price_level = leadingInteger(source["niveau de prix"], 1, 5) ?? note.price_level;
     console.log(`${dryRun ? "Would process" : "Processing"} ${sourceId}: ${note.place_name ?? "unnamed note"} (${note.confidence})`);
     if (!dryRun) {
-      await sheets.spreadsheets.values.append({ spreadsheetId, range: range(STRUCTURED_SHEET, "A:BA"), valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [structuredRow(sourceId, timestamp, String(row[researcherIndex] ?? ""), note)] } });
+      await sheets.spreadsheets.values.append({ spreadsheetId, range: range(STRUCTURED_SHEET, "A:BB"), valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [structuredRow(sourceId, timestamp, visitDateIndex >= 0 ? String(row[visitDateIndex] ?? "") : "", String(row[researcherIndex] ?? ""), note)] } });
       await sheets.spreadsheets.values.update({ spreadsheetId, range: range(FIELD_NOTES_SHEET, `${String.fromCharCode(65 + statusIndex)}${sheetRow}`), valueInputOption: "RAW", requestBody: { values: [["ai_processed"]] } });
     }
     processed++;

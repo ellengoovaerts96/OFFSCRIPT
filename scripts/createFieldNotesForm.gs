@@ -19,6 +19,11 @@ function createOffscriptFieldNotesForm() {
     .setHelpText('Facultatif. Par exemple : Heidi.')
     .setRequired(false);
 
+  form.addDateItem()
+    .setTitle('Date de la visite')
+    .setHelpText('Facultatif. Indique la date à laquelle le lieu a été visité.')
+    .setRequired(false);
+
   form.addParagraphTextItem()
     .setTitle('Note de terrain')
     .setHelpText(
@@ -107,8 +112,8 @@ function createOffscriptFieldNotesForm() {
   responseSheet.setFrozenRows(1);
 
   const structured = spreadsheet.insertSheet('Structured Import');
-  structured.getRange(1, 1, 1, 10).setValues([[
-    'source_note_id', 'place_name', 'country', 'region', 'neighbourhood', 'area', 'ai_confidence',
+  structured.getRange(1, 1, 1, 11).setValues([[
+    'source_note_id', 'visit_date', 'place_name', 'country', 'region', 'neighbourhood', 'area', 'ai_confidence',
     'review_status', 'reviewed_by', 'review_notes'
   ]]);
   structured.setFrozenRows(1);
@@ -128,9 +133,12 @@ function createOffscriptFieldNotesForm() {
 }
 
 function markNewFieldNote(event) {
-  const configuredColumn = Number(
-    PropertiesService.getScriptProperties().getProperty('OFFSCRIPT_FIELD_NOTES_STATUS_COLUMN')
-  );
-  if (!event || !event.range || !configuredColumn) return;
-  event.range.getSheet().getRange(event.range.getRow(), configuredColumn).setValue('new');
+  if (!event || !event.range) return;
+  const sheet = event.range.getSheet();
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const statusColumn = headers.findIndex(value =>
+    String(value).trim().toLowerCase() === 'status'
+  ) + 1;
+  if (!statusColumn) return;
+  sheet.getRange(event.range.getRow(), statusColumn).setValue('new');
 }
