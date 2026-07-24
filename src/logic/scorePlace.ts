@@ -57,6 +57,22 @@ const BUDGET_ALIASES: Record<string, string[]> = {
   upscale: ["upscale", "luxury", "luxurious", "chic", "luxe", "haut de gamme", "exclusief", "€€€", "$$$"]
 };
 
+const OCCASION_ALIASES: Record<string, string[]> = {
+  drinks: ["drink", "drinks", "bar", "cocktail", "cocktails", "chill_drinks"],
+  lunch: ["lunch", "noon", "midday", "afternoon"],
+  dinner: ["dinner", "evening", "tonight"],
+  nightlife: ["nightlife", "night_out", "dancing", "dance"],
+  live_music: ["live_music", "live music", "concert", "music"],
+  beach_day: ["beach_day", "beach", "sea", "ocean"],
+  sunset: ["sunset", "sundowner"],
+  family_outing: ["family_outing", "family", "families", "kids", "children"],
+  date_night: ["date_night", "date", "romantic", "couple"],
+  working: ["working", "work_friendly", "remote_work", "laptop"],
+  watching_sports: ["watching_sports", "sports", "match", "football"],
+  budget_friendly: ["budget_friendly", "budget", "affordable", "cheap"],
+  local_experience: ["local_experience", "local", "authentic"]
+};
+
 const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running", "rasta_reggae"]);
 
 function normalizeValue(value: string): string {
@@ -97,6 +113,7 @@ export function placeMatchesIntent(place: Place, intent: string): boolean {
   return (
     place.categories.some((category) => matchesAny(category, aliases)) ||
     place.subcategories.some((subcategory) => textIncludesAny(subcategory.name, aliases)) ||
+    place.occasionTags.some((tag) => matchesAny(tag, aliases)) ||
     place.bestFor.some((value) => textIncludesAny(value, aliases)) ||
     textIncludesAny(place.vibe, aliases)
   );
@@ -177,6 +194,43 @@ function placeMatchesPreference(place: Place, preference: string | undefined, al
   );
 }
 
+function requestedOccasions(context: UserContext): string[] {
+  const occasions = new Set<string>();
+  const normalizedTiming = normalizeValue(context.timing ?? "");
+  const normalizedVibe = normalizeValue(context.vibe ?? "");
+  const normalizedSubcategory = normalizeValue(context.requestedSubcategory ?? "");
+
+  if (context.intent === "drink") occasions.add("drinks");
+  if (context.intent === "nightlife") occasions.add("nightlife");
+  if (context.intent === "beach") occasions.add("beach_day");
+  if (context.intent === "sports") occasions.add("watching_sports");
+  if (context.intent === "food" && ["lunch", "afternoon"].includes(normalizedTiming)) occasions.add("lunch");
+  if (context.intent === "food" && ["tonight", "evening"].includes(normalizedTiming)) occasions.add("dinner");
+  if (normalizedTiming === "sunset") occasions.add("sunset");
+  if (context.travellerType === "family" || context.hasChildren) occasions.add("family_outing");
+  if (context.travellerType === "couple" && normalizedVibe === "romantic") occasions.add("date_night");
+  if (context.budget === "affordable") occasions.add("budget_friendly");
+  if (context.requestedStyle === "local") occasions.add("local_experience");
+
+  for (const [occasion, aliases] of Object.entries(OCCASION_ALIASES)) {
+    if (
+      aliases.some((alias) => matchesAny(normalizedVibe, [alias])) ||
+      aliases.some((alias) => matchesAny(normalizedSubcategory, [alias]))
+    ) {
+      occasions.add(occasion);
+    }
+  }
+
+  return [...occasions];
+}
+
+function occasionMatchCount(place: Place, context: UserContext): number {
+  return requestedOccasions(context).filter((occasion) => {
+    const aliases = OCCASION_ALIASES[occasion] ?? [occasion];
+    return place.occasionTags.some((tag) => matchesAny(tag, aliases));
+  }).length;
+}
+
 export function isSpecificFocus(focus: string | undefined): boolean {
   return Boolean(focus && STRUCTURED_ONLY_VIBES.has(normalizeValue(focus)));
 }
@@ -202,6 +256,9 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.travellerType && place.travellerTypes.includes(context.travellerType)) score += 10;
   if (context.hasChildren === true && place.childFriendly) score += 10;
   if (context.hasChildren === true && !place.childFriendly) score -= 50;
+  // Occasion tags express why someone would go there. They refine a valid
+  // category/location match without overriding exclusions or safety filters.
+  score += Math.min(occasionMatchCount(place, context) * 15, 30);
   // Editorial judgement breaks ties after the factual intent match. A high
   // priority can never compensate for an irrelevant category or hard safety
   // mismatch because those are filtered/scored separately.
