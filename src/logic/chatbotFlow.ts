@@ -43,6 +43,7 @@ export type ChatbotFlowResult =
       placeName: string;
       googleMapsUrl: string;
       shortDescription: string;
+      offscriptReason?: string;
       personalTip?: string;
       practicalInfo?: string;
       socialUrl?: string;
@@ -1020,6 +1021,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         placeName: alternativeSelection.place.name,
         googleMapsUrl: alternativeSelection.place.googleMapsUrl,
         shortDescription: alternativeSelection.place.shortDescription,
+        offscriptReason: alternativeSelection.place.offscriptReason,
         personalTip: alternativeSelection.place.personalTip,
         practicalInfo: alternativeSelection.place.practicalInfo,
         socialUrl: preferredSocialUrl(alternativeSelection.place),
@@ -1051,6 +1053,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     placeName: selection.place.name,
     googleMapsUrl: selection.place.googleMapsUrl,
     shortDescription: selection.place.shortDescription,
+    offscriptReason: selection.place.offscriptReason,
     personalTip: selection.place.personalTip,
     practicalInfo: selection.place.practicalInfo,
     socialUrl: preferredSocialUrl(selection.place),
@@ -1082,6 +1085,7 @@ export async function handleChatMessage(input: {
       ? await localizeRecommendationText({
           language: result.context.language,
           shortDescription: result.shortDescription,
+          offscriptReason: result.offscriptReason,
           personalTip: result.personalTip,
           practicalInfo: result.practicalInfo
         })

@@ -22,6 +22,7 @@ const LOCALIZATION_TIMEOUT_MS = 6000;
 export type LocalizeRecommendationTextInput = {
   language: string;
   shortDescription: string;
+  offscriptReason?: string;
   personalTip?: string;
   practicalInfo?: string;
 };
@@ -62,7 +63,7 @@ function fallbackRecommendationText(
 ): LocalizedRecommendationText {
   if (language === "en" || language === "fr") {
     return {
-      shortDescription: input.shortDescription,
+      shortDescription: [input.offscriptReason, input.shortDescription].filter(Boolean).join(" "),
       personalTip: input.personalTip,
       practicalInfo: input.practicalInfo
     };
@@ -76,7 +77,7 @@ export async function localizeRecommendationText(
 ): Promise<LocalizedRecommendationText> {
   const language = recommendationLanguage(input.language);
 
-  if (language === "en" || language === "fr" || !hasOpenAIKey()) {
+  if (!hasOpenAIKey()) {
     return fallbackRecommendationText(language, input);
   }
 
@@ -84,16 +85,21 @@ export async function localizeRecommendationText(
     const client = getOpenAIClient();
     const response = await withTimeout(client.responses.parse({
       model: openaiModel,
-      instructions: `Translate the provided OFFSCRIPT recommendation fields to ${languageNames[language]}.
+      instructions: `Write the provided OFFSCRIPT recommendation fields in ${languageNames[language]}.
 Rules:
-- Translate only the text values.
+- Combine offscriptReason and shortDescription into one fluent, concise recommendation in a trusted local-friend voice.
+- offscriptReason explains why OFFSCRIPT cares about the place; shortDescription supplies atmosphere and concrete context.
+- Do not concatenate the two fields mechanically, repeat the same idea, or use travel-guide and brochure language.
+- Translate when the source differs from the target language.
 - Keep place names, URLs, prices, times, phone numbers and proper nouns unchanged.
 - Preserve bullet structure, line breaks, emojis and punctuation where possible.
 - Do not add labels such as "Practical info" or "Praktisch".
+- Preserve personalTip as a separate field and never replace it with a generic AI tip.
 - Do not add new information and do not remove details.
 - Return empty or missing fields as empty/null.`,
       input: JSON.stringify({
         shortDescription: input.shortDescription,
+        offscriptReason: input.offscriptReason ?? null,
         personalTip: input.personalTip ?? null,
         practicalInfo: input.practicalInfo ?? null
       }),

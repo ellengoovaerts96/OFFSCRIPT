@@ -322,6 +322,13 @@ function practicalInfoLabel(language: SupportedAnswerLanguage): string {
   return "Practical info";
 }
 
+function personalTipLabel(language: SupportedAnswerLanguage): string {
+  if (language === "nl") return "Mijn tip";
+  if (language === "fr") return "Mon conseil";
+  if (language === "de") return "Mein Tipp";
+  return "My tip";
+}
+
 function ensurePracticalInfo(text: string, place: Place, language: SupportedAnswerLanguage): string {
   if (!place.practicalInfo) return text;
 
@@ -330,6 +337,12 @@ function ensurePracticalInfo(text: string, place: Place, language: SupportedAnsw
   if (normalizedText.includes(normalizedPracticalInfo)) return text;
 
   return `${text} ${practicalInfoLabel(language)}: ${place.practicalInfo}`;
+}
+
+function ensurePersonalTip(text: string, place: Place, language: SupportedAnswerLanguage): string {
+  if (!place.personalTip) return text;
+  if (text.toLowerCase().includes(place.personalTip.toLowerCase())) return text;
+  return `${text} ${personalTipLabel(language)}: ${place.personalTip}`;
 }
 
 function editorialExplanation(place: Place, fallback: string): string {
@@ -354,31 +367,35 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
     const fit = intent ? `Deze plek past goed als je zin hebt in ${intent}.` : "Deze plek past goed bij wat je zoekt.";
     const explanation = editorialExplanation(place, fit);
     const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
+    const personalTip = place.personalTip ? `Mijn tip: ${place.personalTip}` : undefined;
     const reservation = place.reservationNeeded ? "Ik raad aan om vooraf te reserveren." : undefined;
-    return [`Ik zou je naar ${place.name} sturen.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
+    return [`Ik zou je naar ${place.name} sturen.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "fr") {
     const fit = intent ? `Cet endroit te convient bien si tu cherches ${intent}.` : "Cet endroit correspond bien à ce que tu cherches.";
     const explanation = editorialExplanation(place, fit);
     const practicalInfo = place.practicalInfo ? `Pratique : ${place.practicalInfo}` : undefined;
+    const personalTip = place.personalTip ? `Mon conseil : ${place.personalTip}` : undefined;
     const reservation = place.reservationNeeded ? "Je te conseille de réserver à l’avance." : undefined;
-    return [`Je t’enverrais à ${place.name}.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
+    return [`Je t’enverrais à ${place.name}.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "de") {
     const fit = intent ? `Dieser Ort passt gut, wenn du Lust auf ${intent} hast.` : "Dieser Ort passt gut zu dem, was du suchst.";
     const explanation = editorialExplanation(place, fit);
     const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
+    const personalTip = place.personalTip ? `Mein Tipp: ${place.personalTip}` : undefined;
     const reservation = place.reservationNeeded ? "Ich würde vorher reservieren." : undefined;
-    return [`Ich würde dich zu ${place.name} schicken.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
+    return [`Ich würde dich zu ${place.name} schicken.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
   }
 
   const fit = intent ? `This place is a good fit if you are looking for ${intent}.` : "This place is a good fit for what you want.";
   const explanation = editorialExplanation(place, fit);
   const practicalInfo = place.practicalInfo ? `Practical info: ${place.practicalInfo}` : undefined;
+  const personalTip = place.personalTip ? `My tip: ${place.personalTip}` : undefined;
   const reservation = place.reservationNeeded ? "I recommend booking in advance." : undefined;
-  return [`I would send you to ${place.name}.`, explanation, practicalInfo, reservation].filter(Boolean).join(" ");
+  return [`I would send you to ${place.name}.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
 }
 
 export async function generateAnswer(input: GenerateAnswerInput): Promise<string> {
@@ -400,13 +417,13 @@ Write one warm, concise WhatsApp recommendation.
 Do not start with or include "Na nga def?". That greeting is only for the first bot message in a WhatsApp conversation.
 Use only the provided selectedPlace facts.
 You may use retrievedFacts.stories and retrievedFacts.experiences only when they directly support the answer.
-Maximum 3 short sentences.
+Keep the recommendation concise; use at most four short sections when both practicalInfo and personalTip are available.
 Include the place name, why it fits, and practicalInfo when selectedPlace.practicalInfo is available.
 When selectedPlace.offscriptReason is available, treat it as OFFSCRIPT's raw editorial rationale, not as finished copy. Combine its distinctive reason with the atmosphere and concrete context from selectedPlace.shortDescription into one fluent, conversational recommendation in the target language.
 Do not quote either field mechanically, repeat the same idea, or concatenate two separate database texts. Rewrite them into natural sentences that sound like a trusted local friend.
 The offscriptReason supplies why OFFSCRIPT cares about the place; shortDescription supplies what the visit feels like and why it fits the user. Preserve only supported facts.
 The offscriptReason explains the recommendation but never overrides a mismatch with the user's request, exclusions, location or safety needs.
-Add at most one extra useful tip beyond practicalInfo.
+When selectedPlace.personalTip is available, always finish with that exact tip introduced naturally as "My tip", "Mon conseil", "Mijn tip" or the equivalent in the target language. Do not replace it with a generic AI tip.
 Do not include a Google Maps link.
 Only include a URL if it comes from retrievedFacts.stories or retrievedFacts.experiences and is directly relevant.
 Omit missing facts. Do not invent anything.`,
@@ -418,8 +435,12 @@ Omit missing facts. Do not invent anything.`,
     })
   });
 
-  const answer = ensurePracticalInfo(
-    removeWolofGreeting(normaliseEnglishVariant(response.output_text.trim(), language)),
+  const answer = ensurePersonalTip(
+    ensurePracticalInfo(
+      removeWolofGreeting(normaliseEnglishVariant(response.output_text.trim(), language)),
+      input.selectedPlace,
+      language
+    ),
     input.selectedPlace,
     language
   );
