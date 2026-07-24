@@ -239,13 +239,21 @@ export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
 
   const targetRegion = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const matchesRequestedFocus = Boolean(
+    context.requestedSubcategory &&
+    placeMatchesSpecificFocus(place, context.requestedSubcategory)
+  );
 
   if (placeMatchesLocation(place, targetRegion)) score += 40;
-  if (context.intent && context.intent !== "unknown" && placeMatchesIntent(place, context.intent)) {
+  if (
+    context.intent &&
+    context.intent !== "unknown" &&
+    (placeMatchesIntent(place, context.intent) || matchesRequestedFocus)
+  ) {
     score += 30;
   }
   if (context.intent === "shopping" && placeMatchesShoppingFocus(place, context.vibe)) score += 25;
-  if (context.requestedSubcategory && placeMatchesSpecificFocus(place, context.requestedSubcategory)) score += 35;
+  if (matchesRequestedFocus) score += 35;
   if (placeMatchesPreference(place, context.requestedStyle, STYLE_ALIASES)) score += 20;
   if (placeMatchesPreference(place, context.budget, BUDGET_ALIASES)) score += 20;
   if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel <= 2 ? 20 : -10;

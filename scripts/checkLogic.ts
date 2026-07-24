@@ -9,6 +9,7 @@ import { buildClarifyingQuestion } from "../src/logic/buildClarifyingQuestion.js
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { recommendationReadiness } from "../src/logic/recommendationReadiness.js";
 import { placePassesHardConstraints, selectBestPlace } from "../src/logic/selectBestPlace.js";
+import { scorePlace } from "../src/logic/scorePlace.js";
 import type { Place } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
@@ -89,6 +90,35 @@ if (placePassesHardConstraints(semanticTestPlace, { language: "nl", intent: "foo
 }
 if (placePassesHardConstraints(semanticTestPlace, { language: "nl", intent: "food", maximumPriceLevel: 2 })) {
   throw new Error("A place above the maximum price level must be removed before ranking.");
+}
+const surfTestPlace = {
+  name: "Dakar Surf Atlantique",
+  region: "Dakar",
+  neighbourhood: "Yoff",
+  categories: ["activity"],
+  subcategories: [{ id: "surfing", name: "Surf lessons", displayOrder: 1, images: [] }],
+  bestFor: [],
+  vibeTags: [],
+  audienceTags: [],
+  occasionTags: [],
+  travellerTypes: [],
+  images: [],
+  offscriptPickLevel: 0,
+  offscriptPriority: 0,
+  childFriendly: false,
+  status: "published"
+} as unknown as Place;
+const surfContext: UserContext = {
+  language: "nl",
+  targetRegion: "Dakar",
+  intent: "sports",
+  requestedSubcategory: "surfing"
+};
+if (!placePassesHardConstraints(surfTestPlace, surfContext)) {
+  throw new Error("A specific surfing match must not be rejected because its broad category label differs.");
+}
+if (scorePlace(surfTestPlace, surfContext) < 60) {
+  throw new Error("A specific surfing match must reach the recommendation threshold.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {

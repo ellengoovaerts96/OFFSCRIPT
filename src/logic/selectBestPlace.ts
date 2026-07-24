@@ -23,7 +23,13 @@ function shouldRequireIntentMatch(context: UserContext): boolean {
 function candidateMatchesContextIntent(place: Place, context: UserContext): boolean {
   if (!shouldRequireIntentMatch(context)) return true;
 
-  return placeMatchesIntent(place, context.intent as string);
+  return (
+    placeMatchesIntent(place, context.intent as string) ||
+    Boolean(
+      context.requestedSubcategory &&
+      placeMatchesSpecificFocus(place, context.requestedSubcategory)
+    )
+  );
 }
 
 export function placePassesHardConstraints(place: Place, context: UserContext): boolean {
