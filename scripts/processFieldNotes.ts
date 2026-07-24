@@ -68,6 +68,16 @@ function normalize(value: unknown): string {
   return String(value ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 function range(sheet: string, cells: string): string { return `'${sheet.replaceAll("'", "''")}'!${cells}`; }
+function columnName(columnCount: number): string {
+  let value = columnCount;
+  let name = "";
+  while (value > 0) {
+    value -= 1;
+    name = String.fromCharCode(65 + (value % 26)) + name;
+    value = Math.floor(value / 26);
+  }
+  return name;
+}
 function findColumn(sourceHeaders: string[], aliases: string[]): number {
   return sourceHeaders.findIndex((header) => aliases.includes(normalize(header)));
 }
@@ -215,7 +225,7 @@ async function main(): Promise<void> {
       await sheets.spreadsheets.values.clear({ spreadsheetId, range: range(STRUCTURED_SHEET, "A:ZZ") });
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: range(STRUCTURED_SHEET, `A1:BB${reorderedRows.length + 1}`),
+        range: range(STRUCTURED_SHEET, `A1:${columnName(headers.length)}${reorderedRows.length + 1}`),
         valueInputOption: "RAW",
         requestBody: { values: [[...headers], ...reorderedRows] }
       });
@@ -245,7 +255,7 @@ async function main(): Promise<void> {
     note.price_level = leadingInteger(source["niveau de prix"], 1, 5) ?? note.price_level;
     console.log(`${dryRun ? "Would process" : "Processing"} ${sourceId}: ${note.place_name ?? "unnamed note"} (${note.confidence})`);
     if (!dryRun) {
-      await sheets.spreadsheets.values.append({ spreadsheetId, range: range(STRUCTURED_SHEET, "A:BB"), valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [structuredRow(sourceId, timestamp, visitDateIndex >= 0 ? String(row[visitDateIndex] ?? "") : "", String(row[researcherIndex] ?? ""), note)] } });
+      await sheets.spreadsheets.values.append({ spreadsheetId, range: range(STRUCTURED_SHEET, `A:${columnName(headers.length)}`), valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [structuredRow(sourceId, timestamp, visitDateIndex >= 0 ? String(row[visitDateIndex] ?? "") : "", String(row[researcherIndex] ?? ""), note)] } });
       await sheets.spreadsheets.values.update({ spreadsheetId, range: range(FIELD_NOTES_SHEET, `${String.fromCharCode(65 + statusIndex)}${sheetRow}`), valueInputOption: "RAW", requestBody: { values: [["ai_processed"]] } });
     }
     processed++;
