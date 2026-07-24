@@ -110,7 +110,10 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
     // preference questions.
     if (candidates.length <= 1) return null;
     if (!hasSpecificLocation(context)) return "location";
-    if (!context.budget) return "budget";
+    // Local Senegalese food is generally budget-friendly. Once the user has
+    // chosen a neighbourhood, another price question adds friction without
+    // materially improving the recommendation.
+    if (!context.budget && context.requestedStyle !== "local") return "budget";
   }
 
   if (isSpecificDirectRequest(context)) return null;

@@ -197,6 +197,23 @@ if (
 ) {
   throw new Error("Several city-wide matches should ask for budget after mobility is known.");
 }
+if (
+  needsClarification(
+    {
+      language: "nl",
+      targetRegion: "Yoff",
+      intent: "food",
+      requestedStyle: "local",
+      clarificationCount: 1
+    },
+    [
+      { ...japanesePlace, id: "local-food-1", name: "Local food 1", neighbourhood: "Yoff" },
+      { ...japanesePlace, id: "local-food-2", name: "Local food 2", neighbourhood: "Yoff" }
+    ]
+  ) !== null
+) {
+  throw new Error("Local food must be recommended after the neighbourhood is known, without a budget question.");
+}
 if (/quick|casual|local|romantic/i.test(buildClarifyingQuestion("budget", japaneseContext))) {
   throw new Error("The budget question must not fall back to the former broad style questionnaire.");
 }
