@@ -1,4 +1,11 @@
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
+import { hydrateSearchProfile } from "../src/logic/searchProfileCompatibility.js";
+import {
+  compatibleAmenities,
+  compatibleAudienceTags,
+  compatibleCategories,
+  compatibleTravellerTypes
+} from "../src/logic/placeCompatibility.js";
 import type { UserContext } from "../src/types/userContext.js";
 
 function profile(message: string, context: Omit<UserContext, "language">) {
@@ -133,6 +140,85 @@ if (
   !separatedSignals.exclusions.audienceTags.includes("tourists")
 ) {
   throw new Error(`Independent signal mismatch: ${JSON.stringify(separatedSignals)}`);
+}
+
+const legacyContext: UserContext = {
+  language: "fr",
+  intent: "food",
+  targetRegion: "Yoff",
+  requestedSubcategory: "pizza",
+  requestedStyle: "international",
+  requestedAmenities: ["wifi"],
+  vibe: "calm",
+  excludedSubcategories: ["seafood"],
+  clarificationCount: 2
+};
+const hydratedLegacyConversation = hydrateSearchProfile(undefined, legacyContext);
+if (
+  hydratedLegacyConversation.activity !== "eat" ||
+  !hydratedLegacyConversation.products.includes("pizza") ||
+  hydratedLegacyConversation.neighbourhood !== "Yoff" ||
+  !hydratedLegacyConversation.vibes.includes("calm") ||
+  !hydratedLegacyConversation.amenities.includes("wifi") ||
+  !hydratedLegacyConversation.exclusions.products.includes("seafood")
+) {
+  throw new Error(
+    `Legacy conversation hydration mismatch: ${JSON.stringify(hydratedLegacyConversation)}`
+  );
+}
+
+const partialLegacyProfile = hydrateSearchProfile(
+  {
+    activity: "food",
+    products: "pizza",
+    exclusions: { products: ["seafood"] }
+  },
+  { language: "nl" }
+);
+if (
+  partialLegacyProfile.activity !== "eat" ||
+  !partialLegacyProfile.products.includes("pizza") ||
+  !partialLegacyProfile.exclusions.products.includes("seafood") ||
+  partialLegacyProfile.occasions.length !== 0 ||
+  partialLegacyProfile.exclusions.categories.length !== 0
+) {
+  throw new Error(`Partial profile compatibility mismatch: ${JSON.stringify(partialLegacyProfile)}`);
+}
+
+const legacyCategories = compatibleCategories(["Food and Drink", "Sport"]);
+if (!legacyCategories.includes("food") || !legacyCategories.includes("bar") || !legacyCategories.includes("sports")) {
+  throw new Error(`Legacy category compatibility mismatch: ${JSON.stringify(legacyCategories)}`);
+}
+const legacyAudience = compatibleAudienceTags([
+  "locals",
+  "African expats",
+  "international_expats",
+  "tourists"
+]);
+if (
+  legacyAudience.join(",") !== "residents,expats,tourists"
+) {
+  throw new Error(`Legacy audience compatibility mismatch: ${JSON.stringify(legacyAudience)}`);
+}
+const legacyTravellers = compatibleTravellerTypes([
+  "Solo traveller",
+  "Couples",
+  "residents",
+  "Families"
+]);
+if (legacyTravellers.join(",") !== "solo,couple,family") {
+  throw new Error(`Legacy traveller compatibility mismatch: ${JSON.stringify(legacyTravellers)}`);
+}
+const legacyAmenities = compatibleAmenities([], [
+  "Quiet tables inside, with air conditioning, Wi-Fi and power outlets."
+]);
+if (
+  !legacyAmenities.includes("air_conditioning") ||
+  !legacyAmenities.includes("wifi") ||
+  !legacyAmenities.includes("power_outlets") ||
+  !legacyAmenities.includes("indoor_seating")
+) {
+  throw new Error(`Legacy amenity compatibility mismatch: ${JSON.stringify(legacyAmenities)}`);
 }
 
 console.log("SearchProfile checks passed.");

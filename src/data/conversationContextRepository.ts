@@ -1,6 +1,7 @@
 import { pool } from "../integrations/postgres.js";
 import type { UserContext, UserIntent, TravellerType } from "../types/userContext.js";
 import type { SearchProfile } from "../types/searchProfile.js";
+import { hydrateSearchProfile } from "../logic/searchProfileCompatibility.js";
 
 type ConversationContextRow = {
   language: string | null;
@@ -28,7 +29,7 @@ type ConversationContextRow = {
 };
 
 function mapContext(row: ConversationContextRow): UserContext {
-  return {
+  const context: UserContext = {
     language: row.language ?? "fr",
     currentLocation: row.current_location ?? undefined,
     targetRegion: row.target_region ?? undefined,
@@ -49,8 +50,11 @@ function mapContext(row: ConversationContextRow): UserContext {
     maximumPriceLevel: row.maximum_price_level ?? undefined,
     alcoholAllowed: row.alcohol_allowed ?? undefined,
     safetyConcern: row.safety_concern ?? undefined,
-    clarificationCount: row.clarification_count ?? 0,
-    searchProfile: row.search_profile ?? undefined
+    clarificationCount: row.clarification_count ?? 0
+  };
+  return {
+    ...context,
+    searchProfile: hydrateSearchProfile(row.search_profile, context)
   };
 }
 

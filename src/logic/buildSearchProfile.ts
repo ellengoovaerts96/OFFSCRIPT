@@ -1,6 +1,7 @@
 import type { SearchActivity, SearchProfile } from "../types/searchProfile.js";
 import type { UserContext, UserIntent } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
+import { hydrateSearchProfile } from "./searchProfileCompatibility.js";
 
 type SignalPattern = [value: string, pattern: RegExp];
 
@@ -230,6 +231,7 @@ export function buildSearchProfile(
   previousProfile: SearchProfile | null | undefined = context.searchProfile,
   semanticSignals?: Partial<SearchProfileSignals> | null
 ): SearchProfile {
+  const compatiblePreviousProfile = hydrateSearchProfile(previousProfile, context);
   const deterministicSignals = recognizeSearchProfileSignals(message, context);
   const signals: SearchProfileSignals = {
     activity: semanticSignals?.activity ?? deterministicSignals.activity,
@@ -261,32 +263,32 @@ export function buildSearchProfile(
   };
   const changedActivity =
     hasExplicitActivity(message) &&
-    previousProfile?.activity !== undefined &&
-    signals.activity !== previousProfile.activity;
-  const baseProducts = changedActivity ? [] : previousProfile?.products ?? [];
-  const baseLocationFeatures = changedActivity ? [] : previousProfile?.locationFeatures ?? [];
-  const baseOccasions = changedActivity ? [] : previousProfile?.occasions ?? [];
-  const baseVibes = changedActivity ? [] : previousProfile?.vibes ?? [];
+    compatiblePreviousProfile.activity !== undefined &&
+    signals.activity !== compatiblePreviousProfile.activity;
+  const baseProducts = changedActivity ? [] : compatiblePreviousProfile.products;
+  const baseLocationFeatures = changedActivity ? [] : compatiblePreviousProfile.locationFeatures;
+  const baseOccasions = changedActivity ? [] : compatiblePreviousProfile.occasions;
+  const baseVibes = changedActivity ? [] : compatiblePreviousProfile.vibes;
   const exclusions = {
-    products: mergeUnique(previousProfile?.exclusions.products ?? [], signals.exclusions.products),
-    categories: mergeUnique(previousProfile?.exclusions.categories ?? [], signals.exclusions.categories),
-    audienceTags: mergeUnique(previousProfile?.exclusions.audienceTags ?? [], signals.exclusions.audienceTags),
-    dietary: mergeUnique(previousProfile?.exclusions.dietary ?? [], signals.exclusions.dietary)
+    products: mergeUnique(compatiblePreviousProfile.exclusions.products, signals.exclusions.products),
+    categories: mergeUnique(compatiblePreviousProfile.exclusions.categories, signals.exclusions.categories),
+    audienceTags: mergeUnique(compatiblePreviousProfile.exclusions.audienceTags, signals.exclusions.audienceTags),
+    dietary: mergeUnique(compatiblePreviousProfile.exclusions.dietary, signals.exclusions.dietary)
   };
   const targetLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
   const neighbourhood =
     targetLocation && targetLocation !== "Dakar"
       ? targetLocation
-      : previousProfile?.neighbourhood;
+      : compatiblePreviousProfile.neighbourhood;
   const dietaryRequirements = unique([
-    ...(previousProfile?.dietaryRequirements ?? []),
+    ...compatiblePreviousProfile.dietaryRequirements,
     ...(["vegan", "vegetarian"].includes(normalizeText(context.requestedSubcategory ?? ""))
       ? [normalizeText(context.requestedSubcategory ?? "")]
       : [])
   ]);
 
   return {
-    activity: signals.activity ?? previousProfile?.activity,
+    activity: signals.activity ?? compatiblePreviousProfile.activity,
     products: withoutExcluded(
       mergeUnique(baseProducts, signals.products),
       [...exclusions.products, ...exclusions.dietary]
@@ -299,12 +301,12 @@ export function buildSearchProfile(
       ? "dakar_wide"
       : neighbourhood
         ? "nearby"
-        : previousProfile?.mobility,
-    budget: context.budget ?? (changedActivity ? undefined : previousProfile?.budget),
-    amenities: mergeUnique(previousProfile?.amenities ?? [], context.requestedAmenities ?? []),
+        : compatiblePreviousProfile.mobility,
+    budget: context.budget ?? (changedActivity ? undefined : compatiblePreviousProfile.budget),
+    amenities: mergeUnique(compatiblePreviousProfile.amenities, context.requestedAmenities ?? []),
     dietaryRequirements,
     exclusions,
-    travellerType: context.travellerType ?? previousProfile?.travellerType,
-    hasChildren: context.hasChildren ?? previousProfile?.hasChildren
+    travellerType: context.travellerType ?? compatiblePreviousProfile.travellerType,
+    hasChildren: context.hasChildren ?? compatiblePreviousProfile.hasChildren
   };
 }

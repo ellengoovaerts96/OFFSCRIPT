@@ -1,5 +1,11 @@
 import { pool } from "../integrations/postgres.js";
 import type { Place, PlaceAmenity, PlaceCategory, PlaceImage, PlaceSubcategory } from "../types/place.js";
+import {
+  compatibleAmenities,
+  compatibleAudienceTags,
+  compatibleCategories,
+  compatibleTravellerTypes
+} from "../logic/placeCompatibility.js";
 
 type PlaceRow = {
   id: string;
@@ -136,12 +142,18 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     authenticity: row.authenticity ?? undefined,
     foodOrientation: row.food_orientation ?? undefined,
     audienceOrientation: row.audience_orientation ?? undefined,
-    audienceTags: row.audience_tags ?? [],
+    audienceTags: compatibleAudienceTags(row.audience_tags),
     adventureLevel: row.adventure_level ?? undefined,
     occasionTags: row.occasion_tags ?? [],
-    amenities: row.amenities ?? [],
+    amenities: compatibleAmenities(row.amenities, [
+      row.practical_info,
+      row.practical_info_en,
+      row.practical_info_fr,
+      row.short_description,
+      row.vibe
+    ]),
     workFriendly: row.work_friendly ?? undefined,
-    categories: row.categories ?? [],
+    categories: compatibleCategories(row.categories),
     subcategories: mergeSubcategories(row),
     shortDescription: shortDescription ?? row.short_description,
     practicalInfo: localizedText(language, row.practical_info_en, row.practical_info_fr, row.practical_info),
@@ -150,7 +162,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     transport: row.transport ?? undefined,
     bestFor: row.best_for ?? [],
     notIdealFor: row.not_ideal_for ?? [],
-    travellerTypes: row.traveller_types ?? [],
+    travellerTypes: compatibleTravellerTypes(row.traveller_types),
     childFriendly: row.child_friendly,
     childNotes: row.child_notes ?? undefined,
     bestTiming: row.best_timing ?? [],
