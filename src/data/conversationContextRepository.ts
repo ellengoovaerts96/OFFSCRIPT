@@ -1,5 +1,6 @@
 import { pool } from "../integrations/postgres.js";
 import type { UserContext, UserIntent, TravellerType } from "../types/userContext.js";
+import type { SearchProfile } from "../types/searchProfile.js";
 
 type ConversationContextRow = {
   language: string | null;
@@ -23,6 +24,7 @@ type ConversationContextRow = {
   alcohol_allowed: boolean | null;
   safety_concern: boolean | null;
   clarification_count: number | null;
+  search_profile: SearchProfile | null;
 };
 
 function mapContext(row: ConversationContextRow): UserContext {
@@ -47,7 +49,8 @@ function mapContext(row: ConversationContextRow): UserContext {
     maximumPriceLevel: row.maximum_price_level ?? undefined,
     alcoholAllowed: row.alcohol_allowed ?? undefined,
     safetyConcern: row.safety_concern ?? undefined,
-    clarificationCount: row.clarification_count ?? 0
+    clarificationCount: row.clarification_count ?? 0,
+    searchProfile: row.search_profile ?? undefined
   };
 }
 
@@ -57,7 +60,7 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
       SELECT language, current_location, target_region, traveller_type, has_children,
              children_ages, intent, timing, budget, requested_subcategory, requested_style, requested_amenities, vibe, safety_concern,
              excluded_categories, excluded_subcategories, dietary_exclusions, avoid_audience_tags,
-             maximum_price_level, alcohol_allowed, clarification_count
+             maximum_price_level, alcohol_allowed, clarification_count, search_profile
       FROM conversation_context
       WHERE user_phone = $1
       LIMIT 1
@@ -104,9 +107,10 @@ export async function upsertConversationContext(userPhone: string, context: User
         alcohol_allowed,
         safety_concern,
         clarification_count,
+        search_profile,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb, NOW())
       ON CONFLICT (user_phone) DO UPDATE SET
         language = EXCLUDED.language,
         current_location = EXCLUDED.current_location,
@@ -129,6 +133,7 @@ export async function upsertConversationContext(userPhone: string, context: User
         alcohol_allowed = EXCLUDED.alcohol_allowed,
         safety_concern = EXCLUDED.safety_concern,
         clarification_count = EXCLUDED.clarification_count,
+        search_profile = EXCLUDED.search_profile,
         updated_at = NOW()
     `,
     [
@@ -153,7 +158,8 @@ export async function upsertConversationContext(userPhone: string, context: User
       context.maximumPriceLevel ?? null,
       context.alcoholAllowed ?? null,
       context.safetyConcern ?? null,
-      context.clarificationCount ?? 0
+      context.clarificationCount ?? 0,
+      context.searchProfile ? JSON.stringify(context.searchProfile) : null
     ]
   );
 }

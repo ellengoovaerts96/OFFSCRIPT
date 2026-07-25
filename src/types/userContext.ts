@@ -1,3 +1,5 @@
+import type { SearchProfile } from "./searchProfile.js";
+
 export type TravellerType = "solo" | "couple" | "friends" | "family" | "group" | "business" | "unknown";
 
 export type UserIntent =
@@ -38,4 +40,5 @@ export type UserContext = {
   safetyConcern?: boolean;
   directRequest?: boolean;
   clarificationCount?: number;
+  searchProfile?: SearchProfile;
 };

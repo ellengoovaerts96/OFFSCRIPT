@@ -17,6 +17,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:check": "tsx scripts/checkRepositories.ts",
     "logic:check": "tsx scripts/checkLogic.ts",
+    "search-profile:check": "tsx scripts/checkSearchProfile.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/migrate.js && node dist/server.js"

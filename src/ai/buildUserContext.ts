@@ -6,6 +6,7 @@ import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import { detectIntent } from "./detectIntent.js";
 import { resolveConversationLanguage } from "./detectLanguage.js";
 import { systemPrompt } from "./systemPrompt.js";
+import { buildSearchProfile } from "../logic/buildSearchProfile.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
 const intentSchema = z.enum([
@@ -63,6 +64,18 @@ export type BuildUserContextResult = {
   context: UserContext;
   confidence: number;
 };
+
+function withSearchProfile(
+  message: string,
+  result: BuildUserContextResult
+): BuildUserContextResult {
+  const context = {
+    ...result.context,
+    searchProfile: buildSearchProfile(message, result.context)
+  };
+
+  return { ...result, context };
+}
 
 function nullToUndefined<T>(value: T | null | undefined): T | undefined {
   return value ?? undefined;
@@ -519,7 +532,7 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
   if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
-    return fallbackBuildUserContext(input);
+    return withSearchProfile(input.message, fallbackBuildUserContext(input));
   }
 
   const client = getOpenAIClient();
@@ -565,12 +578,12 @@ Rules:
 
   const parsed = response.output_parsed;
   if (!parsed) {
-    return fallbackBuildUserContext(input);
+    return withSearchProfile(input.message, fallbackBuildUserContext(input));
   }
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
   const semanticExclusions = parsed.context.excludedSubcategories;
-  return {
+  return withSearchProfile(input.message, {
     context: {
       language: resolveConversationLanguage(
         input.message,
@@ -643,5 +656,5 @@ Rules:
       clarificationCount: input.previousContext?.clarificationCount ?? 0
     },
     confidence: parsed.confidence
-  };
+  });
 }
