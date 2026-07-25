@@ -6,7 +6,10 @@ import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import { detectIntent } from "./detectIntent.js";
 import { resolveConversationLanguage } from "./detectLanguage.js";
 import { systemPrompt } from "./systemPrompt.js";
-import { buildSearchProfile } from "../logic/buildSearchProfile.js";
+import {
+  buildSearchProfile,
+  type SearchProfileSignals
+} from "../logic/buildSearchProfile.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
 const intentSchema = z.enum([
@@ -48,8 +51,39 @@ const userContextSchema = z.object({
   safetyConcern: z.boolean().nullable()
 });
 
+const searchActivitySchema = z.enum([
+  "eat",
+  "drink",
+  "shop",
+  "surf",
+  "work",
+  "dance",
+  "visit",
+  "relax",
+  "sports",
+  "stay",
+  "guide",
+  "reservation",
+  "unknown"
+]);
+
+const searchProfileSignalsSchema = z.object({
+  activity: searchActivitySchema.nullable(),
+  products: z.array(z.string()),
+  locationFeatures: z.array(z.string()),
+  occasions: z.array(z.string()),
+  vibes: z.array(z.string()),
+  exclusions: z.object({
+    products: z.array(z.string()),
+    categories: z.array(z.string()),
+    audienceTags: z.array(z.string()),
+    dietary: z.array(z.string())
+  })
+});
+
 const buildUserContextSchema = z.object({
   context: userContextSchema,
+  searchProfileSignals: searchProfileSignalsSchema,
   confidence: z.number().min(0).max(1)
 });
 
@@ -67,11 +101,18 @@ export type BuildUserContextResult = {
 
 function withSearchProfile(
   message: string,
-  result: BuildUserContextResult
+  result: BuildUserContextResult,
+  previousContext?: UserContext | null,
+  semanticSignals?: SearchProfileSignals | null
 ): BuildUserContextResult {
   const context = {
     ...result.context,
-    searchProfile: buildSearchProfile(message, result.context)
+    searchProfile: buildSearchProfile(
+      message,
+      result.context,
+      previousContext?.searchProfile,
+      semanticSignals
+    )
   };
 
   return { ...result, context };
@@ -532,7 +573,11 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
   if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
-    return withSearchProfile(input.message, fallbackBuildUserContext(input));
+    return withSearchProfile(
+      input.message,
+      fallbackBuildUserContext(input),
+      input.previousContext
+    );
   }
 
   const client = getOpenAIClient();
@@ -564,7 +609,18 @@ Rules:
 - Normalize price preference to affordable, mid-range, upscale or luxury in budget.
 - Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.
-- Do not assume a place is child-friendly.`,
+- Do not assume a place is child-friendly.
+
+Also extract searchProfileSignals independently from the legacy context:
+- activity is what the person wants to do: eat, drink, shop, surf, work, dance, visit, relax, sports, stay, guide or reservation.
+- products are concrete food, cuisine, drinks or things sought, such as pizza, cocktails, sushi, jewellery, Thiéboudienne or seafood.
+- locationFeatures describe the kind of physical setting, such as beachfront, ocean_view, rooftop, garden or indoor. They are not neighbourhoods.
+- occasions describe the moment or purpose, such as breakfast, lunch, dinner, sunset, drinks, nightlife, working, date or family_outing.
+- vibes describe atmosphere only, such as calm, lively, romantic, rasta_reggae, local or international.
+- exclusions contain every explicitly rejected product, category, audience or dietary item.
+- Extract each dimension separately. "cocktail on the beach at sunset" means product cocktails, locationFeature beachfront and occasion sunset.
+- Negated concepts only belong in exclusions. "No pizza, just a chilled drink" means activity drink, pizza excluded, calm vibe, and pizza is not a positive product.
+- For short follow-up replies, only emit signals actually expressed or clearly selected in that reply. Previous values are merged by the application.`,
     input: JSON.stringify({
       message: input.message,
       previousContext: input.previousContext ?? null,
@@ -578,7 +634,11 @@ Rules:
 
   const parsed = response.output_parsed;
   if (!parsed) {
-    return withSearchProfile(input.message, fallbackBuildUserContext(input));
+    return withSearchProfile(
+      input.message,
+      fallbackBuildUserContext(input),
+      input.previousContext
+    );
   }
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
@@ -656,5 +716,8 @@ Rules:
       clarificationCount: input.previousContext?.clarificationCount ?? 0
     },
     confidence: parsed.confidence
+  }, input.previousContext, {
+    ...parsed.searchProfileSignals,
+    activity: nullToUndefined(parsed.searchProfileSignals.activity)
   });
 }

@@ -2,18 +2,58 @@ import type { SearchActivity, SearchProfile } from "../types/searchProfile.js";
 import type { UserContext, UserIntent } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 
-const LOCATION_SUBCATEGORIES = new Set(["beach"]);
-const ACTIVITY_SUBCATEGORIES = new Set([
-  "working",
-  "surfing",
-  "swimming",
-  "running",
-  "yoga",
-  "fitness",
-  "walking",
-  "dancing",
-  "excursion"
-]);
+type SignalPattern = [value: string, pattern: RegExp];
+
+export type SearchProfileSignals = {
+  activity?: SearchActivity;
+  products: string[];
+  locationFeatures: string[];
+  occasions: string[];
+  vibes: string[];
+  exclusions: SearchProfile["exclusions"];
+};
+
+const PRODUCT_PATTERNS: SignalPattern[] = [
+  ["pizza", /\b(pizza|pizzeria)\b/],
+  ["thiéboudienne", /\b(thieboudienne|thiebou dienne|ceebu jen|thieboudiene)\b/],
+  ["yassa", /\byassa\b/],
+  ["mafé", /\bmafe\b/],
+  ["japanese_food", /\b(japanese|japans|japonais|japanisch|sushi)\b/],
+  ["senegalese_food", /\b(senegalese food|senegalese dishes|senegalese cuisine|senegalees eten|lokale gerechten|plats senegalais|cuisine senegalaise)\b/],
+  ["seafood", /\b(seafood|fish|vis|poisson|fruits de mer)\b/],
+  ["cocktails", /\b(cocktail|cocktails)\b/],
+  ["coffee", /\b(coffee|koffie|cafe|kaffee)\b/],
+  ["jewellery", /\b(jewellery|jewelry|juwelen|sieraden|bijoux)\b/]
+];
+
+const LOCATION_FEATURE_PATTERNS: SignalPattern[] = [
+  ["beachfront", /\b(beach|strand|plage|beachfront|oceanfront|bord de mer)\b/],
+  ["ocean_view", /\b(ocean view|sea view|uitzicht op zee|vue mer|vue sur l ocean)\b/],
+  ["rooftop", /\b(rooftop|dakterras|toit terrasse|terrasse sur le toit)\b/],
+  ["garden", /\b(garden|tuin|jardin)\b/],
+  ["indoor", /\b(inside|indoor|binnen|interieur|a l interieur)\b/]
+];
+
+const OCCASION_PATTERNS: SignalPattern[] = [
+  ["breakfast", /\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/],
+  ["lunch", /\b(lunch|middageten|dejeuner|mittagessen)\b/],
+  ["dinner", /\b(dinner|diner|avondeten|ce soir|vanavond|abendessen)\b/],
+  ["sunset", /\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/],
+  ["drinks", /\b(drinks?|iets drinken|boire un verre|verre|aperitif|apero)\b/],
+  ["nightlife", /\b(nightlife|uitgaan|sortir|party|feest|soiree)\b/],
+  ["working", /\b(work|working|remote work|cowork|coworking|laptop|werken|telewerken|travailler|teletravail)\b/],
+  ["date", /\b(date night|romantic date|romantische date|rendez vous romantique)\b/],
+  ["family_outing", /\b(family outing|met het gezin|sortie en famille)\b/]
+];
+
+const VIBE_PATTERNS: SignalPattern[] = [
+  ["rasta_reggae", /\b(rasta|reggae|rastabar)\b/],
+  ["calm", /\b(calm|quiet|chill|chilled|relaxed|rustig|tranquille|calme|ruhig)\b/],
+  ["lively", /\b(lively|gezellig|levendig|anime|ambiance|lebendig)\b/],
+  ["romantic", /\b(romantic|romantisch|romantique)\b/],
+  ["local", /\b(local|lokaal|lokale|authentic|authentiek|authentique)\b/],
+  ["international", /\b(international|internationaal|cosmopolitan|cosmopolitain)\b/]
+];
 
 function normalizeText(value: string): string {
   return value
@@ -30,13 +70,42 @@ function unique(values: Array<string | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
-function activityFromContext(context: UserContext): SearchActivity | undefined {
-  const focus = normalizeText(context.requestedSubcategory ?? "");
-  if (focus === "surfing") return "surf";
-  if (focus === "working" || context.intent === "work") return "work";
-  if (focus === "dancing") return "dance";
-  if (focus === "walking" || focus === "excursion") return "visit";
+function mergeUnique(previous: string[], current: string[]): string[] {
+  return unique([...previous, ...current]);
+}
 
+function isNegatedMatch(text: string, index: number): boolean {
+  const prefix = text.slice(Math.max(0, index - 55), index);
+  return /\b(geen|niet|zonder|no|not|without|don t want|do not want|pas de|pas|sans|ne veux pas|kein|keine|ohne)\b(?:\s+\w+){0,3}\s*$/i.test(
+    prefix
+  );
+}
+
+function extractPositivePatterns(message: string, patterns: SignalPattern[]): string[] {
+  const text = normalizeText(message);
+  const values: string[] = [];
+
+  for (const [value, pattern] of patterns) {
+    const match = pattern.exec(text);
+    if (match && !isNegatedMatch(text, match.index)) values.push(value);
+  }
+
+  return unique(values);
+}
+
+function extractNegatedPatterns(message: string, patterns: SignalPattern[]): string[] {
+  const text = normalizeText(message);
+  const values: string[] = [];
+
+  for (const [value, pattern] of patterns) {
+    const match = pattern.exec(text);
+    if (match && isNegatedMatch(text, match.index)) values.push(value);
+  }
+
+  return unique(values);
+}
+
+function activityFromIntent(intent?: UserIntent): SearchActivity | undefined {
   const byIntent: Partial<Record<UserIntent, SearchActivity>> = {
     food: "eat",
     drink: "drink",
@@ -46,117 +115,196 @@ function activityFromContext(context: UserContext): SearchActivity | undefined {
     nature: "visit",
     nightlife: "dance",
     sports: "sports",
+    work: "work",
     stay: "stay",
     guide: "guide",
     reservation: "reservation",
     unknown: "unknown"
   };
-
-  return context.intent ? byIntent[context.intent] : undefined;
+  return intent ? byIntent[intent] : undefined;
 }
 
-function productsFromMessage(message: string, context: UserContext): string[] {
+export function recognizeActivity(message: string, context: UserContext): SearchActivity | undefined {
   const text = normalizeText(message);
-  const products: string[] = [];
-  const patterns: Array<[string, RegExp]> = [
-    ["pizza", /\b(pizza|pizzeria)\b/],
-    ["thiéboudienne", /\b(thieboudienne|thiebou dienne)\b/],
-    ["yassa", /\byassa\b/],
-    ["mafé", /\bmafe\b/],
-    ["japanese_food", /\b(japanese|japans|japonais|japanisch)\b/],
-    ["seafood", /\b(seafood|vis|poisson|fruits de mer)\b/],
-    ["cocktails", /\b(cocktail|cocktails)\b/],
-    ["coffee", /\b(coffee|koffie|cafe|kaffee)\b/],
-    ["jewellery", /\b(jewellery|jewelry|juwelen|sieraden|bijoux)\b/]
-  ];
+  if (/\b(surf|surfing|surfen|surfer)\b/.test(text)) return "surf";
+  if (/\b(work|working|cowork|laptop|werken|travailler|teletravail)\b/.test(text)) return "work";
+  if (/\b(shop|shopping|buy|kopen|winkelen|acheter|boutique)\b/.test(text)) return "shop";
+  if (/\b(dance|dancing|party|dansen|uitgaan|danser|sortir)\b/.test(text)) return "dance";
+  if (/\b(drink|drinks|cocktail|bar|drinken|boire|verre)\b/.test(text)) return "drink";
+  if (/\b(eat|food|restaurant|lunch|dinner|pizza|eten|manger|dejeuner|diner)\b/.test(text)) return "eat";
+  if (/\b(relax|chill|swim|beach|ontspannen|zwemmen|plage|nager)\b/.test(text)) return "relax";
+  if (/\b(sport|sports|fitness|gym|running|yoga)\b/.test(text)) return "sports";
+  if (/\b(visit|culture|museum|art|bezoeken|cultuur|visiter|culture)\b/.test(text)) return "visit";
+  return activityFromIntent(context.intent);
+}
 
-  for (const [product, pattern] of patterns) {
-    if (pattern.test(text)) products.push(product);
-  }
-
+export function recognizeProducts(message: string, context: UserContext): string[] {
+  const products = extractPositivePatterns(message, PRODUCT_PATTERNS);
   const subcategory = normalizeText(context.requestedSubcategory ?? "");
-  if (
-    subcategory &&
-    !LOCATION_SUBCATEGORIES.has(subcategory) &&
-    !ACTIVITY_SUBCATEGORIES.has(subcategory)
-  ) {
-    products.push(subcategory.replaceAll(" ", "_"));
-  }
-
+  const nonProducts = new Set([
+    "beach", "working", "surfing", "swimming", "running", "yoga",
+    "fitness", "walking", "dancing", "excursion"
+  ]);
+  if (subcategory && !nonProducts.has(subcategory)) products.push(subcategory.replaceAll(" ", "_"));
   return unique(products);
 }
 
-function locationFeaturesFromMessage(message: string, context: UserContext): string[] {
-  const text = normalizeText(message);
-  return unique([
-    /\b(beach|strand|plage|beachfront|oceanfront)\b/.test(text) ||
-    normalizeText(context.requestedSubcategory ?? "") === "beach"
-      ? "beachfront"
-      : undefined,
-    /\b(ocean view|sea view|uitzicht op zee|vue mer|vue sur l ocean)\b/.test(text)
-      ? "ocean_view"
-      : undefined,
-    /\b(rooftop|dakterras|toit terrasse)\b/.test(text) ? "rooftop" : undefined,
-    /\b(garden|tuin|jardin)\b/.test(text) ? "garden" : undefined,
-    /\b(inside|indoor|binnen|interieur)\b/.test(text) ? "indoor" : undefined
-  ]);
+export function recognizeLocationFeatures(message: string, context: UserContext): string[] {
+  const features = extractPositivePatterns(message, LOCATION_FEATURE_PATTERNS);
+  if (normalizeText(context.requestedSubcategory ?? "") === "beach") features.push("beachfront");
+  return unique(features);
 }
 
-function occasionsFromContext(context: UserContext): string[] {
+export function recognizeOccasions(message: string, context: UserContext): string[] {
+  const occasions = extractPositivePatterns(message, OCCASION_PATTERNS);
   const timing = normalizeText(context.timing ?? "");
-  const occasions: string[] = [];
-
-  if (context.intent === "drink") occasions.push("drinks");
-  if (context.intent === "nightlife") occasions.push("nightlife");
-  if (context.intent === "work") occasions.push("working");
   if (["morning", "breakfast"].includes(timing)) occasions.push("breakfast");
   if (["lunch", "afternoon"].includes(timing)) occasions.push("lunch");
   if (["evening", "tonight", "dinner"].includes(timing)) occasions.push("dinner");
   if (timing === "sunset") occasions.push("sunset");
   if (context.travellerType === "family" || context.hasChildren) occasions.push("family_outing");
-
   return unique(occasions);
 }
 
-export function buildSearchProfile(message: string, context: UserContext): SearchProfile {
-  const targetLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
-  const neighbourhood =
-    targetLocation && targetLocation !== "Dakar" ? targetLocation : undefined;
-  const excludedProducts = unique(context.excludedSubcategories ?? []);
-  const excludedDietary = unique(context.dietaryExclusions ?? []);
-  const normalizedExcludedProducts = new Set(
-    [...excludedProducts, ...excludedDietary].map(normalizeText)
-  );
-  const products = productsFromMessage(message, context).filter(
-    (product) => !normalizedExcludedProducts.has(normalizeText(product))
-  );
-  const requestedSubcategory = normalizeText(context.requestedSubcategory ?? "");
-  const dietaryRequirements = ["vegan", "vegetarian"].includes(requestedSubcategory)
-    ? [requestedSubcategory]
-    : [];
+export function recognizeVibes(message: string, context: UserContext): string[] {
+  return unique([
+    ...extractPositivePatterns(message, VIBE_PATTERNS),
+    context.vibe,
+    context.requestedStyle
+  ]);
+}
+
+export function recognizeExclusions(message: string, context: UserContext): SearchProfile["exclusions"] {
+  const normalized = normalizeText(message);
+  const dietary = unique([
+    ...(context.dietaryExclusions ?? []),
+    ...extractNegatedPatterns(message, PRODUCT_PATTERNS).filter((value) => value === "seafood"),
+    /\b(no|not|geen|niet|zonder|sans|pas de)\b.{0,30}\b(meat|vlees|viande)\b/.test(normalized)
+      ? "meat"
+      : undefined
+  ]);
 
   return {
-    activity: activityFromContext(context),
-    products,
-    locationFeatures: locationFeaturesFromMessage(message, context),
-    occasions: occasionsFromContext(context),
-    vibes: unique([context.vibe, context.requestedStyle]),
+    products: unique([
+      ...(context.excludedSubcategories ?? []),
+      ...extractNegatedPatterns(message, PRODUCT_PATTERNS)
+    ]),
+    categories: unique(context.excludedCategories ?? []),
+    audienceTags: unique([
+      ...(context.avoidAudienceTags ?? []),
+      /\b(no|without|geen|zonder|sans|pas de)\b.{0,35}\b(tourists|toeristen|touristes)\b/.test(normalized)
+        ? "tourists"
+        : undefined
+    ]),
+    dietary
+  };
+}
+
+export function recognizeSearchProfileSignals(
+  message: string,
+  context: UserContext
+): SearchProfileSignals {
+  return {
+    activity: recognizeActivity(message, context),
+    products: recognizeProducts(message, context),
+    locationFeatures: recognizeLocationFeatures(message, context),
+    occasions: recognizeOccasions(message, context),
+    vibes: recognizeVibes(message, context),
+    exclusions: recognizeExclusions(message, context)
+  };
+}
+
+function hasExplicitActivity(message: string): boolean {
+  const neutralContext: UserContext = { language: "unknown" };
+  return recognizeActivity(message, neutralContext) !== undefined;
+}
+
+function withoutExcluded(values: string[], exclusions: string[]): string[] {
+  const blocked = new Set(exclusions.map(normalizeText));
+  return values.filter((value) => !blocked.has(normalizeText(value)));
+}
+
+export function buildSearchProfile(
+  message: string,
+  context: UserContext,
+  previousProfile: SearchProfile | null | undefined = context.searchProfile,
+  semanticSignals?: Partial<SearchProfileSignals> | null
+): SearchProfile {
+  const deterministicSignals = recognizeSearchProfileSignals(message, context);
+  const signals: SearchProfileSignals = {
+    activity: semanticSignals?.activity ?? deterministicSignals.activity,
+    products: mergeUnique(deterministicSignals.products, semanticSignals?.products ?? []),
+    locationFeatures: mergeUnique(
+      deterministicSignals.locationFeatures,
+      semanticSignals?.locationFeatures ?? []
+    ),
+    occasions: mergeUnique(deterministicSignals.occasions, semanticSignals?.occasions ?? []),
+    vibes: mergeUnique(deterministicSignals.vibes, semanticSignals?.vibes ?? []),
+    exclusions: {
+      products: mergeUnique(
+        deterministicSignals.exclusions.products,
+        semanticSignals?.exclusions?.products ?? []
+      ),
+      categories: mergeUnique(
+        deterministicSignals.exclusions.categories,
+        semanticSignals?.exclusions?.categories ?? []
+      ),
+      audienceTags: mergeUnique(
+        deterministicSignals.exclusions.audienceTags,
+        semanticSignals?.exclusions?.audienceTags ?? []
+      ),
+      dietary: mergeUnique(
+        deterministicSignals.exclusions.dietary,
+        semanticSignals?.exclusions?.dietary ?? []
+      )
+    }
+  };
+  const changedActivity =
+    hasExplicitActivity(message) &&
+    previousProfile?.activity !== undefined &&
+    signals.activity !== previousProfile.activity;
+  const baseProducts = changedActivity ? [] : previousProfile?.products ?? [];
+  const baseLocationFeatures = changedActivity ? [] : previousProfile?.locationFeatures ?? [];
+  const baseOccasions = changedActivity ? [] : previousProfile?.occasions ?? [];
+  const baseVibes = changedActivity ? [] : previousProfile?.vibes ?? [];
+  const exclusions = {
+    products: mergeUnique(previousProfile?.exclusions.products ?? [], signals.exclusions.products),
+    categories: mergeUnique(previousProfile?.exclusions.categories ?? [], signals.exclusions.categories),
+    audienceTags: mergeUnique(previousProfile?.exclusions.audienceTags ?? [], signals.exclusions.audienceTags),
+    dietary: mergeUnique(previousProfile?.exclusions.dietary ?? [], signals.exclusions.dietary)
+  };
+  const targetLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const neighbourhood =
+    targetLocation && targetLocation !== "Dakar"
+      ? targetLocation
+      : previousProfile?.neighbourhood;
+  const dietaryRequirements = unique([
+    ...(previousProfile?.dietaryRequirements ?? []),
+    ...(["vegan", "vegetarian"].includes(normalizeText(context.requestedSubcategory ?? ""))
+      ? [normalizeText(context.requestedSubcategory ?? "")]
+      : [])
+  ]);
+
+  return {
+    activity: signals.activity ?? previousProfile?.activity,
+    products: withoutExcluded(
+      mergeUnique(baseProducts, signals.products),
+      [...exclusions.products, ...exclusions.dietary]
+    ),
+    locationFeatures: mergeUnique(baseLocationFeatures, signals.locationFeatures),
+    occasions: mergeUnique(baseOccasions, signals.occasions),
+    vibes: mergeUnique(baseVibes, signals.vibes),
     neighbourhood,
     mobility: targetLocation === "Dakar"
       ? "dakar_wide"
       : neighbourhood
         ? "nearby"
-        : undefined,
-    budget: context.budget,
-    amenities: unique(context.requestedAmenities ?? []),
+        : previousProfile?.mobility,
+    budget: context.budget ?? (changedActivity ? undefined : previousProfile?.budget),
+    amenities: mergeUnique(previousProfile?.amenities ?? [], context.requestedAmenities ?? []),
     dietaryRequirements,
-    exclusions: {
-      products: excludedProducts,
-      categories: [...new Set(context.excludedCategories ?? [])],
-      audienceTags: unique(context.avoidAudienceTags ?? []),
-      dietary: excludedDietary
-    },
-    travellerType: context.travellerType,
-    hasChildren: context.hasChildren
+    exclusions,
+    travellerType: context.travellerType ?? previousProfile?.travellerType,
+    hasChildren: context.hasChildren ?? previousProfile?.hasChildren
   };
 }
