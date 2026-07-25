@@ -18,6 +18,7 @@
     "db:check": "tsx scripts/checkRepositories.ts",
     "logic:check": "tsx scripts/checkLogic.ts",
     "search-profile:check": "tsx scripts/checkSearchProfile.ts",
+    "conversation:check": "tsx scripts/checkRealConversations.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/migrate.js && node dist/server.js"
