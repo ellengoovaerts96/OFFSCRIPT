@@ -373,6 +373,63 @@ runConversation("local Senegalese food asks location but not budget", undefined,
   }
 ]);
 
+const yassaOutsideOuakam = place("Known Yassa Kitchen", {
+  categories: ["food"],
+  subcategories: ["lunch", "dinner"],
+  neighbourhood: "Yoff",
+  practicalInfo: "Yassa is served here.",
+  offscriptPickLevel: 0,
+  offscriptPriority: 0
+});
+const unrelatedOuakamRestaurant = place("Unrelated Ouakam Restaurant", {
+  categories: ["food"],
+  subcategories: ["lunch", "dinner"],
+  neighbourhood: "Ouakam",
+  practicalInfo: "A general neighbourhood restaurant."
+});
+const yassaContext = runConversation("Yassa broadens from Ouakam to Dakar", undefined, [
+  {
+    user: "Ik wil vanavond Yassa eten.",
+    context: {
+      intent: "food",
+      timing: "evening",
+      requestedStyle: "local",
+      directRequest: true
+    },
+    expect: (context) => {
+      assert(context.searchProfile?.products.includes("yassa"), "Yassa must be retained as a product.");
+      assert(
+        context.targetRegion === undefined,
+        "A first-turn Yassa request must remain location-neutral until the neighbourhood reply."
+      );
+    }
+  },
+  {
+    user: "Ouakam.",
+    context: { targetRegion: "Ouakam" },
+    expect: (context) => {
+      assert(context.searchProfile?.neighbourhood === "Ouakam", "Ouakam must become the search neighbourhood.");
+      assert(
+        selectBestPlace([yassaOutsideOuakam], context) === null,
+        "A documented Yassa place outside Ouakam must not be presented as an Ouakam match."
+      );
+    }
+  },
+  {
+    user: "Een andere buurt mag.",
+    context: { targetRegion: "Dakar" },
+    expect: (context) => {
+      assert(context.searchProfile?.mobility === "dakar_wide", "A broader-area reply must enable Dakar-wide search.");
+      assert(
+        selectBestPlace([yassaOutsideOuakam, unrelatedOuakamRestaurant], context)?.place.name ===
+          "Known Yassa Kitchen",
+        "After broadening, a documented Yassa place must clear the recommendation threshold."
+      );
+    }
+  }
+]);
+assert(yassaContext.searchProfile?.products.includes("yassa"), "Yassa must survive all follow-up turns.");
+
 runConversation(
   "conversation language remains French after category-only reply",
   { language: "fr", clarificationCount: 0 },

@@ -190,7 +190,10 @@ export function scoreSearchProfilePreferences(
   if (!profile) return 0;
 
   let score = 0;
-  score += Math.min(countMatches(place, profile.products) * 15, 30);
+  // A named product or dish is one of the clearest user signals. An exact
+  // database match must be recommendation-ready even when older rows do not
+  // yet have complete occasion, timing or editorial metadata.
+  score += Math.min(countMatches(place, profile.products) * 30, 60);
   score += Math.min(countMatches(place, profile.locationFeatures) * 15, 30);
   score += Math.min(countMatches(place, profile.occasions) * 12, 24);
   score += Math.min(countMatches(place, profile.vibes) * 12, 24);

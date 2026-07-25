@@ -68,7 +68,10 @@ function localCandidatesForContext(places: Place[], context: UserContext): Place
 
   const localCandidates = places.filter((place) => placeMatchesLocation(place, targetLocation));
 
-  return localCandidates.length ? localCandidates : places;
+  // A named neighbourhood is a hard boundary until the user explicitly says
+  // that another area is acceptable. Never silently recommend a place from a
+  // different neighbourhood merely because its content score is high.
+  return localCandidates;
 }
 
 function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
@@ -118,6 +121,12 @@ export function selectBestPlace(places: Place[], context: UserContext): PlaceSel
 
 export function selectBestAlternativePlace(places: Place[], context: UserContext): PlaceSelection | null {
   if (!context.targetRegion && !context.currentLocation) return null;
+  if (
+    context.targetRegion !== "Dakar" &&
+    context.searchProfile?.mobility !== "dakar_wide"
+  ) {
+    return null;
+  }
 
   const contextWithoutLocation: UserContext = {
     ...context,
