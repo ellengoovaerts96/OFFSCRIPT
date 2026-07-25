@@ -4,22 +4,18 @@ import {
   isSpecificFocus,
   placeMatchesIntent,
   placeMatchesLocation,
-  placeMatchesSpecificFocus,
-  scorePlace
+  placeMatchesSpecificFocus
 } from "./scorePlace.js";
 import {
   narrowCandidatesBySearchProfile,
-  placePassesSearchProfileHardConstraints,
-  scoreSearchProfilePreferences
+  placePassesSearchProfileHardConstraints
 } from "./searchProfileMatching.js";
+import { rankRelevantPlaces, type RankedPlace } from "./rankRelevantPlaces.js";
 
 export const MIN_RECOMMENDATION_SCORE = 60;
 export const MIN_ALTERNATIVE_RECOMMENDATION_SCORE = 45;
 
-export type PlaceSelection = {
-  place: Place;
-  score: number;
-};
+export type PlaceSelection = RankedPlace;
 
 function shouldRequireIntentMatch(context: UserContext): boolean {
   return Boolean(context.intent && context.intent !== "unknown");
@@ -105,13 +101,7 @@ export function findMatchingCandidates(places: Place[], context: UserContext): P
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
   const candidates = findMatchingCandidates(places, context);
 
-  const ranked = candidates
-    .map((place) => ({
-      place,
-      score: scorePlace(place, context) +
-        scoreSearchProfilePreferences(place, context.searchProfile)
-    }))
-    .sort((a, b) => b.score - a.score);
+  const ranked = rankRelevantPlaces(candidates, context);
 
   const best = ranked[0];
 
@@ -142,15 +132,15 @@ export function selectBestAlternativePlace(places: Place[], context: UserContext
       : undefined
   };
 
-  const candidates = focusCandidatesForContext(filterCandidates(places, contextWithoutLocation), contextWithoutLocation);
+  const candidates = focusCandidatesForContext(
+    narrowCandidatesBySearchProfile(
+      filterCandidates(places, contextWithoutLocation),
+      contextWithoutLocation.searchProfile
+    ),
+    contextWithoutLocation
+  );
 
-  const ranked = candidates
-    .map((place) => ({
-      place,
-      score: scorePlace(place, contextWithoutLocation) +
-        scoreSearchProfilePreferences(place, contextWithoutLocation.searchProfile)
-    }))
-    .sort((a, b) => b.score - a.score);
+  const ranked = rankRelevantPlaces(candidates, contextWithoutLocation);
 
   const best = ranked[0];
 

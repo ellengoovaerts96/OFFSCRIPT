@@ -291,11 +291,6 @@ export function scorePlace(place: Place, context: UserContext): number {
   // Occasion tags express why someone would go there. They refine a valid
   // category/location match without overriding exclusions or safety filters.
   score += Math.min(occasionMatchCount(place, context) * 15, 30);
-  // Editorial judgement breaks ties after the factual intent match. A high
-  // priority can never compensate for an irrelevant category or hard safety
-  // mismatch because those are filtered/scored separately.
-  score += place.offscriptPickLevel * 6;
-  score += Math.round(place.offscriptPriority / 5);
   if (context.requestedStyle === "local" && place.foodOrientation !== undefined) {
     score += place.foodOrientation <= -2
       ? 30
@@ -318,8 +313,5 @@ export function scorePlace(place: Place, context: UserContext): number {
             ? -15
             : -30;
   }
-  if (place.status === "premium") score += 10;
-  if (place.status === "archived") score -= 100;
-
   return score;
 }

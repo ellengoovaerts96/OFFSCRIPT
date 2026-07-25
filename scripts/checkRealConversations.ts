@@ -7,6 +7,7 @@ import {
   placePassesSearchProfileHardConstraints,
   scoreSearchProfilePreferences
 } from "../src/logic/searchProfileMatching.js";
+import { rankRelevantPlaces } from "../src/logic/rankRelevantPlaces.js";
 import type { Place, PlaceCategory } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
@@ -445,5 +446,75 @@ assert(
   "When beach data exists, the location-feature candidate filter must remove non-beach places."
 );
 console.log("✓ hard filters and soft preferences remain distinct");
+
+const pizzaRanking = rankRelevantPlaces([anima, pizzammore], pizzaContext);
+assert(
+  pizzaRanking[0]?.place.name === "Pizzammore",
+  "An explicit upscale match must outrank a stronger editorial budget pizza."
+);
+assert(
+  pizzaRanking[0]?.score ===
+    pizzaRanking[0]?.matchScore +
+      pizzaRanking[0]?.preferenceScore +
+      pizzaRanking[0]?.editorialScore,
+  "A ranking result must expose an explainable score breakdown."
+);
+
+const ordinaryEquivalentBar = place("Ordinary Equivalent Bar", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Yoff",
+  area: "Beach",
+  occasionTags: ["drinks"],
+  vibeTags: ["calm"]
+});
+const favouriteEquivalentBar = place("Favourite Equivalent Bar", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Yoff",
+  area: "Beach",
+  occasionTags: ["drinks"],
+  vibeTags: ["calm"],
+  offscriptPickLevel: 3,
+  offscriptPriority: 90
+});
+const equivalentBarContext = turn("Ik wil rustig iets drinken aan het strand.", {
+  intent: "drink",
+  requestedSubcategory: "beach",
+  vibe: "calm",
+  directRequest: true
+});
+assert(
+  rankRelevantPlaces(
+    [ordinaryEquivalentBar, favouriteEquivalentBar],
+    equivalentBarContext
+  )[0]?.place.name === "Favourite Equivalent Bar",
+  "Editorial judgement must decide between otherwise equally relevant places."
+);
+
+const alphaEquivalentBar = place("Alpha Equivalent Bar", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Yoff",
+  area: "Beach",
+  occasionTags: ["drinks"],
+  vibeTags: ["calm"]
+});
+const zuluEquivalentBar = place("Zulu Equivalent Bar", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Yoff",
+  area: "Beach",
+  occasionTags: ["drinks"],
+  vibeTags: ["calm"]
+});
+assert(
+  rankRelevantPlaces(
+    [zuluEquivalentBar, alphaEquivalentBar],
+    equivalentBarContext
+  )[0]?.place.name === "Alpha Equivalent Bar",
+  "A complete ranking tie must be resolved deterministically by name."
+);
+console.log("✓ ranking decides transparently between relevant candidates");
 
 console.log("All real-conversation regression checks passed.");
