@@ -10,6 +10,10 @@ import {
   buildSearchProfile,
   type SearchProfileSignals
 } from "../logic/buildSearchProfile.js";
+import {
+  matchKnownSubcategory,
+  type SubcategoryTaxonomyEntry
+} from "../logic/subcategoryTaxonomy.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
 const intentSchema = z.enum([
@@ -21,6 +25,8 @@ const intentSchema = z.enum([
   "nature",
   "nightlife",
   "shopping",
+  "wellness",
+  "other",
   "work",
   "stay",
   "guide",
@@ -92,6 +98,7 @@ export type BuildUserContextInput = {
   previousContext?: UserContext | null;
   previousAssistantMessage?: string | null;
   conversationHistory?: Array<{ direction: "incoming" | "outgoing"; message: string }>;
+  subcategoryTaxonomy?: SubcategoryTaxonomyEntry[];
 };
 
 export type BuildUserContextResult = {
@@ -103,13 +110,24 @@ function withSearchProfile(
   message: string,
   result: BuildUserContextResult,
   previousContext?: UserContext | null,
-  semanticSignals?: SearchProfileSignals | null
+  semanticSignals?: SearchProfileSignals | null,
+  subcategoryTaxonomy: SubcategoryTaxonomyEntry[] = []
 ): BuildUserContextResult {
-  const context = {
+  const taxonomyMatch = matchKnownSubcategory(message, subcategoryTaxonomy);
+  const taxonomyContext: UserContext = {
     ...result.context,
+    intent:
+      result.context.intent && result.context.intent !== "unknown"
+        ? result.context.intent
+        : taxonomyMatch?.intent ?? result.context.intent,
+    requestedSubcategory:
+      result.context.requestedSubcategory ?? taxonomyMatch?.name
+  };
+  const context = {
+    ...taxonomyContext,
     searchProfile: buildSearchProfile(
       message,
-      result.context,
+      taxonomyContext,
       previousContext?.searchProfile,
       semanticSignals
     )
@@ -224,6 +242,11 @@ export function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(fitness|gym|workout|training|sportschool|salle de sport|fitnesstudio)\b/.test(lower)) return "fitness";
   if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
   if (/\b(yoga)\b/.test(lower)) return "yoga";
+  if (/\b(pilates)\b/.test(lower)) return "pilates";
+  if (/\b(djembe|djembé|drumming|drum lesson|percussion|percussie|tambour|percussions)\b/.test(lower)) return "djembe";
+  if (/\b(spa)\b/.test(lower)) return "spa";
+  if (/\b(massage|massages)\b/.test(lower)) return "massage";
+  if (/\b(nails|nail salon|manicure|pedicure|ongels|ongelstudio)\b/.test(lower)) return "nails";
   if (/\b(running|run|jogging|lopen|hardlopen|courir|course a pied|rennen|laufen)\b/.test(lower)) return "running";
   if (/\b(swim|swimming|zwemmen|natation|nager|schwimmen)\b/.test(lower)) return "swimming";
 
@@ -576,7 +599,9 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
     return withSearchProfile(
       input.message,
       fallbackBuildUserContext(input),
-      input.previousContext
+      input.previousContext,
+      undefined,
+      input.subcategoryTaxonomy
     );
   }
 
@@ -610,6 +635,10 @@ Rules:
 - Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.
 - Do not assume a place is child-friendly.
+- The input contains the current database subcategory taxonomy. When the request
+  semantically matches one of those entries, copy its exact canonical name into
+  requestedSubcategory and use its associated intent. Do not invent a different
+  subcategory spelling.
 
 Also extract searchProfileSignals independently from the legacy context:
 - activity is what the person wants to do: eat, drink, shop, surf, work, dance, visit, relax, sports, stay, guide or reservation.
@@ -625,7 +654,8 @@ Also extract searchProfileSignals independently from the legacy context:
       message: input.message,
       previousContext: input.previousContext ?? null,
       previousAssistantMessage: input.previousAssistantMessage ?? null,
-      recentConversation: input.conversationHistory ?? []
+      recentConversation: input.conversationHistory ?? [],
+      knownSubcategoryTaxonomy: input.subcategoryTaxonomy ?? []
     }),
     text: {
       format: zodTextFormat(buildUserContextSchema, "build_user_context")
@@ -637,7 +667,9 @@ Also extract searchProfileSignals independently from the legacy context:
     return withSearchProfile(
       input.message,
       fallbackBuildUserContext(input),
-      input.previousContext
+      input.previousContext,
+      undefined,
+      input.subcategoryTaxonomy
     );
   }
 
@@ -719,5 +751,5 @@ Also extract searchProfileSignals independently from the legacy context:
   }, input.previousContext, {
     ...parsed.searchProfileSignals,
     activity: nullToUndefined(parsed.searchProfileSignals.activity)
-  });
+  }, input.subcategoryTaxonomy);
 }

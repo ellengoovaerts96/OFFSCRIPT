@@ -111,6 +111,8 @@ function activityFromIntent(intent?: UserIntent): SearchActivity | undefined {
     food: "eat",
     drink: "drink",
     shopping: "shop",
+    wellness: "relax",
+    other: "unknown",
     culture: "visit",
     beach: "relax",
     nature: "visit",
@@ -134,7 +136,8 @@ export function recognizeActivity(message: string, context: UserContext): Search
   if (/\b(drink|drinks|cocktail|bar|drinken|boire|verre)\b/.test(text)) return "drink";
   if (/\b(eat|food|restaurant|lunch|dinner|pizza|eten|manger|dejeuner|diner)\b/.test(text)) return "eat";
   if (/\b(relax|chill|swim|beach|ontspannen|zwemmen|plage|nager)\b/.test(text)) return "relax";
-  if (/\b(sport|sports|fitness|gym|running|yoga)\b/.test(text)) return "sports";
+  if (/\b(sport|sports|fitness|gym|running|yoga|pilates)\b/.test(text)) return "sports";
+  if (/\b(spa|wellness|massage|nails|manicure|pedicure)\b/.test(text)) return "relax";
   if (/\b(visit|culture|museum|art|bezoeken|cultuur|visiter|culture)\b/.test(text)) return "visit";
   return activityFromIntent(context.intent);
 }

@@ -32,6 +32,7 @@ import {
 } from "./greeting.js";
 import { needsClarification, type MissingContextField } from "./needsClarification.js";
 import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
+import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 
 export type ChatbotFlowResult =
@@ -989,14 +990,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const conversationHistory = await listRecentConversationMessages(userPhone, 8);
+  const places = await listRecommendationPlaces(storyLanguage);
   const { context } = await buildUserContext({
     message,
     previousContext,
     previousAssistantMessage,
-    conversationHistory
+    conversationHistory,
+    subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
   });
 
-  const places = await listRecommendationPlaces(context.language);
   const contextLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
   const isBroadLocalFoodRequest =
     context.intent === "food" &&

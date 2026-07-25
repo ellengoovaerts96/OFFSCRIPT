@@ -9,7 +9,7 @@ const ACTIVITY_INTENTS: Partial<Record<SearchActivity, string[]>> = {
   work: ["working", "work", "coworking"],
   dance: ["nightlife", "dancing", "dance"],
   visit: ["culture", "nature", "visit"],
-  relax: ["beach", "relax", "swimming"],
+  relax: ["beach", "relax", "swimming", "beauty", "wellness", "spa", "massage", "nails"],
   sports: ["sports"],
   stay: ["stay"],
   guide: ["guide"],

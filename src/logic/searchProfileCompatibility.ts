@@ -26,6 +26,8 @@ const LEGACY_ACTIVITY_ALIASES: Record<string, SearchActivity> = {
   food: "eat",
   bar: "drink",
   shopping: "shop",
+  wellness: "relax",
+  other: "unknown",
   nightlife: "dance",
   culture: "visit",
   beach: "relax"

@@ -11,6 +11,8 @@ export type UserIntent =
   | "nature"
   | "nightlife"
   | "shopping"
+  | "wellness"
+  | "other"
   | "work"
   | "stay"
   | "guide"

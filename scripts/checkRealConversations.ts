@@ -1,4 +1,5 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
+import { detectIntent } from "../src/ai/detectIntent.js";
 import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
@@ -8,6 +9,10 @@ import {
   scoreSearchProfilePreferences
 } from "../src/logic/searchProfileMatching.js";
 import { rankRelevantPlaces } from "../src/logic/rankRelevantPlaces.js";
+import {
+  buildSubcategoryTaxonomy,
+  matchKnownSubcategory
+} from "../src/logic/subcategoryTaxonomy.js";
 import type { Place, PlaceCategory } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
@@ -171,6 +176,58 @@ const quietWorkspace = place("Quiet Workspace", {
   vibeTags: ["calm"],
   vibe: "quiet"
 });
+const spa = place("Beauty & Wellness Spa", {
+  categories: ["other"],
+  subcategories: ["spa", "massage", "nails"],
+  neighbourhood: "Almadies",
+  offscriptPriority: 70
+});
+const soundBath = place("Sound Bath Studio", {
+  categories: ["other"],
+  subcategories: ["sound bath"],
+  neighbourhood: "Ngor",
+  offscriptPriority: 50
+});
+const liveTaxonomy = buildSubcategoryTaxonomy([spa, soundBath, surfSchool]);
+
+assert(detectIntent("Where can I go to a Spa?") === "wellness", "Spa must produce wellness intent.");
+assert(detectIntent("I need a massage") === "wellness", "Massage must produce wellness intent.");
+assert(detectIntent("Where can I get my nails done?") === "wellness", "Nails must produce wellness intent.");
+assert(detectIntent("I want fitness") === "sports", "Fitness must produce sports intent.");
+assert(detectIntent("I want yoga") === "sports", "Yoga must produce sports intent.");
+assert(detectIntent("I want Pilates") === "sports", "Pilates must produce sports intent.");
+assert(detectIntent("Je veux jouer du djembé") === "culture", "Djembé must produce culture intent.");
+assert(
+  matchKnownSubcategory("I would like a sound bath", liveTaxonomy)?.name === "sound bath",
+  "A new database subcategory must be recognized without a hardcoded keyword."
+);
+assert(
+  selectBestPlace(
+    [soundBath],
+    turn("I would like a sound bath", {
+      intent: "other",
+      requestedSubcategory: "sound bath",
+      directRequest: true
+    })
+  )?.place.name === "Sound Bath Studio",
+  "A dynamically recognized subcategory must remain recommendation-ready."
+);
+assert(
+  matchKnownSubcategory("Where can I go surfing?", liveTaxonomy)?.intent === "sports",
+  "A database subcategory must inherit its parent category intent."
+);
+assert(
+  selectBestPlace(
+    [spa],
+    turn("Where can I go to a Spa?", {
+      intent: "wellness",
+      requestedSubcategory: "spa",
+      directRequest: true
+    })
+  )?.place.name === "Beauty & Wellness Spa",
+  "A spa request must match a Beauty & Wellness place with spa subcategory."
+);
+console.log("✓ wellness and activity subcategories map to database candidates");
 const localYoffOne = place("Local Yoff One", {
   categories: ["food"],
   subcategories: ["lunch", "senegalese food"],
