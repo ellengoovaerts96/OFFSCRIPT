@@ -7,6 +7,11 @@ import {
   placeMatchesSpecificFocus,
   scorePlace
 } from "./scorePlace.js";
+import {
+  narrowCandidatesBySearchProfile,
+  placePassesSearchProfileHardConstraints,
+  scoreSearchProfilePreferences
+} from "./searchProfileMatching.js";
 
 export const MIN_RECOMMENDATION_SCORE = 60;
 export const MIN_ALTERNATIVE_RECOMMENDATION_SCORE = 45;
@@ -50,7 +55,11 @@ function filterCandidates(places: Place[], context: UserContext): Place[] {
       ? places.filter((place) => place.childFriendly)
       : places;
 
-  return travellerCandidates.filter((place) => placePassesHardConstraints(place, context));
+  return travellerCandidates.filter(
+    (place) =>
+      placePassesHardConstraints(place, context) &&
+      placePassesSearchProfileHardConstraints(place, context.searchProfile)
+  );
 }
 
 function targetLocationForContext(context: UserContext): string | undefined {
@@ -85,7 +94,10 @@ function focusCandidatesForContext(places: Place[], context: UserContext): Place
 
 export function findMatchingCandidates(places: Place[], context: UserContext): Place[] {
   return localCandidatesForContext(
-    focusCandidatesForContext(filterCandidates(places, context), context),
+    focusCandidatesForContext(
+      narrowCandidatesBySearchProfile(filterCandidates(places, context), context.searchProfile),
+      context
+    ),
     context
   );
 }
@@ -94,7 +106,11 @@ export function selectBestPlace(places: Place[], context: UserContext): PlaceSel
   const candidates = findMatchingCandidates(places, context);
 
   const ranked = candidates
-    .map((place) => ({ place, score: scorePlace(place, context) }))
+    .map((place) => ({
+      place,
+      score: scorePlace(place, context) +
+        scoreSearchProfilePreferences(place, context.searchProfile)
+    }))
     .sort((a, b) => b.score - a.score);
 
   const best = ranked[0];
@@ -116,13 +132,24 @@ export function selectBestAlternativePlace(places: Place[], context: UserContext
   const contextWithoutLocation: UserContext = {
     ...context,
     currentLocation: undefined,
-    targetRegion: undefined
+    targetRegion: undefined,
+    searchProfile: context.searchProfile
+      ? {
+          ...context.searchProfile,
+          neighbourhood: undefined,
+          mobility: "dakar_wide"
+        }
+      : undefined
   };
 
   const candidates = focusCandidatesForContext(filterCandidates(places, contextWithoutLocation), contextWithoutLocation);
 
   const ranked = candidates
-    .map((place) => ({ place, score: scorePlace(place, contextWithoutLocation) }))
+    .map((place) => ({
+      place,
+      score: scorePlace(place, contextWithoutLocation) +
+        scoreSearchProfilePreferences(place, contextWithoutLocation.searchProfile)
+    }))
     .sort((a, b) => b.score - a.score);
 
   const best = ranked[0];

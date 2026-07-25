@@ -2,7 +2,11 @@ import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
-import { selectBestPlace } from "../src/logic/selectBestPlace.js";
+import { findMatchingCandidates, selectBestPlace } from "../src/logic/selectBestPlace.js";
+import {
+  placePassesSearchProfileHardConstraints,
+  scoreSearchProfilePreferences
+} from "../src/logic/searchProfileMatching.js";
 import type { Place, PlaceCategory } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
@@ -222,7 +226,7 @@ const pizzaContext = runConversation("pizza: location, then budget, then chic ma
 ]);
 assert(pizzaContext.searchProfile?.products.includes("pizza"), "SearchProfile must retain pizza.");
 
-runConversation("negation: no pizza, only a chilled drink", pizzaContext, [
+const correctedDrinkContext = runConversation("negation: no pizza, only a chilled drink", pizzaContext, [
   {
     user: "Ik wil geen pizza, gewoon een chilled drink aan het strand.",
     context: {
@@ -246,7 +250,7 @@ runConversation("negation: no pizza, only a chilled drink", pizzaContext, [
   }
 ]);
 
-runConversation("cocktail, beach, sunset remain separate signals", undefined, [
+const sunsetCocktailContext = runConversation("cocktail, beach, sunset remain separate signals", undefined, [
   {
     user: "Waar kan ik rustig een cocktail drinken aan het strand bij sunset?",
     context: {
@@ -386,5 +390,60 @@ runConversation(
     }
   ]
 );
+
+const unequippedWorkspace = place("Editorial Favourite Without Airco", {
+  categories: ["food"],
+  subcategories: ["cafe", "working"],
+  neighbourhood: "Ngor",
+  amenities: ["wifi"],
+  workFriendly: true,
+  occasionTags: ["working"],
+  vibeTags: ["calm"],
+  offscriptPickLevel: 3,
+  offscriptPriority: 100
+});
+const genericBeachBar = place("Generic High Priority Beach Bar", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Yoff",
+  area: "Beach",
+  occasionTags: ["drinks", "beach_day"],
+  vibeTags: ["lively"],
+  offscriptPickLevel: 3,
+  offscriptPriority: 100
+});
+
+assert(
+  !placePassesSearchProfileHardConstraints(anima, correctedDrinkContext.searchProfile),
+  "An explicitly excluded product must fail the SearchProfile hard filter."
+);
+assert(
+  findMatchingCandidates(
+    [unequippedWorkspace, quietWorkspace],
+    turn(
+      "Waar kan ik rustig werken met airco?",
+      {
+        intent: "work",
+        requestedSubcategory: "working",
+        requestedAmenities: ["air_conditioning"],
+        vibe: "calm"
+      }
+    )
+  ).map((candidate) => candidate.name).join(",") === "Quiet Workspace",
+  "A required amenity must be a hard filter, even against a stronger editorial favourite."
+);
+assert(
+  scoreSearchProfilePreferences(chezIso, sunsetCocktailContext.searchProfile) >
+    scoreSearchProfilePreferences(genericBeachBar, sunsetCocktailContext.searchProfile),
+  "Sunset and calm must remain soft preferences that improve the best matching beach bar."
+);
+assert(
+  findMatchingCandidates(
+    [anima, chezIso, genericBeachBar],
+    sunsetCocktailContext
+  ).every((candidate) => candidate.name !== "Anima Pizzeria"),
+  "When beach data exists, the location-feature candidate filter must remove non-beach places."
+);
+console.log("✓ hard filters and soft preferences remain distinct");
 
 console.log("All real-conversation regression checks passed.");
