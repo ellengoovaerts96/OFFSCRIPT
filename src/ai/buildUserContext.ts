@@ -14,6 +14,7 @@ import {
   matchKnownSubcategory,
   type SubcategoryTaxonomyEntry
 } from "../logic/subcategoryTaxonomy.js";
+import { acceptsAnyLocation } from "../logic/locationReply.js";
 import { PLACE_AMENITIES } from "../types/place.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
@@ -202,17 +203,6 @@ export function inferTiming(message: string): string | undefined {
   if (/\b(now|nu|maintenant|jetzt)\b/.test(lower)) return "now";
 
   return undefined;
-}
-
-function acceptsAnyLocation(message: string): boolean {
-  const lower = message
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-  return /\b(anywhere|anywhere in dakar|taxi anywhere|happy to take a taxi|does not matter|doesnt matter|it does not matter|it doesnt matter|no preference|wherever|maakt niet uit|het maakt niet uit|eender waar|taxi is goed|taxi mag|maakt me niet uit|maakt mij niet uit|peu importe|taxi partout|un taxi peut|n importe ou|n'importe ou|egal|gelijk waar)\b/.test(
-    lower
-  );
 }
 
 function acceptsBroaderLocation(message: string): boolean {

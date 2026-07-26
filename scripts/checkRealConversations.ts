@@ -1,5 +1,6 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
+import { acceptsAnyLocation } from "../src/logic/locationReply.js";
 import { practicalInfoNeedsTranslationRetry } from "../src/logic/practicalInfoLocalization.js";
 import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
@@ -28,6 +29,11 @@ type ConversationTurn = {
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
+
+assert(
+  acceptsAnyLocation("overal"),
+  'The Dutch one-word location reply "overal" must mean Dakar-wide mobility, never a neighbourhood.'
+);
 
 const recommendationFallback = buildRecommendationTextFallback({
   offscriptReason: "A hidden oceanfront favourite.",
