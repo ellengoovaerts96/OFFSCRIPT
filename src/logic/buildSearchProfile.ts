@@ -81,7 +81,7 @@ function supportedSemanticProducts(
 ): string[] {
   const explicitProducts = new Set(deterministicProducts.map(normalizeText));
 
-  return semanticProducts.filter((product) => {
+  return semanticProducts.flatMap((product) => {
     const normalizedProduct = normalizeText(product);
 
     // A generic request to have a drink is not automatically a cocktail
@@ -89,11 +89,34 @@ function supportedSemanticProducts(
     // inference could remove bars such as Chez Iso before editorial priority
     // is evaluated.
     if (normalizedProduct === "cocktails" && !explicitProducts.has("cocktails")) {
-      return false;
+      return [];
     }
 
-    return true;
+    // Keep singular/plural variants from becoming two simultaneous hard
+    // requirements in candidate narrowing.
+    if (normalizedProduct === "cocktail") {
+      return explicitProducts.has("cocktails") ? ["cocktails"] : [];
+    }
+
+    return [product];
   });
+}
+
+function supportedSemanticLocationFeatures(features: string[]): string[] {
+  const occasions = new Set([
+    "breakfast", "lunch", "dinner", "drinks", "sunrise", "sunset", "nightlife"
+  ]);
+  return features.filter((feature) => !occasions.has(normalizeText(feature)));
+}
+
+function supportedSemanticVibes(vibes: string[]): string[] {
+  const budgetDescriptors = new Set([
+    "affordable", "budget", "budget friendly", "cheap",
+    "mid range", "midrange", "average",
+    "chic", "upscale", "high end",
+    "luxury", "luxurious", "luxe"
+  ]);
+  return vibes.filter((vibe) => !budgetDescriptors.has(normalizeText(vibe)));
 }
 
 function isNegatedMatch(text: string, index: number): boolean {
@@ -268,10 +291,13 @@ export function buildSearchProfile(
     ),
     locationFeatures: mergeUnique(
       deterministicSignals.locationFeatures,
-      semanticSignals?.locationFeatures ?? []
+      supportedSemanticLocationFeatures(semanticSignals?.locationFeatures ?? [])
     ),
     occasions: mergeUnique(deterministicSignals.occasions, semanticSignals?.occasions ?? []),
-    vibes: mergeUnique(deterministicSignals.vibes, semanticSignals?.vibes ?? []),
+    vibes: mergeUnique(
+      deterministicSignals.vibes,
+      supportedSemanticVibes(semanticSignals?.vibes ?? [])
+    ),
     exclusions: {
       products: mergeUnique(
         deterministicSignals.exclusions.products,

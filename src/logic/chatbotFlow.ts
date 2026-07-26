@@ -110,21 +110,19 @@ function buildNoMatchResponse(context: UserContext): string {
 }
 
 function buildNoNewMatchResponse(context: UserContext): string {
-  const focus = context.vibe ?? (context.intent && context.intent !== "unknown" ? context.intent : "match");
-
   if (context.language?.startsWith("nl")) {
-    return `Ik heb breder gekeken, maar ik heb nog geen tweede sterke ${focus}-plek zonder dezelfde plaats opnieuw te sturen. Ik kan wel zoeken naar een andere sport, een andere vibe of iets praktisch in de buurt.`;
+    return "Ik vind momenteel geen tweede sterke plek die aan dezelfde voorkeuren voldoet zonder de vorige plek te herhalen. Als je wilt, kan ik het budget, de buurt of de sfeer iets verruimen.";
   }
 
   if (context.language?.startsWith("fr")) {
-    return `J’ai élargi la recherche, mais je n’ai pas encore une deuxième adresse ${focus} assez solide sans répéter le même lieu. Je peux chercher un autre sport, une autre ambiance ou quelque chose de pratique dans le coin.`;
+    return "Je ne trouve pas encore une deuxième adresse solide qui respecte les mêmes préférences sans répéter le lieu précédent. Si tu veux, je peux élargir un peu le budget, le quartier ou l’ambiance.";
   }
 
   if (context.language?.startsWith("de")) {
-    return `Ich habe breiter gesucht, aber noch keinen zweiten starken ${focus}-Ort, ohne denselben Ort zu wiederholen. Ich kann nach einer anderen Sportart, einer anderen Stimmung oder etwas Praktischem in der Nähe suchen.`;
+    return "Ich finde derzeit keinen zweiten starken Ort mit denselben Wünschen, ohne den vorherigen Tipp zu wiederholen. Wenn du möchtest, kann ich Budget, Viertel oder Stimmung etwas erweitern.";
   }
 
-  return `I searched more broadly, but I do not have a second strong ${focus} place yet without repeating the same spot. I can look for another sport, another vibe or something practical nearby.`;
+  return "I cannot currently find a second strong place with the same preferences without repeating the previous recommendation. If you like, I can broaden the budget, neighbourhood, or vibe slightly.";
 }
 
 function buildRecommendationAssumption(context: UserContext): string | undefined {
@@ -705,21 +703,19 @@ function isNoNewMatchResponse(message: string): boolean {
 }
 
 function buildRepeatedNoNewMatchResponse(context: UserContext): string {
-  const focus = context.vibe ?? (context.intent && context.intent !== "unknown" ? context.intent : "match");
-
   if (context.language.startsWith("nl")) {
-    return `Ik heb echt geen tweede sterke ${focus}-plek klaarstaan zonder dezelfde plek te herhalen. Kies gerust een andere sport, vibe of buurt.`;
+    return "Ik heb echt geen tweede sterke plek met exact dezelfde voorkeuren zonder de vorige aanbeveling te herhalen. We kunnen het budget, de buurt of de sfeer iets aanpassen.";
   }
 
   if (context.language.startsWith("fr")) {
-    return `Je n’ai vraiment pas une deuxième adresse ${focus} solide sans répéter le même lieu. Choisis plutôt un autre sport, une autre ambiance ou un autre quartier.`;
+    return "Je n’ai vraiment pas une deuxième adresse solide avec exactement les mêmes préférences sans répéter la recommandation précédente. On peut ajuster le budget, le quartier ou l’ambiance.";
   }
 
   if (context.language.startsWith("de")) {
-    return `Ich habe wirklich keinen zweiten starken ${focus}-Ort, ohne denselben Tipp zu wiederholen. Wähle gern eine andere Sportart, Stimmung oder ein anderes Viertel.`;
+    return "Ich habe wirklich keinen zweiten starken Ort mit genau denselben Wünschen, ohne die vorherige Empfehlung zu wiederholen. Wir können Budget, Viertel oder Stimmung anpassen.";
   }
 
-  return `I really do not have a second strong ${focus} place without repeating the same spot. Try another sport, vibe or neighbourhood.`;
+  return "I really do not have a second strong place with exactly the same preferences without repeating the previous recommendation. We can adjust the budget, neighbourhood, or vibe.";
 }
 
 function buildRepeatedOffTopicRedirect(context: UserContext): string {

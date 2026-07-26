@@ -94,6 +94,60 @@ if (!explicitSunsetCocktail.products.includes("cocktails")) {
   );
 }
 
+const chicCocktailAlternative = buildSearchProfile(
+  "En een chic alternatief?",
+  {
+    language: "nl",
+    intent: "drink",
+    timing: "sunset",
+    budget: "upscale",
+    requestedSubcategory: "Cocktails",
+    vibe: "scenic"
+  },
+  {
+    activity: "drink",
+    products: ["cocktails"],
+    locationFeatures: [],
+    occasions: ["sunset"],
+    vibes: ["scenic"],
+    mobility: "dakar_wide",
+    budget: "mid-range",
+    amenities: [],
+    dietaryRequirements: [],
+    exclusions: {
+      products: [],
+      categories: [],
+      audienceTags: [],
+      dietary: []
+    }
+  },
+  {
+    activity: "drink",
+    products: ["cocktail"],
+    locationFeatures: ["sunset"],
+    occasions: ["sunset"],
+    vibes: ["chic"],
+    exclusions: {
+      products: [],
+      categories: [],
+      audienceTags: [],
+      dietary: []
+    }
+  }
+);
+if (
+  chicCocktailAlternative.budget !== "upscale" ||
+  chicCocktailAlternative.products.join(",") !== "cocktails" ||
+  chicCocktailAlternative.locationFeatures.includes("sunset") ||
+  chicCocktailAlternative.vibes.includes("chic") ||
+  !chicCocktailAlternative.vibes.includes("scenic") ||
+  !chicCocktailAlternative.occasions.includes("sunset")
+) {
+  throw new Error(
+    `Chic alternative leaked across search dimensions: ${JSON.stringify(chicCocktailAlternative)}`
+  );
+}
+
 const localFood = profile("Waar kan ik Thiéboudienne eten in Yoff?", {
   intent: "food",
   targetRegion: "Yoff",
