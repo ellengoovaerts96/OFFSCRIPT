@@ -28,7 +28,7 @@ const PRODUCT_PATTERNS: SignalPattern[] = [
 ];
 
 const LOCATION_FEATURE_PATTERNS: SignalPattern[] = [
-  ["beachfront", /\b(beach|strand|plage|beachfront|oceanfront|bord de mer)\b/],
+  ["beachfront", /\b(beach|strand|plage|beachfront|oceanfront|oceaan|ocean|zee|sea|bord de mer)\b/],
   ["ocean_view", /\b(ocean view|sea view|uitzicht op zee|vue mer|vue sur l ocean)\b/],
   ["rooftop", /\b(rooftop|dakterras|toit terrasse|terrasse sur le toit)\b/],
   ["garden", /\b(garden|tuin|jardin)\b/],

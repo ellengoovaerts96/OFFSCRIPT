@@ -155,6 +155,7 @@ const chezIso = place("Chez Iso", {
   occasionTags: ["drinks", "sunset", "beach_day"],
   vibeTags: ["calm", "scenic"],
   vibe: "calm oceanfront",
+  priceLevel: 1,
   offscriptPickLevel: 3,
   offscriptPriority: 98
 });
@@ -166,7 +167,19 @@ const chezAm = place("Chez Am", {
   occasionTags: ["drinks", "sunset", "beach_day"],
   vibeTags: ["calm"],
   vibe: "chilled beach drinks",
+  priceLevel: 2,
   offscriptPriority: 75
+});
+const aimanBar = place("Aïman Bar", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Yoff",
+  area: "Beach",
+  occasionTags: ["drinks", "sunset", "beach_day"],
+  vibeTags: ["calm"],
+  vibe: "beach drinks",
+  priceLevel: 2,
+  offscriptPriority: 60
 });
 const laPayotte = place("La Payotte", {
   categories: ["bar", "nightlife"],
@@ -351,6 +364,36 @@ const sunsetCocktailContext = runConversation("cocktail, beach, sunset remain se
     }
   }
 ]);
+
+const oceanSunsetDrinkContext = turn(
+  "Waar kan ik rustig een drankje drinken aan de oceaan bij zonsondergang?",
+  {
+    intent: "drink",
+    requestedSubcategory: "bar",
+    timing: "sunset",
+    vibe: "calm",
+    directRequest: true,
+    targetRegion: "Dakar"
+  }
+);
+assert(
+  needsClarification(oceanSunsetDrinkContext, [chezIso, chezAm, aimanBar]) === "budget",
+  "Several valid oceanfront sunset bars must ask for budget before recommending."
+);
+const affordableOceanSunsetContext = turn(
+  "Budgetvriendelijk.",
+  { budget: "affordable" },
+  oceanSunsetDrinkContext
+);
+assert(
+  rankRelevantPlaces(
+    findMatchingCandidates([chezIso, chezAm, aimanBar], affordableOceanSunsetContext),
+    affordableOceanSunsetContext
+  ).map(({ place: candidate }) => candidate.name).join(",") ===
+    "Chez Iso,Chez Am,Aïman Bar",
+  "Comparable affordable sunset bars must follow editorial priority: Chez Iso first, then Chez Am."
+);
+console.log("✓ oceanfront sunset drinks ask budget and respect editorial order");
 
 runConversation("reggae drink on the beach", undefined, [
   {

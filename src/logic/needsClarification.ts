@@ -6,7 +6,7 @@ import {
   MAX_CLARIFICATION_QUESTIONS,
   recommendationReadiness
 } from "./recommendationReadiness.js";
-import { findMatchingCandidates } from "./selectBestPlace.js";
+import { findClarificationCandidates } from "./selectBestPlace.js";
 
 export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing" | "budget";
 
@@ -102,7 +102,7 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (needsSubcategory(context)) return "subcategory";
 
   if (places) {
-    const candidates = findMatchingCandidates(places, context);
+    const candidates = findClarificationCandidates(places, context);
 
     // One clear database match needs no logistical questionnaire. With several
     // valid choices, location and price are useful discriminators. With none,

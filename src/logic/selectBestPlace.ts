@@ -101,6 +101,19 @@ export function findMatchingCandidates(places: Place[], context: UserContext): P
   );
 }
 
+/**
+ * Returns every hard-valid, contextually comparable option before soft
+ * SearchProfile preferences narrow the result set. Clarification logic uses
+ * this broader set so a soft signal (for example "ocean") cannot silently
+ * choose one bar and skip a useful budget question.
+ */
+export function findClarificationCandidates(places: Place[], context: UserContext): Place[] {
+  return localCandidatesForContext(
+    focusCandidatesForContext(filterCandidates(places, context), context),
+    context
+  );
+}
+
 export function selectBestPlace(places: Place[], context: UserContext): PlaceSelection | null {
   const candidates = findMatchingCandidates(places, context);
 
