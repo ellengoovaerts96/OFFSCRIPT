@@ -31,6 +31,69 @@ if (
   throw new Error(`Sunset cocktail profile mismatch: ${JSON.stringify(sunsetCocktail)}`);
 }
 
+const genericSunsetDrink = buildSearchProfile(
+  "Waar kan ik chill iets drinken met zicht op de oceaan bij zonsondergang?",
+  {
+    language: "nl",
+    intent: "drink",
+    timing: "sunset",
+    vibe: "calm"
+  },
+  undefined,
+  {
+    activity: "drink",
+    products: ["cocktails"],
+    locationFeatures: ["ocean_view"],
+    occasions: ["sunset", "drinks"],
+    vibes: ["calm"],
+    exclusions: {
+      products: [],
+      categories: [],
+      audienceTags: [],
+      dietary: []
+    }
+  }
+);
+if (
+  genericSunsetDrink.products.includes("cocktails") ||
+  !genericSunsetDrink.locationFeatures.includes("ocean_view") ||
+  !genericSunsetDrink.occasions.includes("sunset") ||
+  !genericSunsetDrink.vibes.includes("calm")
+) {
+  throw new Error(
+    `Generic sunset drink became an over-specific product: ${JSON.stringify(genericSunsetDrink)}`
+  );
+}
+
+const explicitSunsetCocktail = buildSearchProfile(
+  "Waar kan ik een cocktail drinken met zicht op de oceaan bij zonsondergang?",
+  {
+    language: "nl",
+    intent: "drink",
+    timing: "sunset",
+    vibe: "calm"
+  },
+  undefined,
+  {
+    activity: "drink",
+    products: ["cocktails"],
+    locationFeatures: ["ocean_view"],
+    occasions: ["sunset", "drinks"],
+    vibes: ["calm"],
+    exclusions: {
+      products: [],
+      categories: [],
+      audienceTags: [],
+      dietary: []
+    }
+  }
+);
+if (!explicitSunsetCocktail.products.includes("cocktails")) {
+  throw new Error(
+    `Explicit cocktail product was removed: ${JSON.stringify(explicitSunsetCocktail)}`
+  );
+}
+
 const localFood = profile("Waar kan ik Thiéboudienne eten in Yoff?", {
   intent: "food",
   targetRegion: "Yoff",

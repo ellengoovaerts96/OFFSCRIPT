@@ -75,6 +75,27 @@ function mergeUnique(previous: string[], current: string[]): string[] {
   return unique([...previous, ...current]);
 }
 
+function supportedSemanticProducts(
+  deterministicProducts: string[],
+  semanticProducts: string[]
+): string[] {
+  const explicitProducts = new Set(deterministicProducts.map(normalizeText));
+
+  return semanticProducts.filter((product) => {
+    const normalizedProduct = normalizeText(product);
+
+    // A generic request to have a drink is not automatically a cocktail
+    // request. Products are used as hard candidate filters, so accepting this
+    // inference could remove bars such as Chez Iso before editorial priority
+    // is evaluated.
+    if (normalizedProduct === "cocktails" && !explicitProducts.has("cocktails")) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 function isNegatedMatch(text: string, index: number): boolean {
   const prefix = text.slice(Math.max(0, index - 55), index);
   return /\b(geen|niet|zonder|no|not|without|don t want|do not want|pas de|pas|sans|ne veux pas|kein|keine|ohne)\b(?:\s+\w+){0,3}\s*$/i.test(
@@ -238,7 +259,13 @@ export function buildSearchProfile(
   const deterministicSignals = recognizeSearchProfileSignals(message, context);
   const signals: SearchProfileSignals = {
     activity: semanticSignals?.activity ?? deterministicSignals.activity,
-    products: mergeUnique(deterministicSignals.products, semanticSignals?.products ?? []),
+    products: mergeUnique(
+      deterministicSignals.products,
+      supportedSemanticProducts(
+        deterministicSignals.products,
+        semanticSignals?.products ?? []
+      )
+    ),
     locationFeatures: mergeUnique(
       deterministicSignals.locationFeatures,
       semanticSignals?.locationFeatures ?? []
