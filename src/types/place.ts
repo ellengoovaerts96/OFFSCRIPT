@@ -27,11 +27,27 @@ export type PlaceSubcategory = {
   images: PlaceImage[];
 };
 
-export type PlaceAmenity =
-  | "air_conditioning"
-  | "wifi"
-  | "power_outlets"
-  | "indoor_seating";
+export const PLACE_AMENITIES = [
+  "air_conditioning",
+  "wifi",
+  "power_outlets",
+  "indoor_seating",
+  "quiet_workspace",
+  "outdoor_seating",
+  "ocean_view",
+  "rooftop",
+  "swimming_pool",
+  "parking",
+  "wheelchair_accessible",
+  "delivery",
+  "takeaway",
+  "reservation_possible",
+  "whatsapp_contact",
+  "live_music",
+  "alcohol_free_options"
+] as const;
+
+export type PlaceAmenity = (typeof PLACE_AMENITIES)[number];
 
 export type Place = {
   id: string;

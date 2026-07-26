@@ -14,6 +14,7 @@ import {
   matchKnownSubcategory,
   type SubcategoryTaxonomyEntry
 } from "../logic/subcategoryTaxonomy.js";
+import { PLACE_AMENITIES } from "../types/place.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
 const intentSchema = z.enum([
@@ -46,7 +47,7 @@ const userContextSchema = z.object({
   budget: z.string().nullable(),
   requestedSubcategory: z.string().nullable(),
   requestedStyle: z.string().nullable(),
-  requestedAmenities: z.array(z.enum(["air_conditioning", "wifi", "power_outlets", "indoor_seating"])),
+  requestedAmenities: z.array(z.enum(PLACE_AMENITIES)),
   vibe: z.string().nullable(),
   excludedCategories: z.array(intentSchema),
   excludedSubcategories: z.array(z.string()),
@@ -420,6 +421,18 @@ export function inferRequestedAmenities(message: string): string[] {
   if (/\b(indoor seating|inside seating|seats inside|zitplaatsen binnen|plaatsen binnen|binnen zitten|salle interieure|assis a l interieur|innenbereich)\b/.test(lower)) {
     amenities.push("indoor_seating");
   }
+  if (/\b(quiet workspace|quiet place to work|rustig werken|calme pour travailler|espace calme pour travailler)\b/.test(lower)) amenities.push("quiet_workspace");
+  if (/\b(outdoor seating|terrace|terras|terrasse)\b/.test(lower)) amenities.push("outdoor_seating");
+  if (/\b(rooftop|roof terrace|dakterras|toit terrasse)\b/.test(lower)) amenities.push("rooftop");
+  if (/\b(swimming pool|pool|zwembad|piscine)\b/.test(lower)) amenities.push("swimming_pool");
+  if (/\b(parking|car park|stationnement)\b/.test(lower)) amenities.push("parking");
+  if (/\b(wheelchair accessible|rolstoeltoegankelijk|accessible en fauteuil roulant)\b/.test(lower)) amenities.push("wheelchair_accessible");
+  if (/\b(delivery|bezorging|livraison)\b/.test(lower)) amenities.push("delivery");
+  if (/\b(takeaway|take away|afhalen|a emporter)\b/.test(lower)) amenities.push("takeaway");
+  if (/\b(reservation possible|reservations possible|reserveren mogelijk|reservation possible)\b/.test(lower)) amenities.push("reservation_possible");
+  if (/\b(whatsapp contact|contact via whatsapp|whatsapp)\b/.test(lower)) amenities.push("whatsapp_contact");
+  if (/\b(live music|livemuziek|musique live|musique en direct)\b/.test(lower)) amenities.push("live_music");
+  if (/\b(alcohol free options|alcoholvrij|sans alcool|non alcoholic options)\b/.test(lower)) amenities.push("alcohol_free_options");
 
   return amenities;
 }
@@ -630,7 +643,7 @@ Rules:
 - Treat beach/plage/strand as requestedSubcategory, not as vibe.
 - Store local/international as requestedStyle, not as vibe.
 - Treat Thiéboudienne, Yassa and Mafé as local Senegalese food: set intent to food and requestedStyle to local. Do not store the dish name as requestedSubcategory.
-- Store explicitly requested facilities in requestedAmenities using only air_conditioning, wifi, power_outlets or indoor_seating.
+- Store explicitly requested facilities in requestedAmenities using only: ${PLACE_AMENITIES.join(", ")}.
 - Normalize price preference to affordable, mid-range, upscale or luxury in budget.
 - Vibe describes atmosphere such as calm, lively or romantic.
 - Do not assume children are present.

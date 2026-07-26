@@ -1,6 +1,7 @@
 import "dotenv/config";
 import pg, { type PoolClient } from "pg";
 import { extractVibeTags } from "../src/logic/vibeTags.js";
+import { PLACE_AMENITIES } from "../src/types/place.js";
 
 type RawPlace = Record<string, unknown> & {
   id: number;
@@ -105,7 +106,7 @@ function normalizeName(value: string): string {
 }
 
 function inferredAmenities(row: RawPlace): string[] {
-  const allowed = new Set(["air_conditioning", "wifi", "power_outlets", "indoor_seating"]);
+  const allowed = new Set<string>(PLACE_AMENITIES);
   const supplied = list(row.amenities)
     .map((value) => value.toLowerCase().replace(/\s+/g, "_"))
     .filter((value) => allowed.has(value));
@@ -119,6 +120,19 @@ function inferredAmenities(row: RawPlace): string[] {
   if (/\b(wi[ -]?fi|internet)\b/.test(searchable)) detected.push("wifi");
   if (/\b(power outlets?|electrical outlets?|plug sockets?|sockets?|stopcontacten?|prises? electriques?)\b/.test(searchable)) detected.push("power_outlets");
   if (/\b(indoor seating|inside seating|seats inside|zitplaatsen binnen|plaatsen binnen|salle interieure)\b/.test(searchable)) detected.push("indoor_seating");
+  if (/\b(quiet workspace|quiet place to work|rustig werken|calme pour travailler)\b/.test(searchable)) detected.push("quiet_workspace");
+  if (/\b(outdoor seating|terrace|terras|terrasse)\b/.test(searchable)) detected.push("outdoor_seating");
+  if (/\b(ocean view|sea view|uitzicht op zee|vue mer)\b/.test(searchable)) detected.push("ocean_view");
+  if (/\b(rooftop|roof terrace|dakterras|toit terrasse)\b/.test(searchable)) detected.push("rooftop");
+  if (/\b(swimming pool|pool|zwembad|piscine)\b/.test(searchable)) detected.push("swimming_pool");
+  if (/\b(parking|car park|stationnement)\b/.test(searchable)) detected.push("parking");
+  if (/\b(wheelchair accessible|rolstoeltoegankelijk|accessible en fauteuil roulant)\b/.test(searchable)) detected.push("wheelchair_accessible");
+  if (/\b(delivery|bezorging|livraison)\b/.test(searchable)) detected.push("delivery");
+  if (/\b(takeaway|take away|afhalen|a emporter)\b/.test(searchable)) detected.push("takeaway");
+  if (/\b(reservation possible|reservations possible|reserveren mogelijk)\b/.test(searchable)) detected.push("reservation_possible");
+  if (/\b(whatsapp contact|contact via whatsapp|whatsapp)\b/.test(searchable)) detected.push("whatsapp_contact");
+  if (/\b(live music|livemuziek|musique live|musique en direct)\b/.test(searchable)) detected.push("live_music");
+  if (/\b(alcohol free options|alcoholvrij|sans alcool|non alcoholic options)\b/.test(searchable)) detected.push("alcohol_free_options");
   return [...new Set([...supplied, ...detected])];
 }
 

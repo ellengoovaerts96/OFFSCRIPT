@@ -20,18 +20,38 @@ function scoreEditorialJudgement(place: Place): number {
   return score;
 }
 
-function compareRankedPlaces(left: RankedPlace, right: RankedPlace): number {
-  if (right.score !== left.score) return right.score - left.score;
+function budgetFitTier(place: Place, budget: UserContext["budget"]): number {
+  if (!budget || place.priceLevel === undefined) return 1;
+  if (budget === "affordable") return place.priceLevel <= 2 ? 2 : 0;
+  if (budget === "mid-range") return place.priceLevel === 3 ? 2 : 0;
+  if (budget === "upscale") return place.priceLevel === 4 ? 2 : place.priceLevel === 5 ? 1 : 0;
+  if (budget === "luxury") return place.priceLevel === 5 ? 2 : place.priceLevel === 4 ? 1 : 0;
+  return 1;
+}
 
-  const leftUserMatch = left.matchScore + left.preferenceScore;
-  const rightUserMatch = right.matchScore + right.preferenceScore;
-  if (rightUserMatch !== leftUserMatch) return rightUserMatch - leftUserMatch;
+function compareRankedPlaces(
+  left: RankedPlace,
+  right: RankedPlace,
+  context: UserContext
+): number {
+  const leftBudgetFit = budgetFitTier(left.place, context.budget);
+  const rightBudgetFit = budgetFitTier(right.place, context.budget);
+  if (rightBudgetFit !== leftBudgetFit) return rightBudgetFit - leftBudgetFit;
+
+  // Hard filters and profile narrowing have already established relevance.
+  // Editorial judgement must therefore decide between comparable valid
+  // options instead of being drowned out by incidental keyword matches.
   if (right.editorialScore !== left.editorialScore) {
     return right.editorialScore - left.editorialScore;
   }
   if (right.place.offscriptPriority !== left.place.offscriptPriority) {
     return right.place.offscriptPriority - left.place.offscriptPriority;
   }
+
+  const leftUserMatch = left.matchScore + left.preferenceScore;
+  const rightUserMatch = right.matchScore + right.preferenceScore;
+  if (rightUserMatch !== leftUserMatch) return rightUserMatch - leftUserMatch;
+  if (right.score !== left.score) return right.score - left.score;
   return left.place.name.localeCompare(right.place.name);
 }
 
@@ -56,5 +76,5 @@ export function rankRelevantPlaces(
         score: matchScore + preferenceScore + editorialScore
       };
     })
-    .sort(compareRankedPlaces);
+    .sort((left, right) => compareRankedPlaces(left, right, context));
 }

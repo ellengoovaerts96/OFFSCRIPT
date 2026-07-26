@@ -181,6 +181,19 @@ const aimanBar = place("Aïman Bar", {
   priceLevel: 2,
   offscriptPriority: 60
 });
+const idealBeach = place("Ideal Beach", {
+  categories: ["bar", "food"],
+  subcategories: ["bar", "lunch", "dinner"],
+  neighbourhood: "Yoff",
+  area: "Oceanfront beach",
+  occasionTags: ["drinks", "sunset", "beach_day", "dinner"],
+  vibeTags: ["calm", "scenic", "sunset"],
+  vibe: "quiet relaxed ocean view at sunset",
+  amenities: ["ocean_view", "outdoor_seating"],
+  priceLevel: 1,
+  offscriptPickLevel: 0,
+  offscriptPriority: 40
+});
 const laPayotte = place("La Payotte", {
   categories: ["bar", "nightlife"],
   subcategories: ["bar"],
@@ -387,11 +400,11 @@ const affordableOceanSunsetContext = turn(
 );
 assert(
   rankRelevantPlaces(
-    findMatchingCandidates([chezIso, chezAm, aimanBar], affordableOceanSunsetContext),
+    findMatchingCandidates([idealBeach, chezIso, chezAm, aimanBar], affordableOceanSunsetContext),
     affordableOceanSunsetContext
   ).map(({ place: candidate }) => candidate.name).join(",") ===
-    "Chez Iso,Chez Am,Aïman Bar",
-  "Comparable affordable sunset bars must follow editorial priority: Chez Iso first, then Chez Am."
+    "Chez Iso,Chez Am,Aïman Bar,Ideal Beach",
+  "Comparable affordable sunset bars must follow editorial priority: Chez Iso, then Chez Am, regardless of incidental text matches."
 );
 console.log("✓ oceanfront sunset drinks ask budget and respect editorial order");
 

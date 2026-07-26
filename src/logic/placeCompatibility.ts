@@ -2,6 +2,7 @@ import type {
   PlaceAmenity,
   PlaceCategory
 } from "../types/place.js";
+import { PLACE_AMENITIES } from "../types/place.js";
 
 function normalize(value: string): string {
   return value
@@ -85,7 +86,7 @@ export function compatibleAmenities(
   const amenities = Array.isArray(values)
     ? values.filter((value): value is PlaceAmenity =>
       typeof value === "string" &&
-      ["air_conditioning", "wifi", "power_outlets", "indoor_seating"].includes(value)
+      PLACE_AMENITIES.includes(value as PlaceAmenity)
     )
     : [];
   const searchable = normalize(legacyText.filter(Boolean).join(" "));
@@ -104,5 +105,31 @@ export function compatibleAmenities(
     .some((term) => searchable.includes(term))) {
     amenities.push("indoor_seating");
   }
+  if (["quiet_workspace", "quiet_work", "calm_workspace", "rustig_werken", "espace_calme_pour_travailler"]
+    .some((term) => searchable.includes(term))) amenities.push("quiet_workspace");
+  if (["outdoor_seating", "terrace", "terrasse", "terras"]
+    .some((term) => searchable.includes(term))) amenities.push("outdoor_seating");
+  if (["ocean_view", "sea_view", "vue_mer", "uitzicht_op_zee"]
+    .some((term) => searchable.includes(term))) amenities.push("ocean_view");
+  if (["rooftop", "roof_terrace", "dakterras", "toit_terrasse"]
+    .some((term) => searchable.includes(term))) amenities.push("rooftop");
+  if (["swimming_pool", "pool", "piscine", "zwembad"]
+    .some((term) => searchable.includes(term))) amenities.push("swimming_pool");
+  if (["parking", "car_park", "stationnement"]
+    .some((term) => searchable.includes(term))) amenities.push("parking");
+  if (["wheelchair_accessible", "wheelchair_access", "accessible_en_fauteuil_roulant", "rolstoeltoegankelijk"]
+    .some((term) => searchable.includes(term))) amenities.push("wheelchair_accessible");
+  if (["delivery", "livraison", "bezorging"]
+    .some((term) => searchable.includes(term))) amenities.push("delivery");
+  if (["takeaway", "take_away", "a_emporter", "afhalen"]
+    .some((term) => searchable.includes(term))) amenities.push("takeaway");
+  if (["reservation_possible", "reservations", "reservation", "reserver", "reserveren"]
+    .some((term) => searchable.includes(term))) amenities.push("reservation_possible");
+  if (["whatsapp_contact", "whatsapp"]
+    .some((term) => searchable.includes(term))) amenities.push("whatsapp_contact");
+  if (["live_music", "musique_live", "musique_en_direct", "livemuziek"]
+    .some((term) => searchable.includes(term))) amenities.push("live_music");
+  if (["alcohol_free_options", "alcohol_free", "sans_alcool", "alcoholvrij"]
+    .some((term) => searchable.includes(term))) amenities.push("alcohol_free_options");
   return unique(amenities);
 }

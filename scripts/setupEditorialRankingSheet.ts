@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { google } from "googleapis";
 import pg from "pg";
+import { PLACE_AMENITIES } from "../src/types/place.js";
 
 const SHEET_NAME = "Editorial Ranking";
 const headers = [
@@ -9,6 +10,7 @@ const headers = [
   "food_orientation", "audience_orientation", "audience_tags", "adventure_level",
   "occasion_tags", "work_friendly", "amenities", "review_status", "verified_by", "review_notes"
 ] as const;
+const amenitiesHelp = `Comma-separated verified tags only: ${PLACE_AMENITIES.join(", ")}`;
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -92,6 +94,7 @@ async function main(): Promise<void> {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [
       { updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount: 1 } }, fields: "gridProperties.frozenRowCount" } },
       { repeatCell: { range: { sheetId, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { backgroundColor: { red: .20, green: .10, blue: .35 }, textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } } } }, fields: "userEnteredFormat" } },
+      { updateCells: { range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: headers.indexOf("amenities"), endColumnIndex: headers.indexOf("amenities") + 1 }, rows: [{ values: [{ note: amenitiesHelp }] }], fields: "note" } },
       // Column insertion can leave old validation rules attached to the new
       // neighbouring field. Clear every old rule before applying the current
       // schema, otherwise audience_tags may inherit a numeric dropdown.

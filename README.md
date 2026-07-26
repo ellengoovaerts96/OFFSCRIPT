@@ -140,7 +140,12 @@ npm run sync:editorial-ranking
 - `adventure_level`: 0 easy/comfortable, 1 mildly adventurous, 2 adventurous, 3 far outside the average visitor's comfort zone.
 - `occasion_tags`: comma-separated use cases such as `family`, `couple`, `friends`, `drinks`, `live_music`, `budget_friendly`, `local_experience`, `nightlife`, `work_friendly`.
 - `work_friendly`: TRUE, FALSE, or blank.
-- `amenities`: comma-separated verified facilities using `air_conditioning`, `wifi`, `power_outlets`, or `indoor_seating`. Do not add a facility unless it is confirmed.
+- `amenities`: comma-separated verified facilities using:
+  `air_conditioning`, `wifi`, `power_outlets`, `indoor_seating`,
+  `quiet_workspace`, `outdoor_seating`, `ocean_view`, `rooftop`,
+  `swimming_pool`, `parking`, `wheelchair_accessible`, `delivery`,
+  `takeaway`, `reservation_possible`, `whatsapp_contact`, `live_music`, or
+  `alcohol_free_options`. Do not add a facility unless it is confirmed.
 
 `quick_meal` is deliberately retired. Reasons can be written in Dutch; French and
 English have separate columns. Ranking is applied only after intent, location and

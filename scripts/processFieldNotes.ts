@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, openaiModel } from "../src/integrations/openai.js";
+import { PLACE_AMENITIES } from "../src/types/place.js";
 
 const FIELD_NOTES_SHEET = "Field Notes";
 const STRUCTURED_SHEET = "Structured Import";
@@ -22,6 +23,7 @@ const headers = [
   "transport", "safety_notes", "image_1", "image_2", "image_3", "ai_confidence",
   "review_status", "reviewed_by", "review_notes"
 ] as const;
+const amenitiesHelp = `Comma-separated verified tags only: ${PLACE_AMENITIES.join(", ")}`;
 
 const nullableText = z.string().nullable();
 const structuredNoteSchema = z.object({
@@ -48,7 +50,7 @@ const structuredNoteSchema = z.object({
   adventure_level: z.number().int().min(0).max(3).nullable(),
   price_level: z.number().int().min(1).max(5).nullable(),
   traveller_types: z.array(z.enum(["solo", "couple", "friends", "family"])), child_friendly: z.boolean().nullable(), work_friendly: z.boolean().nullable(),
-  amenities: z.array(z.enum(["air_conditioning", "wifi", "power_outlets", "indoor_seating"])),
+  amenities: z.array(z.enum(PLACE_AMENITIES)),
   best_timing: z.array(z.string()), opening_hours: nullableText, contact_person: nullableText, phone: nullableText,
   facebook_url: nullableText, instagram_url: nullableText, tiktok_url: nullableText, google_maps_url: nullableText,
   transport: nullableText, safety_notes: nullableText,
@@ -143,7 +145,7 @@ async function structureDraft(input: Record<string, unknown>): Promise<Structure
     instructions: `You are OFFSCRIPT's careful field-research editor. Convert one informal field note into structured data.
 Rules:
 - Never invent a fact. Use null or [] when the note does not support a field.
-- Put explicitly supported facilities in amenities using only air_conditioning, wifi, power_outlets or indoor_seating.
+- Put explicitly supported facilities in amenities using only: ${PLACE_AMENITIES.join(", ")}.
 - Preserve names, phone numbers, URLs, opening hours and practical facts exactly.
 - Produce concise editorial copy in both French and English only when the underlying fact is supported.
 - Write short_description_en and short_description_fr in OFFSCRIPT's local-friend voice, not as a travel guide or database summary.
@@ -197,6 +199,16 @@ async function main(): Promise<void> {
     scopes: ["https://www.googleapis.com/auth/spreadsheets"]
   });
   const sheets = google.sheets({ version: "v4", auth });
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties(sheetId,title)"
+  });
+  const structuredSheetId = metadata.data.sheets?.find(
+    (sheet) => sheet.properties?.title === STRUCTURED_SHEET
+  )?.properties?.sheetId;
+  if (structuredSheetId === undefined) {
+    throw new Error(`Sheet "${STRUCTURED_SHEET}" is missing.`);
+  }
   const fieldValues = (await sheets.spreadsheets.values.get({ spreadsheetId, range: range(FIELD_NOTES_SHEET, "A:Z") })).data.values ?? [];
   if (!fieldValues.length) throw new Error(`Sheet "${FIELD_NOTES_SHEET}" has no headers.`);
   const fieldHeaders = fieldValues[0].map(String);
@@ -230,6 +242,24 @@ async function main(): Promise<void> {
         requestBody: { values: [[...headers], ...reorderedRows] }
       });
     }
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{
+          updateCells: {
+            range: {
+              sheetId: structuredSheetId,
+              startRowIndex: 0,
+              endRowIndex: 1,
+              startColumnIndex: headers.indexOf("amenities"),
+              endColumnIndex: headers.indexOf("amenities") + 1
+            },
+            rows: [{ values: [{ note: amenitiesHelp }] }],
+            fields: "note"
+          }
+        }]
+      }
+    });
   }
   if (headersOnly) {
     console.log(`Structured Import headers updated: ${headers.length} columns.`);

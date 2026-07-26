@@ -116,6 +116,19 @@ if (resolveRequestedSubcategory("Waar kan ik rustig werken met de airco?", "air 
 if (JSON.stringify(inferRequestedAmenities("Waar kan ik rustig werken met airco, wifi en stopcontacten?")) !== JSON.stringify(["air_conditioning", "wifi", "power_outlets"])) {
   throw new Error("Explicit workplace facilities must be extracted as normalized amenities.");
 }
+if (
+  JSON.stringify(inferRequestedAmenities(
+    "Ik zoek een rolstoeltoegankelijk terras met parking, een zwembad en alcoholvrije opties."
+  )) !== JSON.stringify([
+    "outdoor_seating",
+    "swimming_pool",
+    "parking",
+    "wheelchair_accessible",
+    "alcohol_free_options"
+  ])
+) {
+  throw new Error("Extended verified facilities must be extracted as normalized amenities.");
+}
 if (!rejectsRequestedSubcategory("Ik wil geen pizza, gewoon een chilled drink.", "pizza")) {
   throw new Error("An explicitly rejected pizza preference must clear the previous subcategory.");
 }

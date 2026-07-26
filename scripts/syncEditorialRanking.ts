@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import pg from "pg";
 import { z } from "zod";
 import { getOpenAIClient, openaiModel } from "../src/integrations/openai.js";
+import { PLACE_AMENITIES } from "../src/types/place.js";
 
 const SHEET_NAME = "Editorial Ranking";
 const dryRun = process.argv.includes("--dry-run");
@@ -26,7 +27,7 @@ function text(value: unknown): string | null { const result = String(value ?? ""
 function list(value: unknown): string[] { return String(value ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean).filter((item) => item !== "quick_meal"); }
 function amenityList(value: unknown): string[] {
   const amenities = list(value).map((item) => item.replace(/\s+/g, "_"));
-  const allowed = new Set(["air_conditioning", "wifi", "power_outlets", "indoor_seating"]);
+  const allowed = new Set<string>(PLACE_AMENITIES);
   const invalid = amenities.filter((item) => !allowed.has(item));
   if (invalid.length) throw new Error(`Unknown amenities: ${invalid.join(", ")}.`);
   return [...new Set(amenities)];

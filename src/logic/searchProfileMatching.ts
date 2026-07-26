@@ -163,9 +163,19 @@ export function narrowCandidatesBySearchProfile(
     profile.products,
     placeMatchesSearchTerm
   );
-  return narrowWhenDataSupports(
+  const locationCandidates = narrowWhenDataSupports(
     productCandidates,
     profile.locationFeatures,
+    placeMatchesSearchTerm
+  );
+  const occasionCandidates = narrowWhenDataSupports(
+    locationCandidates,
+    profile.occasions,
+    placeMatchesSearchTerm
+  );
+  return narrowWhenDataSupports(
+    occasionCandidates,
+    profile.vibes,
     placeMatchesSearchTerm
   );
 }
