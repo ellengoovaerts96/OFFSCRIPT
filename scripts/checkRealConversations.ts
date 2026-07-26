@@ -29,9 +29,9 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const recommendationFallback = buildRecommendationTextFallback({
   offscriptReason: "A hidden oceanfront favourite.",
-  shortDescription: "Come here for a quiet sunset drink.",
+  shortDescription: "Come here for a quiet sunset drink. Stay for one more drink.",
   personalTip: "Stay for one more drink.",
-  practicalInfo: "Bring cash."
+  practicalInfo: "Bring cash.\n- Stay for one more drink."
 });
 assert(
   recommendationFallback.shortDescription.includes("hidden oceanfront") &&
@@ -40,8 +40,9 @@ assert(
 );
 assert(
   recommendationFallback.personalTip === "Stay for one more drink." &&
-    recommendationFallback.practicalInfo === "Bring cash.",
-  "A failed localization must preserve personal and practical guidance."
+    recommendationFallback.practicalInfo === "Bring cash.\n- Stay for one more drink." &&
+    !recommendationFallback.shortDescription.includes("Stay for one more drink"),
+  "Editorial text must avoid repetition while practical info remains complete."
 );
 
 function includes(values: string[] | undefined, expected: string): boolean {

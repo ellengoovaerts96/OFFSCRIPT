@@ -1,7 +1,10 @@
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
-import { buildRecommendationTextFallback } from "../logic/recommendationTextFallback.js";
+import {
+  buildRecommendationTextFallback,
+  deduplicateRecommendationText
+} from "../logic/recommendationTextFallback.js";
 
 type SupportedRecommendationLanguage = "nl" | "fr" | "de" | "en";
 
@@ -87,6 +90,9 @@ Rules:
 - Preserve bullet structure, line breaks, emojis and punctuation where possible.
 - Do not add labels such as "Practical info" or "Praktisch".
 - Preserve personalTip as a separate field and never replace it with a generic AI tip.
+- Avoid repetition between shortDescription, offscriptReason and personalTip.
+- Never remove, shorten or deduplicate practicalInfo. Preserve every practical
+  detail and bullet, even when it overlaps with another field.
 - Do not add new information and do not remove details.
 - Return empty or missing fields as empty/null.`,
       input: JSON.stringify({
@@ -107,11 +113,11 @@ Rules:
     }
 
     const fallback = fallbackRecommendationText(input);
-    return {
+    return deduplicateRecommendationText({
       shortDescription: localized?.shortDescription?.trim() || fallback.shortDescription,
       personalTip: localized?.personalTip?.trim() || input.personalTip,
       practicalInfo: localized?.practicalInfo?.trim() || input.practicalInfo
-    };
+    });
   } catch {
     return fallbackRecommendationText(input);
   }
