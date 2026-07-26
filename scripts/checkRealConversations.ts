@@ -6,6 +6,7 @@ import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { findMatchingCandidates, selectBestPlace } from "../src/logic/selectBestPlace.js";
 import {
+  narrowCandidatesBySearchProfile,
   placePassesSearchProfileHardConstraints,
   scoreSearchProfilePreferences
 } from "../src/logic/searchProfileMatching.js";
@@ -416,6 +417,25 @@ const affordableOceanSunsetContext = turn(
   "Budgetvriendelijk.",
   { budget: "affordable" },
   oceanSunsetDrinkContext
+);
+const partiallyTaggedEditorialFavourite = place("Partially Tagged Editorial Favourite", {
+  categories: ["bar"],
+  subcategories: ["bar"],
+  neighbourhood: "Ouakam",
+  area: "Coast",
+  shortDescription: "A quiet cocktail overlooking the ocean.",
+  occasionTags: ["drinks"],
+  vibeTags: ["calm"],
+  priceLevel: 1,
+  offscriptPickLevel: 3,
+  offscriptPriority: 99
+});
+assert(
+  narrowCandidatesBySearchProfile(
+    [idealBeach, partiallyTaggedEditorialFavourite],
+    affordableOceanSunsetContext.searchProfile
+  ).some(({ name }) => name === "Partially Tagged Editorial Favourite"),
+  "A strong editorial place must not disappear because one soft sunset, ocean or vibe tag is missing."
 );
 assert(
   rankRelevantPlaces(

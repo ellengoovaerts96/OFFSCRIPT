@@ -156,6 +156,18 @@ function narrowWhenDataSupports(
   return exactMatches.length ? exactMatches : places;
 }
 
+function narrowWhenAnyDataSupports(
+  places: Place[],
+  requirements: string[],
+  matches: (place: Place, requirement: string) => boolean
+): Place[] {
+  if (!requirements.length) return places;
+  const supportingMatches = places.filter((place) =>
+    requirements.some((requirement) => matches(place, requirement))
+  );
+  return supportingMatches.length ? supportingMatches : places;
+}
+
 export function narrowCandidatesBySearchProfile(
   places: Place[],
   profile: SearchProfile | undefined
@@ -167,19 +179,14 @@ export function narrowCandidatesBySearchProfile(
     profile.products,
     placeMatchesSearchTerm
   );
-  const locationCandidates = narrowWhenDataSupports(
+  // Location features, occasions and vibes are descriptive signals. Legacy
+  // rows often express only part of them in structured tags (for example a
+  // genuine sunset bar may have ocean and calm data but no explicit sunset
+  // tag). Require support for at least one soft signal overall, then let the
+  // preference and editorial scores rank the relevant set.
+  return narrowWhenAnyDataSupports(
     productCandidates,
-    profile.locationFeatures,
-    placeMatchesSearchTerm
-  );
-  const occasionCandidates = narrowWhenDataSupports(
-    locationCandidates,
-    profile.occasions,
-    placeMatchesSearchTerm
-  );
-  return narrowWhenDataSupports(
-    occasionCandidates,
-    profile.vibes,
+    [...profile.locationFeatures, ...profile.occasions, ...profile.vibes],
     placeMatchesSearchTerm
   );
 }
