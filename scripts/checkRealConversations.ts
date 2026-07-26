@@ -1,5 +1,6 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
+import { practicalInfoNeedsTranslationRetry } from "../src/logic/practicalInfoLocalization.js";
 import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
@@ -43,6 +44,22 @@ assert(
     recommendationFallback.practicalInfo === "Bring cash.\n- Stay for one more drink." &&
     !recommendationFallback.shortDescription.includes("Stay for one more drink"),
   "Editorial text must avoid repetition while practical info remains complete."
+);
+assert(
+  practicalInfoNeedsTranslationRetry({
+    language: "nl",
+    source: "🍽️ Poisson frais grillé sur demande",
+    localized: "🍽️ Poisson frais grillé sur demande"
+  }),
+  "Unchanged French practical info in a Dutch answer must trigger a focused translation retry."
+);
+assert(
+  !practicalInfoNeedsTranslationRetry({
+    language: "nl",
+    source: "🍽️ Poisson frais grillé sur demande",
+    localized: "🍽️ Verse vis, op verzoek gegrild"
+  }),
+  "Translated Dutch practical info must not trigger another translation request."
 );
 
 function includes(values: string[] | undefined, expected: string): boolean {

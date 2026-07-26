@@ -5,6 +5,7 @@ import {
   buildRecommendationTextFallback,
   deduplicateRecommendationText
 } from "../logic/recommendationTextFallback.js";
+import { practicalInfoNeedsTranslationRetry } from "../logic/practicalInfoLocalization.js";
 
 type SupportedRecommendationLanguage = "nl" | "fr" | "de" | "en";
 
@@ -19,6 +20,10 @@ const localizedRecommendationSchema = z.object({
   shortDescription: z.string(),
   personalTip: z.string().nullable(),
   practicalInfo: z.string().nullable()
+});
+
+const localizedPracticalInfoSchema = z.object({
+  practicalInfo: z.string()
 });
 
 const LOCALIZATION_TIMEOUT_MS = 6000;
@@ -67,6 +72,33 @@ function fallbackRecommendationText(
   return buildRecommendationTextFallback(input);
 }
 
+async function translatePracticalInfo(
+  practicalInfo: string,
+  language: SupportedRecommendationLanguage
+): Promise<string | undefined> {
+  try {
+    const client = getOpenAIClient();
+    const response = await withTimeout(client.responses.parse({
+      model: openaiModel,
+      instructions: `Translate the complete practical information into ${languageNames[language]}.
+Rules:
+- Translate every human-readable line and bullet.
+- Preserve every detail. Do not summarize, shorten, combine or remove anything.
+- Preserve the number and order of lines and bullets.
+- Keep emojis, URLs, prices, times, phone numbers and proper nouns unchanged.
+- Return only the translated practicalInfo field.`,
+      input: JSON.stringify({ practicalInfo }),
+      text: {
+        format: zodTextFormat(localizedPracticalInfoSchema, "localized_practical_info")
+      }
+    }), LOCALIZATION_TIMEOUT_MS);
+
+    return response?.output_parsed?.practicalInfo?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function localizeRecommendationText(
   input: LocalizeRecommendationTextInput
 ): Promise<LocalizedRecommendationText> {
@@ -113,10 +145,19 @@ Rules:
     }
 
     const fallback = fallbackRecommendationText(input);
+    const primaryPracticalInfo = localized.practicalInfo?.trim();
+    const practicalInfo = practicalInfoNeedsTranslationRetry({
+      language,
+      source: input.practicalInfo,
+      localized: primaryPracticalInfo
+    }) && input.practicalInfo
+      ? await translatePracticalInfo(input.practicalInfo, language)
+      : primaryPracticalInfo;
+
     return deduplicateRecommendationText({
       shortDescription: localized?.shortDescription?.trim() || fallback.shortDescription,
       personalTip: localized?.personalTip?.trim() || input.personalTip,
-      practicalInfo: localized?.practicalInfo?.trim() || input.practicalInfo
+      practicalInfo: practicalInfo || input.practicalInfo
     });
   } catch {
     return fallbackRecommendationText(input);
