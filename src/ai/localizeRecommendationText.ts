@@ -1,6 +1,7 @@
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
+import { buildRecommendationTextFallback } from "../logic/recommendationTextFallback.js";
 
 type SupportedRecommendationLanguage = "nl" | "fr" | "de" | "en";
 
@@ -58,18 +59,9 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 }
 
 function fallbackRecommendationText(
-  language: SupportedRecommendationLanguage,
   input: LocalizeRecommendationTextInput
 ): LocalizedRecommendationText {
-  if (language === "en" || language === "fr") {
-    return {
-      shortDescription: [input.offscriptReason, input.shortDescription].filter(Boolean).join(" "),
-      personalTip: input.personalTip,
-      practicalInfo: input.practicalInfo
-    };
-  }
-
-  return {};
+  return buildRecommendationTextFallback(input);
 }
 
 export async function localizeRecommendationText(
@@ -78,7 +70,7 @@ export async function localizeRecommendationText(
   const language = recommendationLanguage(input.language);
 
   if (!hasOpenAIKey()) {
-    return fallbackRecommendationText(language, input);
+    return fallbackRecommendationText(input);
   }
 
   try {
@@ -111,15 +103,16 @@ Rules:
     const localized = response?.output_parsed;
 
     if (!localized) {
-      return fallbackRecommendationText(language, input);
+      return fallbackRecommendationText(input);
     }
 
+    const fallback = fallbackRecommendationText(input);
     return {
-      shortDescription: localized?.shortDescription?.trim() || input.shortDescription,
+      shortDescription: localized?.shortDescription?.trim() || fallback.shortDescription,
       personalTip: localized?.personalTip?.trim() || input.personalTip,
       practicalInfo: localized?.practicalInfo?.trim() || input.practicalInfo
     };
   } catch {
-    return fallbackRecommendationText(language, input);
+    return fallbackRecommendationText(input);
   }
 }

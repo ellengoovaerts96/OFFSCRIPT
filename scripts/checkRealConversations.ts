@@ -9,6 +9,7 @@ import {
   scoreSearchProfilePreferences
 } from "../src/logic/searchProfileMatching.js";
 import { rankRelevantPlaces } from "../src/logic/rankRelevantPlaces.js";
+import { buildRecommendationTextFallback } from "../src/logic/recommendationTextFallback.js";
 import {
   buildSubcategoryTaxonomy,
   matchKnownSubcategory
@@ -25,6 +26,23 @@ type ConversationTurn = {
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
+
+const recommendationFallback = buildRecommendationTextFallback({
+  offscriptReason: "A hidden oceanfront favourite.",
+  shortDescription: "Come here for a quiet sunset drink.",
+  personalTip: "Stay for one more drink.",
+  practicalInfo: "Bring cash."
+});
+assert(
+  recommendationFallback.shortDescription.includes("hidden oceanfront") &&
+    recommendationFallback.shortDescription.includes("quiet sunset drink"),
+  "A failed localization must preserve both the OFFSCRIPT reason and description."
+);
+assert(
+  recommendationFallback.personalTip === "Stay for one more drink." &&
+    recommendationFallback.practicalInfo === "Bring cash.",
+  "A failed localization must preserve personal and practical guidance."
+);
 
 function includes(values: string[] | undefined, expected: string): boolean {
   return values?.includes(expected) ?? false;
