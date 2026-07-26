@@ -35,7 +35,11 @@ const TERM_ALIASES: Record<string, string[]> = {
   thiéboudienne: ["thiéboudienne", "thieboudienne", "thiebou dienne", "ceebu jen"],
   jewellery: ["jewellery", "jewelry", "bijoux", "juwelen", "sieraden"],
   beachfront: ["beach", "beachfront", "oceanfront", "ocean", "sea", "oceaan", "zee", "plage", "strand", "bord de mer"],
-  ocean_view: ["ocean view", "sea view", "oceanfront", "ocean", "sea", "oceaan", "zee", "vue mer", "uitzicht op zee"],
+  ocean_view: [
+    "ocean view", "sea view", "oceanfront", "ocean", "sea", "coast", "coastal",
+    "bay", "beach", "oceaan", "zee", "kust", "baai", "strand",
+    "vue mer", "bord de mer", "cote", "baie", "plage", "uitzicht op zee"
+  ],
   rooftop: ["rooftop", "roof terrace", "dakterras", "toit terrasse"],
   indoor: ["indoor", "inside", "interior", "binnen", "intérieur"],
   calm: ["calm", "quiet", "chill", "relaxed", "rustig", "calme", "tranquille"],

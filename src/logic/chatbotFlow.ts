@@ -52,6 +52,7 @@ export type ChatbotFlowResult =
       personalTip?: string;
       practicalInfo?: string;
       socialUrl?: string;
+      priceLevel?: Place["priceLevel"];
       score: number;
       message: string;
       imageUrls: string[];
@@ -147,6 +148,26 @@ function buildRecommendationAssumption(context: UserContext): string | undefined
   }
   if (missingLocation) return "I’m assuming you’re able to travel within Dakar.";
   return "I’m choosing the strongest general match because you didn’t specify a style or budget.";
+}
+
+function buildBudgetMatchLine(
+  context: UserContext,
+  priceLevel: Place["priceLevel"]
+): string | undefined {
+  if (context.budget !== "affordable" || priceLevel === undefined || priceLevel > 2) {
+    return undefined;
+  }
+
+  if (context.language.startsWith("nl")) {
+    return "Dit is een van de meer budgetvriendelijke opties die bij je vraag passen.";
+  }
+  if (context.language.startsWith("fr")) {
+    return "C’est l’une des options les plus abordables qui correspondent à ta demande.";
+  }
+  if (context.language.startsWith("de")) {
+    return "Das ist eine der preisgünstigeren Optionen, die zu deiner Anfrage passen.";
+  }
+  return "This is one of the more budget-friendly options that matches what you asked for.";
 }
 
 function buildLanguagePreferenceResponse(context: UserContext): string {
@@ -1060,6 +1081,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         personalTip: alternativeSelection.place.personalTip,
         practicalInfo: alternativeSelection.place.practicalInfo,
         socialUrl: preferredSocialUrl(alternativeSelection.place),
+        priceLevel: alternativeSelection.place.priceLevel,
         score: alternativeSelection.score,
         message: recommendationTitle(alternativeSelection.place),
         imageUrls: selectRecommendationImages(alternativeSelection.place, message)
@@ -1092,6 +1114,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     personalTip: selection.place.personalTip,
     practicalInfo: selection.place.practicalInfo,
     socialUrl: preferredSocialUrl(selection.place),
+    priceLevel: selection.place.priceLevel,
     score: selection.score,
     message: recommendationTitle(selection.place),
     imageUrls: selectRecommendationImages(selection.place, message)
@@ -1143,6 +1166,7 @@ export async function handleChatMessage(input: {
     result.type === "recommendation" && localizedRecommendation
       ? [
           localizedRecommendation.shortDescription,
+          buildBudgetMatchLine(result.context, result.priceLevel),
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
           whatsAppContactLine,
