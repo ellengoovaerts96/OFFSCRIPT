@@ -32,7 +32,7 @@ export type LocalizeRecommendationTextInput = {
 };
 
 export type LocalizedRecommendationText = {
-  shortDescription?: string;
+  shortDescription: string;
   personalTip?: string;
   practicalInfo?: string;
 };
