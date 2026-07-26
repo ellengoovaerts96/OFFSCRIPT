@@ -1,6 +1,7 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { acceptsAnyLocation } from "../src/logic/locationReply.js";
+import { preventOverSpecificDrinkSubcategory } from "../src/logic/requestedSubcategory.js";
 import { practicalInfoNeedsTranslationRetry } from "../src/logic/practicalInfoLocalization.js";
 import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
@@ -33,6 +34,21 @@ function assert(condition: unknown, message: string): asserts condition {
 assert(
   acceptsAnyLocation("overal"),
   'The Dutch one-word location reply "overal" must mean Dakar-wide mobility, never a neighbourhood.'
+);
+
+assert(
+  preventOverSpecificDrinkSubcategory(
+    "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",
+    "cocktails"
+  ) === "bar",
+  "A generic drink request must not become a hard cocktail filter."
+);
+assert(
+  preventOverSpecificDrinkSubcategory(
+    "Waar kan ik een cocktail drinken bij sunset?",
+    "cocktails"
+  ) === "cocktails",
+  "An explicitly requested cocktail must retain its specific focus."
 );
 
 const recommendationFallback = buildRecommendationTextFallback({
@@ -452,6 +468,33 @@ assert(
   "Comparable affordable sunset bars must follow editorial priority: Chez Iso, then Chez Am, regardless of incidental text matches."
 );
 console.log("✓ oceanfront sunset drinks ask budget and respect editorial order");
+
+const semanticallyOverSpecificDrinkContext = turn(
+  "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",
+  {
+    intent: "drink",
+    requestedSubcategory: preventOverSpecificDrinkSubcategory(
+      "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",
+      "cocktails"
+    ),
+    timing: "sunset",
+    vibe: "calm",
+    budget: "affordable",
+    targetRegion: "Dakar",
+    directRequest: true
+  }
+);
+assert(
+  rankRelevantPlaces(
+    findMatchingCandidates(
+      [idealBeach, chezIso, chezAm, aimanBar],
+      semanticallyOverSpecificDrinkContext
+    ),
+    semanticallyOverSpecificDrinkContext
+  )[0]?.place.name === "Chez Iso",
+  "Semantic cocktail over-specialization must not remove priority-98 Chez Iso from a generic drink request."
+);
+console.log("✓ generic drinks cannot become a hard cocktail filter");
 
 runConversation("reggae drink on the beach", undefined, [
   {

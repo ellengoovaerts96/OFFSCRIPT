@@ -15,6 +15,7 @@ import {
   type SubcategoryTaxonomyEntry
 } from "../logic/subcategoryTaxonomy.js";
 import { acceptsAnyLocation } from "../logic/locationReply.js";
+import { preventOverSpecificDrinkSubcategory } from "../logic/requestedSubcategory.js";
 import { PLACE_AMENITIES } from "../types/place.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
@@ -391,10 +392,16 @@ export function resolveRequestedSubcategory(
   exclusions: string[],
   explicitlyRejected: boolean
 ): string | undefined {
-  return (
-    inferRequestedSubcategory(message) ??
-    semanticRequestedSubcategory(parsed, previous, exclusions, explicitlyRejected)
+  const deterministic = inferRequestedSubcategory(message);
+  if (deterministic) return deterministic;
+
+  const semantic = semanticRequestedSubcategory(
+    parsed,
+    previous,
+    exclusions,
+    explicitlyRejected
   );
+  return preventOverSpecificDrinkSubcategory(message, semantic);
 }
 
 export function inferRequestedAmenities(message: string): string[] {
