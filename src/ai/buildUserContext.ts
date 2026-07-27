@@ -15,7 +15,10 @@ import {
   type SubcategoryTaxonomyEntry
 } from "../logic/subcategoryTaxonomy.js";
 import { acceptsAnyLocation } from "../logic/locationReply.js";
-import { preventOverSpecificDrinkSubcategory } from "../logic/requestedSubcategory.js";
+import {
+  preventOverSpecificDrinkSubcategory,
+  preventSoftSignalAsHardSubcategory
+} from "../logic/requestedSubcategory.js";
 import { PLACE_AMENITIES } from "../types/place.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
@@ -123,8 +126,9 @@ function withSearchProfile(
       result.context.intent && result.context.intent !== "unknown"
         ? result.context.intent
         : taxonomyMatch?.intent ?? result.context.intent,
-    requestedSubcategory:
+    requestedSubcategory: preventSoftSignalAsHardSubcategory(
       result.context.requestedSubcategory ?? taxonomyMatch?.name
+    )
   };
   const context = {
     ...taxonomyContext,
@@ -263,8 +267,6 @@ export function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(dance|dancing|dansen|danser|tanzen)\b/.test(lower)) return "dancing";
   if (/\b(walk|walking|hike|hiking|wandelen|promenade|marcher|randonnee|wandern)\b/.test(lower)) return "walking";
   if (/\b(excursion|tour|uitstap|ausflug)\b/.test(lower)) return "excursion";
-  if (/\b(view|scenic|landscape|uitzicht|landschap|vue|paysage|aussicht|landschaft)\b/.test(lower)) return "scenic";
-
   if (/\b(fish|fish market|seafood market|vis|vismarkt|poisson|poissons|poissonnerie|marche aux poissons|fisch|fischmarkt)\b/.test(lower)) {
     return "fish market";
   }
@@ -401,7 +403,9 @@ export function resolveRequestedSubcategory(
     exclusions,
     explicitlyRejected
   );
-  return preventOverSpecificDrinkSubcategory(message, semantic);
+  return preventSoftSignalAsHardSubcategory(
+    preventOverSpecificDrinkSubcategory(message, semantic)
+  );
 }
 
 export function inferRequestedAmenities(message: string): string[] {

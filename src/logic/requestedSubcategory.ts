@@ -34,3 +34,29 @@ export function preventOverSpecificDrinkSubcategory(
 
   return semanticSubcategory;
 }
+
+export function preventSoftSignalAsHardSubcategory(
+  semanticSubcategory: string | undefined
+): string | undefined {
+  const normalized = normalize(semanticSubcategory ?? "");
+
+  // These describe where, when, or in which atmosphere the user wants to go.
+  // SearchProfile already retains them as soft location, occasion, and vibe
+  // signals. Treating one of them as requestedSubcategory would turn it into a
+  // hard filter and remove strong editorial matches before ranking.
+  const softSignals = new Set([
+    "beachfront",
+    "by the ocean",
+    "calm",
+    "chill",
+    "ocean view",
+    "oceanfront",
+    "relaxed",
+    "scenic",
+    "sea view",
+    "sunset",
+    "view"
+  ]);
+
+  return softSignals.has(normalized) ? undefined : semanticSubcategory;
+}

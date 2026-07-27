@@ -1,7 +1,10 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { acceptsAnyLocation } from "../src/logic/locationReply.js";
-import { preventOverSpecificDrinkSubcategory } from "../src/logic/requestedSubcategory.js";
+import {
+  preventOverSpecificDrinkSubcategory,
+  preventSoftSignalAsHardSubcategory
+} from "../src/logic/requestedSubcategory.js";
 import { practicalInfoNeedsTranslationRetry } from "../src/logic/practicalInfoLocalization.js";
 import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
@@ -50,6 +53,12 @@ assert(
   ) === "cocktails",
   "An explicitly requested cocktail must retain its specific focus."
 );
+for (const softSignal of ["scenic", "ocean_view", "oceanfront", "sunset", "calm"]) {
+  assert(
+    preventSoftSignalAsHardSubcategory(softSignal) === undefined,
+    `${softSignal} must remain a soft search signal, never a hard subcategory filter.`
+  );
+}
 
 const recommendationFallback = buildRecommendationTextFallback({
   offscriptReason: "A hidden oceanfront favourite.",
@@ -194,7 +203,7 @@ const chezIso = place("Chez Iso", {
   area: "Plage de Mamelles",
   shortDescription: "A peaceful corner of the coast overlooking the bay.",
   occasionTags: ["drinks", "sunset", "beach_day"],
-  vibeTags: ["calm", "scenic"],
+  vibeTags: ["calm", "relaxed", "sunset"],
   vibe: "calm oceanfront",
   priceLevel: 1,
   offscriptPickLevel: 3,
@@ -495,6 +504,34 @@ assert(
   "Semantic cocktail over-specialization must not remove priority-98 Chez Iso from a generic drink request."
 );
 console.log("✓ generic drinks cannot become a hard cocktail filter");
+
+const spatiallyOverSpecificDrinkContext = turn(
+  "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",
+  {
+    intent: "drink",
+    requestedSubcategory: preventSoftSignalAsHardSubcategory("ocean_view"),
+    timing: "sunset",
+    vibe: "calm",
+    budget: "affordable",
+    targetRegion: "Dakar",
+    directRequest: true
+  }
+);
+assert(
+  spatiallyOverSpecificDrinkContext.requestedSubcategory === undefined,
+  "Ocean view must not become a hard requestedSubcategory."
+);
+assert(
+  rankRelevantPlaces(
+    findMatchingCandidates(
+      [idealBeach, chezIso, chezAm, aimanBar],
+      spatiallyOverSpecificDrinkContext
+    ),
+    spatiallyOverSpecificDrinkContext
+  )[0]?.place.name === "Chez Iso",
+  "A spatial semantic label must not remove priority-98 Chez Iso before ranking."
+);
+console.log("✓ spatial and vibe signals stay soft before editorial ranking");
 
 runConversation("reggae drink on the beach", undefined, [
   {
