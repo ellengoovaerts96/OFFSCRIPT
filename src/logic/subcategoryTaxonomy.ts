@@ -79,3 +79,13 @@ export function matchKnownSubcategory(
   const searchable = ` ${normalize(message)} `;
   return taxonomy.find((entry) => searchable.includes(` ${normalize(entry.name)} `));
 }
+
+export function findTaxonomySubcategory(
+  candidate: string | undefined,
+  taxonomy: SubcategoryTaxonomyEntry[]
+): SubcategoryTaxonomyEntry | undefined {
+  if (!candidate) return undefined;
+  const normalizedCandidate = normalize(candidate);
+  if (!normalizedCandidate) return undefined;
+  return taxonomy.find((entry) => normalize(entry.name) === normalizedCandidate);
+}

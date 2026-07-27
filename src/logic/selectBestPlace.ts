@@ -1,7 +1,6 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import {
-  isSpecificFocus,
   placeMatchesIntent,
   placeMatchesLocation,
   placeMatchesSpecificFocus
@@ -76,19 +75,9 @@ function localCandidatesForContext(places: Place[], context: UserContext): Place
 
 function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
   const requestedSubcategory = context.requestedSubcategory;
-  const subcategoryCandidates = requestedSubcategory
+  return requestedSubcategory
     ? places.filter((place) => placeMatchesSpecificFocus(place, requestedSubcategory))
     : places;
-
-  if (!isSpecificFocus(context.vibe)) return subcategoryCandidates;
-
-  const exactCandidates = subcategoryCandidates.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
-  if (exactCandidates.length || !requestedSubcategory) return exactCandidates;
-
-  // When two strong signals are supplied, prefer places matching both. If the
-  // database is missing one descriptive tag, retain the distinctive structured
-  // focus (for example reggae) instead of returning no match at all.
-  return places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
 }
 
 export function findMatchingCandidates(places: Place[], context: UserContext): Place[] {

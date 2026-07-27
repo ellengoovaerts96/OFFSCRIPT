@@ -11,6 +11,7 @@ import {
   type SearchProfileSignals
 } from "../logic/buildSearchProfile.js";
 import {
+  findTaxonomySubcategory,
   matchKnownSubcategory,
   type SubcategoryTaxonomyEntry
 } from "../logic/subcategoryTaxonomy.js";
@@ -121,15 +122,32 @@ function withSearchProfile(
   subcategoryTaxonomy: SubcategoryTaxonomyEntry[] = []
 ): BuildUserContextResult {
   const taxonomyMatch = matchKnownSubcategory(message, subcategoryTaxonomy);
+  const deterministicMatch = findTaxonomySubcategory(
+    preventSoftSignalAsHardSubcategory(inferRequestedSubcategory(message)),
+    subcategoryTaxonomy
+  );
+  const sanitizedCandidate = preventSoftSignalAsHardSubcategory(
+    result.context.requestedSubcategory
+  );
+  const validatedCandidate = findTaxonomySubcategory(
+    sanitizedCandidate,
+    subcategoryTaxonomy
+  );
+  const requestedSubcategory =
+    deterministicMatch?.name ??
+    taxonomyMatch?.name ??
+    validatedCandidate?.name ??
+    (subcategoryTaxonomy.length === 0 ? sanitizedCandidate : undefined);
   const taxonomyContext: UserContext = {
     ...result.context,
     intent:
       result.context.intent && result.context.intent !== "unknown"
         ? result.context.intent
-        : taxonomyMatch?.intent ?? result.context.intent,
-    requestedSubcategory: preventSoftSignalAsHardSubcategory(
-      result.context.requestedSubcategory ?? taxonomyMatch?.name
-    ),
+        : deterministicMatch?.intent ??
+          taxonomyMatch?.intent ??
+          validatedCandidate?.intent ??
+          result.context.intent,
+    requestedSubcategory,
     requestedAmenities: keepOnlyHardRequestedAmenities(
       result.context.requestedAmenities ?? []
     )

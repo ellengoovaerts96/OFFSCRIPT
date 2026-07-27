@@ -28,6 +28,7 @@ import { rankRelevantPlaces } from "../src/logic/rankRelevantPlaces.js";
 import { buildRecommendationTextFallback } from "../src/logic/recommendationTextFallback.js";
 import {
   buildSubcategoryTaxonomy,
+  findTaxonomySubcategory,
   matchKnownSubcategory
 } from "../src/logic/subcategoryTaxonomy.js";
 import {
@@ -69,6 +70,16 @@ assert(
   inferRequestedSubcategory("Je cherche un bar tranquil à la plage") === "bar" &&
     inferTextVibe("Je cherche un bar tranquil à la plage") === "calm",
   "French bar requests must keep bar as the hard focus and tranquil as a soft calm vibe."
+);
+
+const validationTaxonomy = buildSubcategoryTaxonomy([
+  place("Taxonomy Bar", { categories: ["bar"], subcategories: ["bar"] }),
+  place("Taxonomy Spa", { categories: ["other"], subcategories: ["spa"] })
+]);
+assert(
+  findTaxonomySubcategory("bar", validationTaxonomy)?.name === "bar" &&
+    findTaxonomySubcategory("tranquil beach bar", validationTaxonomy) === undefined,
+  "Only exact database taxonomy values may become hard requested subcategories."
 );
 
 assert(
@@ -596,6 +607,25 @@ assert(
   "A spatial semantic label must not remove priority-98 Chez Iso before ranking."
 );
 console.log("✓ spatial and vibe signals stay soft before editorial ranking");
+
+const inventedLlmVibeContext = turn(
+  "Ik zoek een mysterieuze bar aan zee.",
+  {
+    intent: "drink",
+    requestedSubcategory: "bar",
+    vibe: "mysterious_hidden_magic",
+    targetRegion: "Dakar",
+    directRequest: true
+  }
+);
+assert(
+  findMatchingCandidates(
+    [idealBeach, chezIso, chezAm, aimanBar],
+    inventedLlmVibeContext
+  ).length === 4,
+  "A free-form LLM vibe must remain a ranking hint and may never hard-filter candidates."
+);
+console.log("✓ invented LLM vibes cannot become hard database filters");
 
 const semanticallyOverSpecificAmenityContext = turn(
   "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",

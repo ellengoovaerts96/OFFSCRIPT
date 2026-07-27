@@ -1,6 +1,10 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
-import { scorePlace } from "./scorePlace.js";
+import {
+  isSpecificFocus,
+  placeMatchesSpecificFocus,
+  scorePlace
+} from "./scorePlace.js";
 import { scoreSearchProfilePreferences } from "./searchProfileMatching.js";
 
 export type RankedPlace = {
@@ -38,6 +42,15 @@ function compareRankedPlaces(
   const leftBudgetFit = budgetFitTier(left.place, context.budget);
   const rightBudgetFit = budgetFitTier(right.place, context.budget);
   if (rightBudgetFit !== leftBudgetFit) return rightBudgetFit - leftBudgetFit;
+
+  // A distinctive but still soft vibe preference (for example reggae) may
+  // reorder valid candidates, but it must never remove non-matching places.
+  // This preserves useful fallbacks while respecting an explicit user signal.
+  if (isSpecificFocus(context.vibe)) {
+    const leftVibeFit = placeMatchesSpecificFocus(left.place, context.vibe) ? 1 : 0;
+    const rightVibeFit = placeMatchesSpecificFocus(right.place, context.vibe) ? 1 : 0;
+    if (rightVibeFit !== leftVibeFit) return rightVibeFit - leftVibeFit;
+  }
 
   // Hard filters and profile narrowing have already established relevance.
   // Editorial judgement must therefore decide between comparable valid
