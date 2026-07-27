@@ -6,6 +6,7 @@ import {
 import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
 import { generateFreeConversationReply } from "../ai/generateFreeConversationReply.js";
+import { generatePlaceFollowUpReply } from "../ai/generatePlaceFollowUpReply.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
   deleteConversationContext,
@@ -33,6 +34,7 @@ import {
 } from "./greeting.js";
 import { needsClarification, type MissingContextField } from "./needsClarification.js";
 import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
+import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import {
@@ -888,6 +890,7 @@ function recommendationResult(
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
   let previousContext = await getConversationContext(userPhone);
+  let places: Place[] | undefined;
   const previousAssistantMessage = await getLastOutgoingMessage(userPhone);
   const useWolofGreeting = !previousAssistantMessage;
 
@@ -986,6 +989,35 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
+  if (isPlaceInformationFollowUp(message)) {
+    const lastRecommendedPlace = await getLastRecommendedPlace(userPhone);
+
+    if (lastRecommendedPlace?.placeId) {
+      places = await listRecommendationPlaces(storyLanguage);
+      const place = places.find((candidate) => candidate.id === lastRecommendedPlace.placeId);
+
+      if (place) {
+        const context: UserContext = {
+          ...previousContext,
+          language: storyLanguage
+        };
+        const followUpReply = await generatePlaceFollowUpReply({
+          message,
+          language: context.language,
+          place
+        });
+
+        await upsertConversationContext(userPhone, context);
+
+        return {
+          type: "clarification",
+          context,
+          message: followUpReply
+        };
+      }
+    }
+  }
+
   if (storyMatch) {
     const context: UserContext = {
       ...previousContext,
@@ -1037,7 +1069,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   // Resolve explicit database place names before considering the message for
   // free conversation. Questions such as "What is Chez Iso?" must remain part
   // of the OFFSCRIPT place flow.
-  const places = await listRecommendationPlaces(storyLanguage);
+  places ??= await listRecommendationPlaces(storyLanguage);
   const explicitPlace = findExplicitPlaceRequest(message, places);
   if (explicitPlace) {
     const context: UserContext = {

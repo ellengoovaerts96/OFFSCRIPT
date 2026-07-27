@@ -25,6 +25,7 @@ import {
   scoreSearchProfilePreferences
 } from "../src/logic/searchProfileMatching.js";
 import { rankRelevantPlaces } from "../src/logic/rankRelevantPlaces.js";
+import { isPlaceInformationFollowUp } from "../src/logic/placeFollowUp.js";
 import { buildRecommendationTextFallback } from "../src/logic/recommendationTextFallback.js";
 import {
   buildSubcategoryTaxonomy,
@@ -85,6 +86,14 @@ assert(
 assert(
   acceptsAnyLocation("overal"),
   'The Dutch one-word location reply "overal" must mean Dakar-wide mobility, never a neighbourhood.'
+);
+
+assert(
+  isPlaceInformationFollowUp("Does it have a nice view?") &&
+    isPlaceInformationFollowUp("Kan je wat meer vertellen over deze plek?") &&
+    isPlaceInformationFollowUp("Est-ce qu’il y a la climatisation là-bas ?") &&
+    !isPlaceInformationFollowUp("Do you have another option?"),
+  "Questions about the last recommendation must remain place follow-ups, while alternatives start a new selection."
 );
 
 assert(
