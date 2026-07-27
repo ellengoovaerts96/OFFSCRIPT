@@ -5,6 +5,7 @@ import {
 } from "../ai/buildUserContext.js";
 import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
+import { generateFreeConversationReply } from "../ai/generateFreeConversationReply.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
   deleteConversationContext,
@@ -432,6 +433,12 @@ function containsOffTopicSignal(message: string): boolean {
     "recept",
     "love advice",
     "relationship advice",
+    "tell me a joke",
+    "vertel een mop",
+    "raconte une blague",
+    "schrijf een gedicht",
+    "write a poem",
+    "ecris un poeme",
     "horoscope",
     "weather on mars",
     "pink elephant",
@@ -469,23 +476,7 @@ function isAbsurdOrOffTopicRequest(message: string): boolean {
     return true;
   }
 
-  return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|why is|how do|kan je|kun je|wat is|waarom|waar kan|waar kan ik|comment|pourquoi)\b/i.test(trimmed);
-}
-
-function buildOffTopicResponse(context: UserContext): string {
-  if (context.language.startsWith("nl")) {
-    return "Daarvoor heb ik mijn slippers niet aangetrokken. Ik ben je OFFSCRIPT-hulp voor Senegal: plekken, buurten, cultuur, eten, bars, strand en praktische reistips. Waarmee kan ik je reis wél helpen?";
-  }
-
-  if (context.language.startsWith("fr")) {
-    return "Là, je sors un peu de ma carte. Je suis ton aide OFFSCRIPT pour le Sénégal : lieux, quartiers, culture, food, bars, plage et conseils pratiques. Je t’aide avec quoi pour ton voyage ?";
-  }
-
-  if (context.language.startsWith("de")) {
-    return "Dafür habe ich meine Reisesandalen nicht geschnürt. Ich bin deine OFFSCRIPT-Hilfe für Senegal: Orte, Viertel, Kultur, Essen, Bars, Strand und praktische Tipps. Wobei soll ich dir für die Reise helfen?";
-  }
-
-  return "That one is a little outside my travel lane. I am your OFFSCRIPT help for Senegal: places, neighbourhoods, culture, food, bars, beaches and practical tips. What can I help you discover?";
+  return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|who is|why is|how do|how are|when is|kan je|kun je|wat is|wie is|waarom|hoe werkt|hoe gaat|wanneer|waar kan|waar kan ik|comment|qui est|pourquoi|quand|ca va|ça va)\b/i.test(trimmed);
 }
 
 function isRecommendationFeedbackOnly(message: string): boolean {
@@ -1043,21 +1034,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  if (isAbsurdOrOffTopicRequest(message)) {
-    const context: UserContext = {
-      ...previousContext,
-      language: storyLanguage
-    };
-
-    await upsertConversationContext(userPhone, context);
-
-    return {
-      type: "clarification",
-      context,
-      message: buildOffTopicResponse(context)
-    };
-  }
-
+  // Resolve explicit database place names before considering the message for
+  // free conversation. Questions such as "What is Chez Iso?" must remain part
+  // of the OFFSCRIPT place flow.
   const places = await listRecommendationPlaces(storyLanguage);
   const explicitPlace = findExplicitPlaceRequest(message, places);
   if (explicitPlace) {
@@ -1068,6 +1047,27 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
     await upsertConversationContext(userPhone, context);
     return recommendationResult(explicitPlace, context, message);
+  }
+
+  if (isAbsurdOrOffTopicRequest(message)) {
+    const context: UserContext = {
+      ...previousContext,
+      language: storyLanguage
+    };
+    const conversationHistory = await listRecentConversationMessages(userPhone, 6);
+    const freeConversationReply = await generateFreeConversationReply({
+      message,
+      language: context.language,
+      conversationHistory
+    });
+
+    await upsertConversationContext(userPhone, context);
+
+    return {
+      type: "clarification",
+      context,
+      message: freeConversationReply
+    };
   }
 
   const didStartNewSearch = startsNewSearch(message, previousContext);
