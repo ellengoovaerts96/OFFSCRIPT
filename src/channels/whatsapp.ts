@@ -243,9 +243,9 @@ async function sendRecommendationFollowUps(
 
   for (const imageUrl of imageUrls) {
     await sendWhatsAppMediaWithRetry(to, fromOverride, imageUrl);
-    // WhatsApp media messages are sent separately. Leave enough room between
-    // them so a third image is not lost to transient sender throttling.
-    await wait(1200);
+    // WhatsApp media messages are sent separately. A larger interval prevents
+    // the third image from being dropped by transient sender throttling.
+    await wait(2000);
   }
 
   if (imageUrls.length) {
@@ -267,13 +267,13 @@ async function sendWhatsAppMediaWithRetry(
   fromOverride: string,
   imageUrl: string
 ): Promise<void> {
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       await sendWhatsAppMessage(to, undefined, [imageUrl], fromOverride);
       return;
     } catch (error) {
       console.error(`Could not send delayed WhatsApp media (attempt ${attempt})`, error);
-      if (attempt < 2) await wait(1500);
+      if (attempt < 3) await wait(2500);
     }
   }
 }

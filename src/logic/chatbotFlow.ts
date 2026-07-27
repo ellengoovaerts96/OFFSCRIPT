@@ -63,6 +63,7 @@ export type ChatbotFlowResult =
       practicalInfo?: string;
       socialUrl?: string;
       priceLevel?: Place["priceLevel"];
+      offscriptPickLevel: Place["offscriptPickLevel"];
       score: number;
       message: string;
       imageUrls: string[];
@@ -160,8 +161,22 @@ function buildRecommendationAssumption(context: UserContext): string | undefined
 
 function buildBudgetMatchLine(
   context: UserContext,
-  priceLevel: Place["priceLevel"]
+  priceLevel: Place["priceLevel"],
+  offscriptPickLevel: Place["offscriptPickLevel"]
 ): string | undefined {
+  if (offscriptPickLevel >= 2) {
+    if (context.language.startsWith("nl")) {
+      return "Dit is een van onze favoriete OFFSCRIPT-plekken.";
+    }
+    if (context.language.startsWith("fr")) {
+      return "C’est l’un de nos endroits OFFSCRIPT préférés.";
+    }
+    if (context.language.startsWith("de")) {
+      return "Das ist einer unserer liebsten OFFSCRIPT-Orte.";
+    }
+    return "This is one of our favourite OFFSCRIPT places.";
+  }
+
   if (
     !["budget", "affordable"].includes(context.budget ?? "") ||
     priceLevel === undefined ||
@@ -882,6 +897,7 @@ function recommendationResult(
     practicalInfo: place.practicalInfo,
     socialUrl: preferredSocialUrl(place),
     priceLevel: place.priceLevel,
+    offscriptPickLevel: place.offscriptPickLevel,
     score,
     message: recommendationTitle(place),
     imageUrls: selectRecommendationImages(place, message)
@@ -1235,7 +1251,11 @@ export async function handleChatMessage(input: {
     result.type === "recommendation" && localizedRecommendation
       ? [
           localizedRecommendation.shortDescription,
-          buildBudgetMatchLine(result.context, result.priceLevel),
+          buildBudgetMatchLine(
+            result.context,
+            result.priceLevel,
+            result.offscriptPickLevel
+          ),
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
           whatsAppContactLine,
