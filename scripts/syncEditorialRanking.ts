@@ -129,7 +129,9 @@ async function main(): Promise<void> {
         integer(row[index("authenticity")], 0, 4, "authenticity"), integer(row[index("food_orientation")], -2, 2, "food_orientation"),
         integer(row[index("audience_orientation")], -2, 2, "audience_orientation"), audienceList(row[index("audience_tags")]),
         integer(row[index("adventure_level")], 0, 3, "adventure_level"), list(row[index("occasion_tags")]), bool(row[index("work_friendly")]),
-        optionalIndex("amenities") >= 0 ? amenityList(row[optionalIndex("amenities")]) : null,
+        optionalIndex("amenities") >= 0 && text(row[optionalIndex("amenities")])
+          ? amenityList(row[optionalIndex("amenities")])
+          : null,
         row[index("verified_by")] || null, row[index("review_notes")] || null, sourceRowId, placeName
       ];
       const result = await client.query(`UPDATE public.places SET offscript_pick_level=$1, offscript_priority=$2, price_level=$3,
