@@ -87,6 +87,10 @@ assert(
   acceptsAnyLocation("overal"),
   'The Dutch one-word location reply "overal" must mean Dakar-wide mobility, never a neighbourhood.'
 );
+assert(
+  acceptsAnyLocation("n’importe où") && acceptsAnyLocation("n'importe où"),
+  "French Dakar-wide mobility must work with typographic and ASCII apostrophes."
+);
 
 assert(
   isPlaceInformationFollowUp("Does it have a nice view?") &&

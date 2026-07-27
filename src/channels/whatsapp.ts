@@ -1,9 +1,13 @@
 import { Router } from "express";
+import { detectLanguage } from "../ai/detectLanguage.js";
 import { createChatMessage } from "../data/chatMessagesRepository.js";
 import { canSendWhatsAppMessage, sendWhatsAppMessage } from "../integrations/twilio.js";
 import { handleChatMessage } from "../logic/chatbotFlow.js";
 
 export const whatsappRouter = Router();
+const WEBHOOK_RESPONSE_DEADLINE_MS = 10_000;
+
+type ChatbotMessageResult = Awaited<ReturnType<typeof handleChatMessage>>;
 
 whatsappRouter.post("/", async (req, res) => {
   try {
@@ -16,14 +20,34 @@ whatsappRouter.post("/", async (req, res) => {
       return;
     }
 
-    await logChatMessage(from, "incoming", incomingMessage);
+    // Logging must never delay the Twilio webhook response. Railway/Postgres
+    // can briefly be slow even while recommendation processing is healthy.
+    void logChatMessage(from, "incoming", incomingMessage);
 
-    const { reply, followUpMessages, locationActions, imageUrls, afterMediaMessages } = await handleChatMessage({
+    const processing = handleChatMessage({
       userPhone: from,
       message: incomingMessage
     });
+    const result = await withinWebhookDeadline(processing);
 
-    await logChatMessage(from, "outgoing", reply);
+    if (!result) {
+      const acknowledgement = buildProcessingAcknowledgement(incomingMessage);
+      sendTwilioMessages(res, [acknowledgement]);
+      void logChatMessage(from, "outgoing", acknowledgement);
+
+      if (canSendWhatsAppMessage(twilioTo)) {
+        void processing
+          .then((completedResult) => sendCompletedResult(from, twilioTo, completedResult))
+          .catch((error) => sendDelayedFailure(from, twilioTo, incomingMessage, error));
+      } else {
+        console.error("WhatsApp processing exceeded the webhook deadline and delayed sending is unavailable.");
+      }
+      return;
+    }
+
+    const { reply, followUpMessages, locationActions, imageUrls, afterMediaMessages } = result;
+
+    void logChatMessage(from, "outgoing", reply);
 
     if (canSendWhatsAppMessage(twilioTo)) {
       sendTwilioMessages(res, [reply]);
@@ -38,7 +62,7 @@ whatsappRouter.post("/", async (req, res) => {
     }
 
     for (const outgoingMessage of [...followUpMessages, ...afterMediaMessages]) {
-      await logChatMessage(from, "outgoing", outgoingMessage);
+      void logChatMessage(from, "outgoing", outgoingMessage);
     }
 
     sendTwilioMessages(res, buildFallbackMessages(reply, followUpMessages), imageUrls, afterMediaMessages);
@@ -47,6 +71,77 @@ whatsappRouter.post("/", async (req, res) => {
     sendTwilioMessages(res, ["OFFSCRIPT had a small hiccup. Try again in a moment."]);
   }
 });
+
+async function withinWebhookDeadline<T>(promise: Promise<T>): Promise<T | null> {
+  let timeout: NodeJS.Timeout | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timeout = setTimeout(() => resolve(null), WEBHOOK_RESPONSE_DEADLINE_MS);
+      })
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function sendCompletedResult(
+  to: string,
+  fromOverride: string,
+  result: ChatbotMessageResult
+): Promise<void> {
+  try {
+    await sendWhatsAppMessage(to, result.reply, undefined, fromOverride);
+    await logChatMessage(to, "outgoing", result.reply);
+    await sendRecommendationFollowUps(
+      to,
+      fromOverride,
+      result.followUpMessages,
+      result.locationActions,
+      result.imageUrls,
+      result.afterMediaMessages
+    );
+  } catch (error) {
+    console.error("Could not deliver completed delayed WhatsApp result", error);
+  }
+}
+
+async function sendDelayedFailure(
+  to: string,
+  fromOverride: string,
+  incomingMessage: string,
+  error: unknown
+): Promise<void> {
+  console.error("Delayed WhatsApp processing failed", error);
+  const failureMessage = buildDelayedFailureMessage(incomingMessage);
+
+  try {
+    await sendWhatsAppMessage(to, failureMessage, undefined, fromOverride);
+    await logChatMessage(to, "outgoing", failureMessage);
+  } catch (sendError) {
+    console.error("Could not send delayed WhatsApp failure message", sendError);
+  }
+}
+
+function buildProcessingAcknowledgement(message: string): string {
+  const language = detectLanguage(message, "fr");
+
+  if (language === "nl") return "Eén moment, ik zoek dit even goed voor je uit…";
+  if (language === "de") return "Einen Moment, ich schaue das kurz sorgfältig für dich nach…";
+  if (language === "en") return "One moment — I’m checking this properly for you…";
+  return "Un instant — je vérifie ça correctement pour toi…";
+}
+
+function buildDelayedFailureMessage(message: string): string {
+  const language = detectLanguage(message, "fr");
+
+  if (language === "nl") return "Sorry, het opzoeken lukte deze keer niet. Probeer je bericht nog één keer.";
+  if (language === "de") return "Entschuldigung, die Suche hat diesmal nicht geklappt. Schick deine Nachricht bitte noch einmal.";
+  if (language === "en") return "Sorry, the search did not complete this time. Please send your message once more.";
+  return "Désolé, la recherche n’a pas abouti cette fois. Envoie ton message encore une fois.";
+}
 
 async function logChatMessage(
   userPhone: string,
