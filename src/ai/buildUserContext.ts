@@ -16,6 +16,7 @@ import {
 } from "../logic/subcategoryTaxonomy.js";
 import { acceptsAnyLocation } from "../logic/locationReply.js";
 import {
+  keepOnlyHardRequestedAmenities,
   preventOverSpecificDrinkSubcategory,
   preventSoftSignalAsHardSubcategory
 } from "../logic/requestedSubcategory.js";
@@ -128,6 +129,9 @@ function withSearchProfile(
         : taxonomyMatch?.intent ?? result.context.intent,
     requestedSubcategory: preventSoftSignalAsHardSubcategory(
       result.context.requestedSubcategory ?? taxonomyMatch?.name
+    ),
+    requestedAmenities: keepOnlyHardRequestedAmenities(
+      result.context.requestedAmenities ?? []
     )
   };
   const context = {

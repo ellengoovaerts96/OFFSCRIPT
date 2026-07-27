@@ -2,6 +2,7 @@ import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { acceptsAnyLocation } from "../src/logic/locationReply.js";
 import {
+  keepOnlyHardRequestedAmenities,
   preventOverSpecificDrinkSubcategory,
   preventSoftSignalAsHardSubcategory
 } from "../src/logic/requestedSubcategory.js";
@@ -59,6 +60,11 @@ for (const softSignal of ["scenic", "ocean_view", "oceanfront", "sunset", "calm"
     `${softSignal} must remain a soft search signal, never a hard subcategory filter.`
   );
 }
+assert(
+  keepOnlyHardRequestedAmenities(["ocean_view", "wifi", "air_conditioning"]).join(",") ===
+    "wifi,air_conditioning",
+  "Ocean view must remain a soft location feature while explicit facilities stay hard."
+);
 
 const recommendationFallback = buildRecommendationTextFallback({
   offscriptReason: "A hidden oceanfront favourite.",
@@ -532,6 +538,34 @@ assert(
   "A spatial semantic label must not remove priority-98 Chez Iso before ranking."
 );
 console.log("✓ spatial and vibe signals stay soft before editorial ranking");
+
+const semanticallyOverSpecificAmenityContext = turn(
+  "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",
+  {
+    intent: "drink",
+    requestedAmenities: keepOnlyHardRequestedAmenities(["ocean_view"]),
+    timing: "sunset",
+    vibe: "calm",
+    budget: "affordable",
+    targetRegion: "Dakar",
+    directRequest: true
+  }
+);
+assert(
+  semanticallyOverSpecificAmenityContext.requestedAmenities?.length === 0,
+  "Ocean view must not survive as a hard requested amenity."
+);
+assert(
+  rankRelevantPlaces(
+    findMatchingCandidates(
+      [idealBeach, chezIso, chezAm, aimanBar],
+      semanticallyOverSpecificAmenityContext
+    ),
+    semanticallyOverSpecificAmenityContext
+  )[0]?.place.name === "Chez Iso",
+  "A missing ocean_view amenity tag must not remove priority-98 Chez Iso."
+);
+console.log("✓ ocean view cannot exclude editorial favourites as a hard amenity");
 
 runConversation("reggae drink on the beach", undefined, [
   {

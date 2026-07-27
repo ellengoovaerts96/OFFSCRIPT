@@ -60,3 +60,12 @@ export function preventSoftSignalAsHardSubcategory(
 
   return softSignals.has(normalized) ? undefined : semanticSubcategory;
 }
+
+export function keepOnlyHardRequestedAmenities(
+  amenities: string[]
+): string[] {
+  // Ocean view describes the desired setting. It is deliberately a soft
+  // SearchProfile location feature because older editorial favourites can
+  // clearly overlook the ocean without having the newer amenity tag.
+  return amenities.filter((amenity) => amenity !== "ocean_view");
+}
