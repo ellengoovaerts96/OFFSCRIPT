@@ -6,6 +6,7 @@ import { handleChatMessage } from "../logic/chatbotFlow.js";
 
 export const whatsappRouter = Router();
 const WEBHOOK_RESPONSE_DEADLINE_MS = 10_000;
+const DELAYED_PROCESSING_DEADLINE_MS = 35_000;
 
 type ChatbotMessageResult = Awaited<ReturnType<typeof handleChatMessage>>;
 
@@ -36,7 +37,7 @@ whatsappRouter.post("/", async (req, res) => {
       void logChatMessage(from, "outgoing", acknowledgement);
 
       if (canSendWhatsAppMessage(twilioTo)) {
-        void processing
+        void withinDelayedProcessingDeadline(processing)
           .then((completedResult) => sendCompletedResult(from, twilioTo, completedResult))
           .catch((error) => sendDelayedFailure(from, twilioTo, incomingMessage, error));
       } else {
@@ -80,6 +81,27 @@ async function withinWebhookDeadline<T>(promise: Promise<T>): Promise<T | null> 
       promise,
       new Promise<null>((resolve) => {
         timeout = setTimeout(() => resolve(null), WEBHOOK_RESPONSE_DEADLINE_MS);
+      })
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function withinDelayedProcessingDeadline<T>(promise: Promise<T>): Promise<T> {
+  let timeout: NodeJS.Timeout | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new Error(
+              `WhatsApp recommendation processing exceeded the ${DELAYED_PROCESSING_DEADLINE_MS}ms delayed deadline.`
+            )
+          );
+        }, DELAYED_PROCESSING_DEADLINE_MS);
       })
     ]);
   } finally {
