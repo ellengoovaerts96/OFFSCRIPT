@@ -22,6 +22,13 @@ import {
   buildSubcategoryTaxonomy,
   matchKnownSubcategory
 } from "../src/logic/subcategoryTaxonomy.js";
+import {
+  contextForNewSearch,
+  findExplicitPlaceRequest,
+  isAlternativeRequest,
+  isFrustratedReply,
+  startsNewSearch
+} from "../src/logic/searchSession.js";
 import type { Place, PlaceCategory } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
@@ -864,5 +871,59 @@ assert(
   "A complete ranking tie must be resolved deterministically by name."
 );
 console.log("✓ ranking decides transparently between relevant candidates");
+
+const exhaustedBeachBarContext = turn("Je cherche un bar à la plage", {
+  intent: "drink",
+  targetRegion: "Mamelles",
+  requestedSubcategory: "bar",
+  budget: "affordable",
+  searchProfile: {
+    activity: "drink",
+    products: [],
+    locationFeatures: ["beachfront"],
+    occasions: ["drinks"],
+    vibes: [],
+    neighbourhood: "Mamelles",
+    mobility: "nearby",
+    budget: "affordable",
+    amenities: [],
+    dietaryRequirements: [],
+    exclusions: { products: [], categories: [], audienceTags: [], dietary: [] }
+  }
+});
+assert(isAlternativeRequest("Un autre?"), '"Un autre?" must keep the current search session.');
+assert(
+  !startsNewSearch("Un autre?", exhaustedBeachBarContext),
+  "An alternative request must preserve current filters and recommendation history."
+);
+assert(
+  startsNewSearch("Où est-ce que je peux manger du poisson sur la plage?", exhaustedBeachBarContext),
+  "A concrete fish-on-the-beach request must start a fresh search."
+);
+assert(
+  startsNewSearch("Yoff? Où est-ce que je peux manger une pizza?", exhaustedBeachBarContext),
+  "A concrete pizza request must not inherit the previous beach-bar search."
+);
+assert(
+  startsNewSearch("Manger sénégalais?", exhaustedBeachBarContext),
+  "A new Senegalese-food request must reset stale place exclusions."
+);
+const freshContext = contextForNewSearch(exhaustedBeachBarContext, "fr");
+assert(
+  freshContext.targetRegion === undefined &&
+    freshContext.budget === undefined &&
+    freshContext.requestedSubcategory === undefined &&
+    freshContext.searchProfile === undefined,
+  "A fresh search must drop stale location, budget, subcategory and search-profile filters."
+);
+assert(
+  findExplicitPlaceRequest("Chez Iso?", [chezIso, genericBeachBar])?.name === "Chez Iso",
+  "An explicit place-name request must bypass exhausted recommendation history."
+);
+assert(
+  isFrustratedReply("Tu es tellement con!!!") && isFrustratedReply("Tu n'es pas intelligent"),
+  "Frustration must enter a recovery flow instead of another no-match loop."
+);
+console.log("✓ search sessions reset on new topics and preserve true alternatives");
 
 console.log("All real-conversation regression checks passed.");

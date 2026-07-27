@@ -11,7 +11,7 @@ import {
   getConversationContext,
   upsertConversationContext
 } from "../data/conversationContextRepository.js";
-import { getLastOutgoingMessage, listRecentConversationMessages, listRecentOutgoingMessages } from "../data/chatMessagesRepository.js";
+import { getLastOutgoingMessage, listRecentConversationMessages } from "../data/chatMessagesRepository.js";
 import { listPlaceContactDetails, type PlaceContactDetail } from "../data/contactsRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import {
@@ -34,6 +34,13 @@ import { needsClarification, type MissingContextField } from "./needsClarificati
 import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
+import {
+  buildFrustrationRecovery,
+  contextForNewSearch,
+  findExplicitPlaceRequest,
+  isFrustratedReply,
+  startsNewSearch
+} from "./searchSession.js";
 
 export type ChatbotFlowResult =
   | {
@@ -850,13 +857,32 @@ function selectRecommendationImages(place: Place, message: string): string[] {
   return Array.from(new Set(imageUrls)).slice(0, 3);
 }
 
-function wasPlaceAlreadyMentioned(place: Place, outgoingMessages: string[]): boolean {
-  const placeName = normalizeSearchText(place.name);
-  return outgoingMessages.some((message) => normalizeSearchText(message).includes(placeName));
+function recommendationResult(
+  place: Place,
+  context: UserContext,
+  message: string,
+  score = 0
+): ChatbotFlowResult {
+  return {
+    type: "recommendation",
+    context,
+    placeId: place.id,
+    placeName: place.name,
+    googleMapsUrl: place.googleMapsUrl,
+    shortDescription: place.shortDescription,
+    offscriptReason: place.offscriptReason,
+    personalTip: place.personalTip,
+    practicalInfo: place.practicalInfo,
+    socialUrl: preferredSocialUrl(place),
+    priceLevel: place.priceLevel,
+    score,
+    message: recommendationTitle(place),
+    imageUrls: selectRecommendationImages(place, message)
+  };
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
-  const previousContext = await getConversationContext(userPhone);
+  let previousContext = await getConversationContext(userPhone);
   const previousAssistantMessage = await getLastOutgoingMessage(userPhone);
   const useWolofGreeting = !previousAssistantMessage;
 
@@ -907,6 +933,18 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
   const knownRegion = findKnownRegion(message);
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
+
+  if (isFrustratedReply(message)) {
+    const context = contextForNewSearch(previousContext, storyLanguage);
+    await deleteConversationContext(userPhone);
+    await deleteRecommendationHistoryForUser(userPhone);
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: buildFrustrationRecovery(context)
+    };
+  }
 
   if (isContactInfoRequest(message)) {
     const lastRecommendedPlace = await getLastRecommendedPlace(userPhone);
@@ -1006,8 +1044,27 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  const conversationHistory = await listRecentConversationMessages(userPhone, 8);
   const places = await listRecommendationPlaces(storyLanguage);
+  const explicitPlace = findExplicitPlaceRequest(message, places);
+  if (explicitPlace) {
+    const context: UserContext = {
+      ...previousContext,
+      language: storyLanguage,
+      directRequest: true
+    };
+    await upsertConversationContext(userPhone, context);
+    return recommendationResult(explicitPlace, context, message);
+  }
+
+  const didStartNewSearch = startsNewSearch(message, previousContext);
+  if (didStartNewSearch) {
+    previousContext = contextForNewSearch(previousContext, storyLanguage);
+    await deleteRecommendationHistoryForUser(userPhone);
+  }
+
+  const conversationHistory = didStartNewSearch
+    ? []
+    : await listRecentConversationMessages(userPhone, 8);
   const { context } = await buildUserContext({
     message,
     previousContext,
@@ -1052,36 +1109,21 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   await upsertConversationContext(userPhone, context);
 
-  const [recommendedPlaceIds, recentOutgoingMessages] = await Promise.all([
-    listRecommendedPlaceIds(userPhone),
-    listRecentOutgoingMessages(userPhone)
-  ]);
+  const recommendedPlaceIds = await listRecommendedPlaceIds(userPhone);
   const recommendedPlaceIdSet = new Set(recommendedPlaceIds);
-  const newPlaces = places.filter(
-    (place) => !recommendedPlaceIdSet.has(place.id) && !wasPlaceAlreadyMentioned(place, recentOutgoingMessages)
-  );
+  const newPlaces = places.filter((place) => !recommendedPlaceIdSet.has(place.id));
   const selection = selectBestPlace(newPlaces, context);
 
   if (!selection) {
     const alternativeSelection = selectBestAlternativePlace(newPlaces, context);
 
     if (alternativeSelection) {
-      return {
-        type: "recommendation",
+      return recommendationResult(
+        alternativeSelection.place,
         context,
-        placeId: alternativeSelection.place.id,
-        placeName: alternativeSelection.place.name,
-        googleMapsUrl: alternativeSelection.place.googleMapsUrl,
-        shortDescription: alternativeSelection.place.shortDescription,
-        offscriptReason: alternativeSelection.place.offscriptReason,
-        personalTip: alternativeSelection.place.personalTip,
-        practicalInfo: alternativeSelection.place.practicalInfo,
-        socialUrl: preferredSocialUrl(alternativeSelection.place),
-        priceLevel: alternativeSelection.place.priceLevel,
-        score: alternativeSelection.score,
-        message: recommendationTitle(alternativeSelection.place),
-        imageUrls: selectRecommendationImages(alternativeSelection.place, message)
-      };
+        message,
+        alternativeSelection.score
+      );
     }
 
     if (newPlaces.length < places.length && selectBestPlace(places, context)) {
@@ -1099,22 +1141,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  return {
-    type: "recommendation",
-    context,
-    placeId: selection.place.id,
-    placeName: selection.place.name,
-    googleMapsUrl: selection.place.googleMapsUrl,
-    shortDescription: selection.place.shortDescription,
-    offscriptReason: selection.place.offscriptReason,
-    personalTip: selection.place.personalTip,
-    practicalInfo: selection.place.practicalInfo,
-    socialUrl: preferredSocialUrl(selection.place),
-    priceLevel: selection.place.priceLevel,
-    score: selection.score,
-    message: recommendationTitle(selection.place),
-    imageUrls: selectRecommendationImages(selection.place, message)
-  };
+  return recommendationResult(selection.place, context, message, selection.score);
 }
 
 export async function handleChatMessage(input: {
