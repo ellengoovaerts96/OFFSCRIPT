@@ -42,7 +42,7 @@ const TERM_ALIASES: Record<string, string[]> = {
   ],
   rooftop: ["rooftop", "roof terrace", "dakterras", "toit terrasse"],
   indoor: ["indoor", "inside", "interior", "binnen", "intérieur"],
-  calm: ["calm", "quiet", "chill", "relaxed", "rustig", "calme", "tranquille"],
+  calm: ["calm", "quiet", "chill", "relaxed", "rustig", "calme", "tranquil", "tranquille"],
   lively: ["lively", "animated", "gezellig", "levendig", "animé", "ambiance"],
   rasta_reggae: ["rasta", "reggae", "rasta reggae"],
   local: ["local", "authentic", "lokaal", "authentiek", "authentique"],
@@ -197,7 +197,8 @@ function countMatches(place: Place, values: string[]): number {
 
 function budgetScore(place: Place, budget: string | undefined): number {
   if (!budget || place.priceLevel === undefined) return 0;
-  if (budget === "affordable") return place.priceLevel <= 2 ? 25 : -20;
+  if (budget === "budget") return place.priceLevel === 1 ? 30 : place.priceLevel === 2 ? 10 : -20;
+  if (budget === "affordable") return place.priceLevel === 2 ? 25 : place.priceLevel === 1 ? 10 : -20;
   if (budget === "mid-range") return place.priceLevel === 3 ? 25 : -10;
   if (budget === "upscale") return place.priceLevel === 4 ? 25 : place.priceLevel === 5 ? 10 : -20;
   if (budget === "luxury") return place.priceLevel === 5 ? 30 : place.priceLevel === 4 ? 20 : -20;

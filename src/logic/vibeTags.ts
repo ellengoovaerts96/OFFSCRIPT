@@ -1,7 +1,7 @@
 const VIBE_TAG_ALIASES: Record<string, string[]> = {
   rasta_reggae: ["rasta", "reggae", "rastabar", "rasta bar", "reggae bar", "bar rasta", "bar reggae"],
   romantic: ["romantic", "romantisch", "romantique"],
-  calm: ["calm", "quiet", "rustig", "calme", "ruhig"],
+  calm: ["calm", "quiet", "rustig", "calme", "tranquil", "tranquille", "ruhig"],
   relaxed: ["relaxed", "relax", "laid-back", "laid back", "chill"],
   lively: ["lively", "levendig", "animé", "anime", "vibrant"],
   sunset: ["sunset", "zonsondergang", "coucher du soleil", "sonnenuntergang"],
@@ -33,4 +33,3 @@ export function extractVibeTags(value: unknown): string[] {
 export function vibeTagAliases(tag: string): string[] {
   return VIBE_TAG_ALIASES[tag] ?? [tag];
 }
-

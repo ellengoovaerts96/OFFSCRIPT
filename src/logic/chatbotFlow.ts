@@ -159,20 +159,34 @@ function buildBudgetMatchLine(
   context: UserContext,
   priceLevel: Place["priceLevel"]
 ): string | undefined {
-  if (context.budget !== "affordable" || priceLevel === undefined || priceLevel > 2) {
+  if (
+    !["budget", "affordable"].includes(context.budget ?? "") ||
+    priceLevel === undefined ||
+    priceLevel > 2
+  ) {
     return undefined;
   }
 
+  const isStrictBudget = context.budget === "budget";
+
   if (context.language.startsWith("nl")) {
-    return "Dit is een van de meer budgetvriendelijke opties die bij je vraag passen.";
+    return isStrictBudget
+      ? "Dit is een van de meest budgetvriendelijke opties die bij je vraag passen."
+      : "Dit is een van de betaalbare opties die bij je vraag passen.";
   }
   if (context.language.startsWith("fr")) {
-    return "C’est l’une des options les plus abordables qui correspondent à ta demande.";
+    return isStrictBudget
+      ? "C’est l’une des options les plus économiques qui correspondent à ta demande."
+      : "C’est l’une des options abordables qui correspondent à ta demande.";
   }
   if (context.language.startsWith("de")) {
-    return "Das ist eine der preisgünstigeren Optionen, die zu deiner Anfrage passen.";
+    return isStrictBudget
+      ? "Das ist eine der besonders günstigen Optionen, die zu deiner Anfrage passen."
+      : "Das ist eine der günstigen Optionen, die zu deiner Anfrage passen.";
   }
-  return "This is one of the more budget-friendly options that matches what you asked for.";
+  return isStrictBudget
+    ? "This is one of the most budget-friendly options that matches what you asked for."
+    : "This is one of the affordable options that matches what you asked for.";
 }
 
 function buildLanguagePreferenceResponse(context: UserContext): string {

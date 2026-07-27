@@ -49,7 +49,7 @@ const OCCASION_PATTERNS: SignalPattern[] = [
 
 const VIBE_PATTERNS: SignalPattern[] = [
   ["rasta_reggae", /\b(rasta|reggae|rastabar)\b/],
-  ["calm", /\b(calm|quiet|chill|chilled|relaxed|rustig|tranquille|calme|ruhig)\b/],
+  ["calm", /\b(calm|quiet|chill|chilled|relaxed|rustig|tranquil|tranquille|calme|ruhig)\b/],
   ["lively", /\b(lively|gezellig|levendig|anime|ambiance|lebendig)\b/],
   ["romantic", /\b(romantic|romantisch|romantique)\b/],
   ["local", /\b(local|lokaal|lokale|authentic|authentiek|authentique)\b/],

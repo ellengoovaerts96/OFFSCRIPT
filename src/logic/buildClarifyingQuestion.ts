@@ -10,7 +10,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     subcategory: "Wat zoek je daar precies binnen?",
     vibe: "Welke vibe of subcategorie zoek je?",
     timing: "Wanneer wil je gaan: ochtend, middag, avond of vanavond?",
-    budget: "Welk budget past het best: budgetvriendelijk, gemiddeld, chic of luxe?"
+    budget: "Welk budget past het best: budgetvriendelijk, betaalbaar, gemiddeld, chic of luxe?"
   },
   fr: {
     location: "Tu es où maintenant, ou un taxi peut t’emmener n’importe où à Dakar ?",
@@ -20,7 +20,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     subcategory: "Qu’est-ce que tu cherches exactement dans cette catégorie ?",
     vibe: "Tu cherches quelle ambiance ou sous-catégorie ?",
     timing: "Tu veux y aller quand : matin, après-midi, soir ou ce soir ?",
-    budget: "Quel budget te convient le mieux : abordable, moyen, chic ou luxe ?"
+    budget: "Quel budget te convient le mieux : petit budget, abordable, moyen, chic ou luxe ?"
   },
   de: {
     location: "Wo bist du gerade, oder kann dich ein Taxi überall in Dakar hinbringen?",
@@ -30,7 +30,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     subcategory: "Was suchst du innerhalb dieser Kategorie genau?",
     vibe: "Welche Stimmung oder Unterkategorie suchst du?",
     timing: "Wann möchtest du gehen: morgens, nachmittags, abends oder heute Abend?",
-    budget: "Welches Budget passt am besten: günstig, mittel, gehoben oder luxuriös?"
+    budget: "Welches Budget passt am besten: sehr günstig, günstig, mittel, gehoben oder luxuriös?"
   },
   en: {
     location: "Where are you now, or are you happy to take a taxi anywhere in Dakar?",
@@ -40,7 +40,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     subcategory: "What exactly are you looking for within that category?",
     vibe: "What vibe or subcategory do you want?",
     timing: "When do you want to go: morning, afternoon, evening, or tonight?",
-    budget: "What budget suits you best: affordable, mid-range, upscale, or luxury?"
+    budget: "What budget suits you best: budget-friendly, affordable, mid-range, upscale, or luxury?"
   }
 };
 

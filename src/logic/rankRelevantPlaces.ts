@@ -22,7 +22,8 @@ function scoreEditorialJudgement(place: Place): number {
 
 function budgetFitTier(place: Place, budget: UserContext["budget"]): number {
   if (!budget || place.priceLevel === undefined) return 1;
-  if (budget === "affordable") return place.priceLevel <= 2 ? 2 : 0;
+  if (budget === "budget") return place.priceLevel === 1 ? 2 : place.priceLevel === 2 ? 1 : 0;
+  if (budget === "affordable") return place.priceLevel === 2 ? 2 : place.priceLevel === 1 ? 1 : 0;
   if (budget === "mid-range") return place.priceLevel === 3 ? 2 : 0;
   if (budget === "upscale") return place.priceLevel === 4 ? 2 : place.priceLevel === 5 ? 1 : 0;
   if (budget === "luxury") return place.priceLevel === 5 ? 2 : place.priceLevel === 4 ? 1 : 0;

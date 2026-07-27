@@ -1,5 +1,10 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
+import {
+  inferBudget,
+  inferRequestedSubcategory,
+  inferTextVibe
+} from "../src/ai/buildUserContext.js";
 import { acceptsAnyLocation } from "../src/logic/locationReply.js";
 import {
   keepOnlyHardRequestedAmenities,
@@ -7,7 +12,10 @@ import {
   preventSoftSignalAsHardSubcategory
 } from "../src/logic/requestedSubcategory.js";
 import { practicalInfoNeedsTranslationRetry } from "../src/logic/practicalInfoLocalization.js";
-import { buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
+import {
+  buildClarifyingQuestion,
+  buildLocalDishLocationQuestion
+} from "../src/logic/buildClarifyingQuestion.js";
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { findMatchingCandidates, selectBestPlace } from "../src/logic/selectBestPlace.js";
@@ -41,6 +49,27 @@ type ConversationTurn = {
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
+
+assert(
+  buildClarifyingQuestion("budget", { language: "fr" }).includes("petit budget, abordable"),
+  "The French budget question must expose price levels 1 and 2 separately."
+);
+assert(
+  buildClarifyingQuestion("budget", { language: "nl" }).includes("budgetvriendelijk, betaalbaar"),
+  "The Dutch budget question must expose price levels 1 and 2 separately."
+);
+assert(
+  inferBudget("petit budget") === "budget" &&
+    inferBudget("budgetvriendelijk") === "budget" &&
+    inferBudget("abordable") === "affordable" &&
+    inferBudget("betaalbaar") === "affordable",
+  "Budget-friendly and affordable answers must map to distinct price levels."
+);
+assert(
+  inferRequestedSubcategory("Je cherche un bar tranquil à la plage") === "bar" &&
+    inferTextVibe("Je cherche un bar tranquil à la plage") === "calm",
+  "French bar requests must keep bar as the hard focus and tranquil as a soft calm vibe."
+);
 
 assert(
   acceptsAnyLocation("overal"),
@@ -258,6 +287,28 @@ const idealBeach = place("Ideal Beach", {
   offscriptPickLevel: 0,
   offscriptPriority: 40
 });
+const tranquilBeachBarContext = turn("Je cherche un bar tranquil à la plage", {
+  intent: "drink",
+  requestedSubcategory: inferRequestedSubcategory("Je cherche un bar tranquil à la plage"),
+  vibe: inferTextVibe("Je cherche un bar tranquil à la plage"),
+  directRequest: true
+});
+assert(
+  findMatchingCandidates(
+    [idealBeach, chezIso, chezAm, aimanBar],
+    tranquilBeachBarContext
+  ).length >= 3,
+  "A tranquil beach bar request must retain the available bar candidates."
+);
+assert(
+  needsClarification(
+    tranquilBeachBarContext,
+    [idealBeach, chezIso, chezAm, aimanBar]
+  ) !== null,
+  "Several tranquil beach bars must trigger a useful clarification instead of a no-match response."
+);
+console.log("✓ French tranquil beach bar request keeps real candidates");
+
 const laPayotte = place("La Payotte", {
   categories: ["bar", "nightlife"],
   subcategories: ["bar"],
@@ -459,7 +510,7 @@ assert(
 );
 const affordableOceanSunsetContext = turn(
   "Budgetvriendelijk.",
-  { budget: "affordable" },
+  { budget: "budget" },
   oceanSunsetDrinkContext
 );
 const partiallyTaggedEditorialFavourite = place("Partially Tagged Editorial Favourite", {
@@ -486,10 +537,10 @@ assert(
     findMatchingCandidates([idealBeach, chezIso, chezAm, aimanBar], affordableOceanSunsetContext),
     affordableOceanSunsetContext
   ).map(({ place: candidate }) => candidate.name).join(",") ===
-    "Chez Iso,Chez Am,Aïman Bar,Ideal Beach",
-  "Comparable affordable sunset bars must follow editorial priority: Chez Iso, then Chez Am, regardless of incidental text matches."
+    "Chez Iso,Ideal Beach,Chez Am,Aïman Bar",
+  "A budget-friendly request must rank level-1 places first and then apply editorial priority within each price tier."
 );
-console.log("✓ oceanfront sunset drinks ask budget and respect editorial order");
+console.log("✓ oceanfront sunset drinks ask budget and respect price tiers plus editorial order");
 
 const semanticallyOverSpecificDrinkContext = turn(
   "Waar kan ik chill iets drinken bij sunset met zicht op de oceaan?",
@@ -501,7 +552,7 @@ const semanticallyOverSpecificDrinkContext = turn(
     ),
     timing: "sunset",
     vibe: "calm",
-    budget: "affordable",
+    budget: "budget",
     targetRegion: "Dakar",
     directRequest: true
   }
@@ -525,7 +576,7 @@ const spatiallyOverSpecificDrinkContext = turn(
     requestedSubcategory: preventSoftSignalAsHardSubcategory("ocean_view"),
     timing: "sunset",
     vibe: "calm",
-    budget: "affordable",
+    budget: "budget",
     targetRegion: "Dakar",
     directRequest: true
   }
@@ -553,7 +604,7 @@ const semanticallyOverSpecificAmenityContext = turn(
     requestedAmenities: keepOnlyHardRequestedAmenities(["ocean_view"]),
     timing: "sunset",
     vibe: "calm",
-    budget: "affordable",
+    budget: "budget",
     targetRegion: "Dakar",
     directRequest: true
   }

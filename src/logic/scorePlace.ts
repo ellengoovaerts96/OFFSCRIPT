@@ -37,7 +37,7 @@ const VIBE_ALIASES: Record<string, string[]> = {
   quick_casual: ["quick", "casual", "informal", "fast", "takeaway", "snelle", "informeel", "rapide", "décontracté"],
   italian_restaurant: ["italian", "italian restaurant", "italiaans", "restaurant italien", "italienisch"],
   local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],
-  calm: ["calm", "quiet", "rustig", "calme", "ruhig", "relax", "relaxed"],
+  calm: ["calm", "quiet", "rustig", "calme", "tranquil", "tranquille", "ruhig", "relax", "relaxed"],
   lively: ["lively", "gezellig", "levendig", "ambiance", "anime", "animé", "nightlife"],
   scenic: ["scenic", "sunset", "view", "uitzicht", "vue", "sea", "ocean"],
   fitness: ["fitness", "gym", "workout", "training"],
@@ -54,7 +54,8 @@ const STYLE_ALIASES: Record<string, string[]> = {
 };
 
 const BUDGET_ALIASES: Record<string, string[]> = {
-  affordable: ["affordable", "cheap", "budget", "inexpensive", "betaalbaar", "goedkoop", "abordable", "pas cher", "€", "$"],
+  budget: ["budget", "budget_friendly", "budget-friendly", "cheap", "inexpensive", "goedkoop", "budgetvriendelijk", "petit budget", "pas cher", "€", "$"],
+  affordable: ["affordable", "betaalbaar", "abordable"],
   "mid-range": ["mid-range", "midrange", "average", "gemiddeld", "moyen", "€€", "$$"],
   upscale: ["upscale", "chic", "haut de gamme", "exclusief", "€€€", "$$$"],
   luxury: ["luxury", "luxurious", "luxe", "luxueus", "€€€€", "$$$$"]
@@ -224,7 +225,7 @@ function requestedOccasions(context: UserContext): string[] {
   if (normalizedTiming === "sunset") occasions.add("sunset");
   if (context.travellerType === "family" || context.hasChildren) occasions.add("family_outing");
   if (context.travellerType === "couple" && normalizedVibe === "romantic") occasions.add("date_night");
-  if (context.budget === "affordable") occasions.add("budget_friendly");
+  if (context.budget === "budget") occasions.add("budget_friendly");
   if (context.requestedStyle === "local") occasions.add("local_experience");
 
   for (const [occasion, aliases] of Object.entries(OCCASION_ALIASES)) {
@@ -274,7 +275,8 @@ export function scorePlace(place: Place, context: UserContext): number {
   // An explicit price preference must outweigh general editorial priority.
   // Editorial judgement ranks comparable matches; it must not turn a
   // budget-friendly pizzeria into the answer to an upscale request.
-  if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel <= 2 ? 40 : -30;
+  if (context.budget === "budget" && place.priceLevel !== undefined) score += place.priceLevel === 1 ? 45 : place.priceLevel === 2 ? 15 : -30;
+  if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel === 2 ? 40 : place.priceLevel === 1 ? 20 : -30;
   if (context.budget === "mid-range" && place.priceLevel !== undefined) score += place.priceLevel === 3 ? 40 : -15;
   if (context.budget === "upscale" && place.priceLevel !== undefined) score += place.priceLevel >= 4 ? 40 : -30;
   if (context.budget === "luxury" && place.priceLevel !== undefined) {

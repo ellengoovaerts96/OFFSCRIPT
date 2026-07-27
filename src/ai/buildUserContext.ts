@@ -238,6 +238,7 @@ function isBeachLocationPreference(message: string): boolean {
 
 export function inferRequestedSubcategory(message: string): string | undefined {
   const lower = normalizeContextText(message);
+  if (/\b(bar|pub)\b/.test(lower)) return "bar";
   if (/\b(work|working|remote work|cowork|coworking|laptop|werken|werkplek|thuiswerken|telewerken|travailler|travail|teletravail|arbeiten|arbeitsplatz)\b/.test(lower)) return "working";
   if (/\b(fitness|gym|workout|training|sportschool|salle de sport|fitnesstudio)\b/.test(lower)) return "fitness";
   if (/\b(surf|surfing|surfen|surfer)\b/.test(lower)) return "surfing";
@@ -343,7 +344,10 @@ export function inferBudget(message: string): string | undefined {
   if (/\b(upscale|chic|haut de gamme|duur|exclusief|gehoben)\b/.test(lower)) {
     return "upscale";
   }
-  if (/\b(affordable|cheap|cheaper|budget|inexpensive|betaalbaar|goedkoop|moins cher|pas cher|abordable|gunstig|gunstig)\b/.test(lower)) {
+  if (/\b(budget|budget friendly|budgetvriendelijk|cheap|cheaper|inexpensive|goedkoop|petit budget|moins cher|pas cher|sehr gunstig)\b/.test(lower)) {
+    return "budget";
+  }
+  if (/\b(affordable|betaalbaar|abordable|gunstig|günstig)\b/.test(lower)) {
     return "affordable";
   }
   if (/\b(mid range|midrange|average|gemiddeld|moyen|mittelklasse)\b/.test(lower)) return "mid-range";
@@ -487,7 +491,7 @@ export function inferTextVibe(message: string): string | undefined {
   if (/\b(good italian|italian restaurant|goed italiaans|italiaans restaurant|bon restaurant italien|restaurant italien|gutes italienisches|italienisches restaurant)\b/.test(lower)) return "italian_restaurant";
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
-  if (/\b(calm|quiet|chill|chilled|chillen|rustig|calme|tranquille|ruhig)\b/.test(lower)) return "calm";
+  if (/\b(calm|quiet|chill|chilled|chillen|rustig|calme|tranquil|tranquille|ruhig)\b/.test(lower)) return "calm";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
   return undefined;
 }

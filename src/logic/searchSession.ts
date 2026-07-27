@@ -55,7 +55,7 @@ function hasConcreteSearchSignal(message: string): boolean {
 function isShortPreferenceOrAnswer(message: string): boolean {
   const text = normalize(message);
   return (
-    /^(?:budget|budgetvriendelijk|abordable|affordable|gemiddeld|moyen|mid range|chic|luxe|luxury|overal|eender waar|n importe ou|anywhere)$/.test(
+    /^(?:budget|budgetvriendelijk|petit budget|betaalbaar|abordable|affordable|gemiddeld|moyen|mid range|chic|luxe|luxury|overal|eender waar|n importe ou|anywhere)$/.test(
       text
     ) ||
     /^(?:plus typique|typique|local|lokaal|international|internationaal|calm|calme|rustig)$/.test(
