@@ -541,10 +541,9 @@ const partiallyTaggedEditorialFavourite = place("Partially Tagged Editorial Favo
   categories: ["bar"],
   subcategories: ["bar"],
   neighbourhood: "Ouakam",
-  area: "Coast",
-  shortDescription: "A quiet cocktail overlooking the ocean.",
-  occasionTags: ["drinks"],
-  vibeTags: ["calm"],
+  shortDescription: "Our favourite simple place for a drink.",
+  occasionTags: [],
+  vibeTags: [],
   priceLevel: 1,
   offscriptPickLevel: 3,
   offscriptPriority: 99
@@ -554,7 +553,17 @@ assert(
     [idealBeach, partiallyTaggedEditorialFavourite],
     affordableOceanSunsetContext.searchProfile
   ).some(({ name }) => name === "Partially Tagged Editorial Favourite"),
-  "A strong editorial place must not disappear because one soft sunset, ocean or vibe tag is missing."
+  "A strong editorial place must not disappear when all soft sunset, ocean and vibe tags are missing."
+);
+assert(
+  rankRelevantPlaces(
+    findMatchingCandidates(
+      [idealBeach, partiallyTaggedEditorialFavourite],
+      affordableOceanSunsetContext
+    ),
+    affordableOceanSunsetContext
+  )[0]?.place.name === "Partially Tagged Editorial Favourite",
+  "Soft beach, ocean, sunset and calm metadata must not outrank a priority-99 editorial favourite."
 );
 assert(
   rankRelevantPlaces(
