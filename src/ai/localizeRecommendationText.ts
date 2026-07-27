@@ -26,7 +26,9 @@ const localizedPracticalInfoSchema = z.object({
   practicalInfo: z.string()
 });
 
-const LOCALIZATION_TIMEOUT_MS = 6000;
+// The WhatsApp webhook has its own response deadline. Both localization calls
+// must share one budget so they can never take 6 seconds each in succession.
+const LOCALIZATION_TOTAL_TIMEOUT_MS = 4500;
 
 export type LocalizeRecommendationTextInput = {
   language: string;
@@ -74,8 +76,11 @@ function fallbackRecommendationText(
 
 async function translatePracticalInfo(
   practicalInfo: string,
-  language: SupportedRecommendationLanguage
+  language: SupportedRecommendationLanguage,
+  timeoutMs: number
 ): Promise<string | undefined> {
+  if (timeoutMs <= 0) return undefined;
+
   try {
     const client = getOpenAIClient();
     const response = await withTimeout(client.responses.parse({
@@ -91,7 +96,7 @@ Rules:
       text: {
         format: zodTextFormat(localizedPracticalInfoSchema, "localized_practical_info")
       }
-    }), LOCALIZATION_TIMEOUT_MS);
+    }), timeoutMs);
 
     return response?.output_parsed?.practicalInfo?.trim() || undefined;
   } catch {
@@ -103,6 +108,7 @@ export async function localizeRecommendationText(
   input: LocalizeRecommendationTextInput
 ): Promise<LocalizedRecommendationText> {
   const language = recommendationLanguage(input.language);
+  const localizationDeadline = Date.now() + LOCALIZATION_TOTAL_TIMEOUT_MS;
 
   if (!hasOpenAIKey()) {
     return fallbackRecommendationText(input);
@@ -136,7 +142,7 @@ Rules:
       text: {
         format: zodTextFormat(localizedRecommendationSchema, "localized_recommendation")
       }
-    }), LOCALIZATION_TIMEOUT_MS);
+    }), Math.max(1, localizationDeadline - Date.now()));
 
     const localized = response?.output_parsed;
 
@@ -151,7 +157,11 @@ Rules:
       source: input.practicalInfo,
       localized: primaryPracticalInfo
     }) && input.practicalInfo
-      ? await translatePracticalInfo(input.practicalInfo, language)
+      ? await translatePracticalInfo(
+          input.practicalInfo,
+          language,
+          Math.max(0, localizationDeadline - Date.now())
+        )
       : primaryPracticalInfo;
 
     return deduplicateRecommendationText({

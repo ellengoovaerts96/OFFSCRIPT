@@ -630,12 +630,31 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   };
 }
 
+function isShortDeterministicClarificationReply(message: string): boolean {
+  const normalized = normalizeContextText(message);
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+
+  if (wordCount > 6) return false;
+
+  return Boolean(
+    acceptsAnyLocation(message) ||
+      acceptsBroaderLocation(message) ||
+      isKnownRegionOnly(message) ||
+      isTravellerTypeOnly(message) ||
+      inferBudget(message)
+  );
+}
+
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
   const broadTargetRegion = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message) ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
-  if (!hasOpenAIKey() || isTravellerTypeOnly(input.message)) {
+  // Short answers to a question we just asked are fully deterministic. Sending
+  // "n'importe où", "Ouakam" or "abordable" through the LLM adds latency and
+  // can leave a WhatsApp webhook waiting even though no semantic analysis is
+  // needed.
+  if (!hasOpenAIKey() || isShortDeterministicClarificationReply(input.message)) {
     return withSearchProfile(
       input.message,
       fallbackBuildUserContext(input),
