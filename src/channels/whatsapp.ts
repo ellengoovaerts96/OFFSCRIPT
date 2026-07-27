@@ -125,12 +125,10 @@ async function sendRecommendationFollowUps(
   }
 
   for (const imageUrl of imageUrls) {
-    try {
-      await sendWhatsAppMessage(to, undefined, [imageUrl], fromOverride);
-      await wait(800);
-    } catch (error) {
-      console.error("Could not send delayed WhatsApp media", error);
-    }
+    await sendWhatsAppMediaWithRetry(to, fromOverride, imageUrl);
+    // WhatsApp media messages are sent separately. Leave enough room between
+    // them so a third image is not lost to transient sender throttling.
+    await wait(1200);
   }
 
   if (imageUrls.length) {
@@ -143,6 +141,22 @@ async function sendRecommendationFollowUps(
       await logChatMessage(to, "outgoing", message);
     } catch (error) {
       console.error("Could not send delayed WhatsApp after-media message", error);
+    }
+  }
+}
+
+async function sendWhatsAppMediaWithRetry(
+  to: string,
+  fromOverride: string,
+  imageUrl: string
+): Promise<void> {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await sendWhatsAppMessage(to, undefined, [imageUrl], fromOverride);
+      return;
+    } catch (error) {
+      console.error(`Could not send delayed WhatsApp media (attempt ${attempt})`, error);
+      if (attempt < 2) await wait(1500);
     }
   }
 }
