@@ -107,3 +107,31 @@ export function buildRecommendationTextFallback(
     practicalInfo: input.practicalInfo?.trim() || undefined
   });
 }
+
+/**
+ * English and French have complete source fields in Postgres. Dutch currently
+ * only has an editorial OFFSCRIPT reason, while German has no stored prose.
+ * If AI localization times out, never concatenate those differently localized
+ * source fields into one WhatsApp card.
+ */
+export function buildLanguageSafeRecommendationTextFallback(
+  input: RecommendationTextSource & { language: string }
+): RecommendationTextFallback {
+  const language = input.language.toLowerCase();
+
+  if (language.startsWith("nl")) {
+    return {
+      shortDescription:
+        input.offscriptReason?.trim() ||
+        "Deze plek past goed bij wat je zoekt."
+    };
+  }
+
+  if (language.startsWith("de")) {
+    return {
+      shortDescription: "Dieser Ort passt gut zu deiner Anfrage."
+    };
+  }
+
+  return buildRecommendationTextFallback(input);
+}

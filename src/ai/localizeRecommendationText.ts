@@ -2,10 +2,9 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
 import {
-  buildRecommendationTextFallback,
+  buildLanguageSafeRecommendationTextFallback,
   deduplicateRecommendationText
 } from "../logic/recommendationTextFallback.js";
-import { practicalInfoNeedsTranslationRetry } from "../logic/practicalInfoLocalization.js";
 
 type SupportedRecommendationLanguage = "nl" | "fr" | "de" | "en";
 
@@ -18,8 +17,7 @@ const languageNames: Record<SupportedRecommendationLanguage, string> = {
 
 const localizedRecommendationSchema = z.object({
   shortDescription: z.string(),
-  personalTip: z.string().nullable(),
-  practicalInfo: z.string().nullable()
+  personalTip: z.string().nullable()
 });
 
 const localizedPracticalInfoSchema = z.object({
@@ -71,7 +69,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 function fallbackRecommendationText(
   input: LocalizeRecommendationTextInput
 ): LocalizedRecommendationText {
-  return buildRecommendationTextFallback(input);
+  return buildLanguageSafeRecommendationTextFallback(input);
 }
 
 async function translatePracticalInfo(
@@ -116,10 +114,11 @@ export async function localizeRecommendationText(
 
   try {
     const client = getOpenAIClient();
-    const response = await withTimeout(client.responses.parse({
+    const prosePromise = withTimeout(client.responses.parse({
       model: openaiModel,
       instructions: `Write the provided OFFSCRIPT recommendation fields in ${languageNames[language]}.
 Rules:
+- Every human-readable sentence in the response MUST be in ${languageNames[language]}. Never return a mix of languages.
 - Combine offscriptReason and shortDescription into one fluent, concise recommendation in a trusted local-friend voice.
 - offscriptReason explains why OFFSCRIPT cares about the place; shortDescription supplies atmosphere and concrete context.
 - Do not concatenate the two fields mechanically, repeat the same idea, or use travel-guide and brochure language.
@@ -129,20 +128,34 @@ Rules:
 - Do not add labels such as "Practical info" or "Praktisch".
 - Preserve personalTip as a separate field and never replace it with a generic AI tip.
 - Avoid repetition between shortDescription, offscriptReason and personalTip.
-- Never remove, shorten or deduplicate practicalInfo. Preserve every practical
-  detail and bullet, even when it overlaps with another field.
 - Do not add new information and do not remove details.
 - Return empty or missing fields as empty/null.`,
       input: JSON.stringify({
         shortDescription: input.shortDescription,
         offscriptReason: input.offscriptReason ?? null,
-        personalTip: input.personalTip ?? null,
-        practicalInfo: input.practicalInfo ?? null
+        personalTip: input.personalTip ?? null
       }),
       text: {
         format: zodTextFormat(localizedRecommendationSchema, "localized_recommendation")
       }
     }), Math.max(1, localizationDeadline - Date.now()));
+
+    // Translating a long practical-info list used to block the smaller prose
+    // response and make the entire card fall back to mixed source languages.
+    // Run it independently and concurrently instead.
+    const practicalInfoPromise =
+      input.practicalInfo && (language === "nl" || language === "de")
+        ? translatePracticalInfo(
+            input.practicalInfo,
+            language,
+            Math.max(1, localizationDeadline - Date.now())
+          )
+        : Promise.resolve(input.practicalInfo?.trim() || undefined);
+
+    const [response, practicalInfo] = await Promise.all([
+      prosePromise,
+      practicalInfoPromise
+    ]);
 
     const localized = response?.output_parsed;
 
@@ -151,23 +164,15 @@ Rules:
     }
 
     const fallback = fallbackRecommendationText(input);
-    const primaryPracticalInfo = localized.practicalInfo?.trim();
-    const practicalInfo = practicalInfoNeedsTranslationRetry({
-      language,
-      source: input.practicalInfo,
-      localized: primaryPracticalInfo
-    }) && input.practicalInfo
-      ? await translatePracticalInfo(
-          input.practicalInfo,
-          language,
-          Math.max(0, localizationDeadline - Date.now())
-        )
-      : primaryPracticalInfo;
 
     return deduplicateRecommendationText({
       shortDescription: localized?.shortDescription?.trim() || fallback.shortDescription,
-      personalTip: localized?.personalTip?.trim() || input.personalTip,
-      practicalInfo: practicalInfo || input.practicalInfo
+      personalTip: localized?.personalTip?.trim() || fallback.personalTip,
+      // For Dutch and German, omitting untranslated practical info is safer
+      // than leaking the French/English database source into the card.
+      practicalInfo:
+        practicalInfo ||
+        ((language === "en" || language === "fr") ? input.practicalInfo : undefined)
     });
   } catch {
     return fallbackRecommendationText(input);

@@ -26,7 +26,10 @@ import {
 } from "../src/logic/searchProfileMatching.js";
 import { rankRelevantPlaces } from "../src/logic/rankRelevantPlaces.js";
 import { isPlaceInformationFollowUp } from "../src/logic/placeFollowUp.js";
-import { buildRecommendationTextFallback } from "../src/logic/recommendationTextFallback.js";
+import {
+  buildLanguageSafeRecommendationTextFallback,
+  buildRecommendationTextFallback
+} from "../src/logic/recommendationTextFallback.js";
 import {
   buildSubcategoryTaxonomy,
   findTaxonomySubcategory,
@@ -142,6 +145,20 @@ assert(
     recommendationFallback.practicalInfo === "Bring cash.\n- Stay for one more drink." &&
     !recommendationFallback.shortDescription.includes("Stay for one more drink"),
   "Editorial text must avoid repetition while practical info remains complete."
+);
+const dutchRecommendationFallback = buildLanguageSafeRecommendationTextFallback({
+  language: "nl",
+  offscriptReason: "Een verborgen parel aan de oceaan.",
+  shortDescription: "C’est un endroit paisible au bord de l’océan.",
+  personalTip: "Venez au coucher du soleil.",
+  practicalInfo: "🐟 Poisson frais grillé"
+});
+assert(
+  dutchRecommendationFallback.shortDescription ===
+    "Een verborgen parel aan de oceaan." &&
+    !dutchRecommendationFallback.personalTip &&
+    !dutchRecommendationFallback.practicalInfo,
+  "A Dutch localization timeout must never produce a Dutch-French mixed recommendation."
 );
 assert(
   practicalInfoNeedsTranslationRetry({
