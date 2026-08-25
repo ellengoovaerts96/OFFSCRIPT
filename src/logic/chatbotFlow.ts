@@ -161,8 +161,7 @@ function buildRecommendationAssumption(context: UserContext): string | undefined
 
 function buildBudgetMatchLine(
   context: UserContext,
-  priceLevel: Place["priceLevel"],
-  offscriptPickLevel: Place["offscriptPickLevel"]
+  priceLevel: Place["priceLevel"]
 ): string | undefined {
   if (context.budget === "upscale" && priceLevel === 3) {
     if (context.language.startsWith("nl")) {
@@ -175,19 +174,6 @@ function buildBudgetMatchLine(
       return "Ich habe keine passende gehobene Option gefunden; dies ist die beste Wahl eine Preisstufe darunter, im mittleren Preissegment.";
     }
     return "I couldn’t find a suitable upscale option; this is the best match one price level lower, in the mid-range category.";
-  }
-
-  if (offscriptPickLevel >= 2) {
-    if (context.language.startsWith("nl")) {
-      return "Dit is een van onze favoriete OFFSCRIPT-plekken.";
-    }
-    if (context.language.startsWith("fr")) {
-      return "C’est l’un de nos endroits OFFSCRIPT préférés.";
-    }
-    if (context.language.startsWith("de")) {
-      return "Das ist einer unserer liebsten OFFSCRIPT-Orte.";
-    }
-    return "This is one of our favourite OFFSCRIPT places.";
   }
 
   if (
@@ -1266,8 +1252,7 @@ export async function handleChatMessage(input: {
           localizedRecommendation.shortDescription,
           buildBudgetMatchLine(
             result.context,
-            result.priceLevel,
-            result.offscriptPickLevel
+            result.priceLevel
           ),
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,

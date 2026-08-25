@@ -119,16 +119,18 @@ export async function localizeRecommendationText(
       instructions: `Write the provided OFFSCRIPT recommendation fields in ${languageNames[language]}.
 Rules:
 - Every human-readable sentence in the response MUST be in ${languageNames[language]}. Never return a mix of languages.
-- Combine offscriptReason and shortDescription into one fluent, concise recommendation in a trusted local-friend voice.
+- Combine offscriptReason and shortDescription into one fluent, concise recommendation of 2 to 4 complete grammatical sentences in a trusted local-friend voice.
 - offscriptReason explains why OFFSCRIPT cares about the place; shortDescription supplies atmosphere and concrete context.
-- Do not concatenate the two fields mechanically, repeat the same idea, or use travel-guide and brochure language.
+- Rewrite note fragments, keyword lists and telegraphic source text as natural sentences with subjects and verbs.
+- Do not return bullets, sentence fragments or a mechanical concatenation of the source fields.
+- Say each idea only once. Consolidate overlapping facts and omit duplicated wording while preserving the distinct supported information.
+- Do not use travel-guide or brochure language.
 - Translate when the source differs from the target language.
 - Keep place names, URLs, prices, times, phone numbers and proper nouns unchanged.
-- Preserve bullet structure, line breaks, emojis and punctuation where possible.
 - Do not add labels such as "Practical info" or "Praktisch".
 - Preserve personalTip as a separate field and never replace it with a generic AI tip.
 - Avoid repetition between shortDescription, offscriptReason and personalTip.
-- Do not add new information and do not remove details.
+- Do not add unsupported information.
 - Return empty or missing fields as empty/null.`,
       input: JSON.stringify({
         shortDescription: input.shortDescription,
