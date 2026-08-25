@@ -36,7 +36,14 @@ export function findExplicitPlaceRequest(message: string, places: Place[]): Plac
     .sort((left, right) => right.name.length - left.name.length)
     .find((place) => {
       const name = normalize(place.name);
-      return text === name || text === `${name} alors` || text === `${name} peut etre`;
+      return (
+        text === name ||
+        text === `${name} alors` ||
+        text === `${name} peut etre` ||
+        text.includes(` ${name} `) ||
+        text.startsWith(`${name} `) ||
+        text.endsWith(` ${name}`)
+      );
     });
 }
 

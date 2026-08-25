@@ -1098,6 +1098,18 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       directRequest: true
     };
     await upsertConversationContext(userPhone, context);
+    if (isPlaceInformationFollowUp(message)) {
+      const followUpReply = await generatePlaceFollowUpReply({
+        message,
+        language: context.language,
+        place: explicitPlace
+      });
+      return {
+        type: "clarification",
+        context,
+        message: followUpReply
+      };
+    }
     return recommendationResult(explicitPlace, context, message);
   }
 

@@ -7,6 +7,8 @@ type GeneratePlaceFollowUpReplyInput = {
   place: Place;
 };
 
+const PLACE_FOLLOW_UP_TIMEOUT_MS = 5_000;
+
 const languageName = (language: string): string => {
   if (language.startsWith("nl")) return "Dutch";
   if (language.startsWith("fr")) return "French";
@@ -42,11 +44,15 @@ Use only facts contained in the supplied place object.
 Never recommend, compare or mention another place.
 Do not restart the search and do not repeat the full recommendation.
 If the requested fact is not supported by the supplied data, say briefly that OFFSCRIPT cannot confirm it.
-Be warm and concise: one to three sentences.`,
+Sound like a warm, knowledgeable local friend, not a database, intake form or travel brochure.
+For an ordinary factual question, answer in one to three sentences.
+When the user asks for the story, history, origin or background, tell the supported story naturally in four to seven flowing sentences. Focus on the human thread and the most memorable concrete details instead of mechanically summarizing fields.`,
       input: JSON.stringify({
         userMessage: input.message,
         place: input.place
       })
+    }, {
+      timeout: PLACE_FOLLOW_UP_TIMEOUT_MS
     });
 
     return response.output_text.trim() || unknownFactReply(input.place.name, input.language);

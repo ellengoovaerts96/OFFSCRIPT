@@ -1087,6 +1087,40 @@ assert(
   "An explicit place-name request must bypass exhausted recommendation history."
 );
 assert(
+  findExplicitPlaceRequest("Wat is het verhaal achter Chez Iso Dakar?", [chezIso, genericBeachBar])?.name === "Chez Iso",
+  "A natural story question containing a known place name must resolve that place."
+);
+assert(
+  isPlaceInformationFollowUp("Wat is het verhaal achter Chez Iso Dakar?"),
+  "A place story question must use the place-information answer path."
+);
+assert(
+  needsClarification(
+    { language: "nl", intent: "food", timing: "tonight", targetRegion: "Ngor" },
+    [
+      { ...localYoffOne, neighbourhood: "Ngor" },
+      { ...localYoffTwo, neighbourhood: "Ngor" }
+    ]
+  ) === "travellerType",
+  "A broad dinner conversation must ask who is joining before asking budget."
+);
+assert(
+  needsClarification(
+    {
+      language: "nl",
+      intent: "food",
+      timing: "tonight",
+      targetRegion: "Ngor",
+      travellerType: "friends"
+    },
+    [
+      { ...localYoffOne, neighbourhood: "Ngor" },
+      { ...localYoffTwo, neighbourhood: "Ngor" }
+    ]
+  ) === "vibe",
+  "After location and company, a broad dinner conversation must ask one natural cuisine preference."
+);
+assert(
   isFrustratedReply("Tu es tellement con!!!") && isFrustratedReply("Tu n'es pas intelligent"),
   "Frustration must enter a recovery flow instead of another no-match loop."
 );

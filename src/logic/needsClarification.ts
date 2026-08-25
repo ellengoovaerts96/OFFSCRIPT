@@ -110,6 +110,36 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
     // preference questions.
     if (candidates.length <= 1) return null;
     if (!hasSpecificLocation(context)) return "location";
+    // A broad meal request feels more personal when we first learn who is
+    // joining and then ask one useful cuisine preference. This avoids turning
+    // the conversation into a budget-first booking form.
+    if (
+      context.intent === "food" &&
+      !context.requestedSubcategory &&
+      !context.requestedStyle &&
+      !context.vibe &&
+      (!context.travellerType || context.travellerType === "unknown")
+    ) {
+      return "travellerType";
+    }
+    if (
+      context.intent === "food" &&
+      !context.requestedSubcategory &&
+      !context.requestedStyle &&
+      !context.vibe &&
+      context.travellerType === "family" &&
+      context.hasChildren === undefined
+    ) {
+      return "children";
+    }
+    if (
+      context.intent === "food" &&
+      !context.requestedSubcategory &&
+      !context.requestedStyle &&
+      !context.vibe
+    ) {
+      return "vibe";
+    }
     // Local Senegalese food is generally budget-friendly. Once the user has
     // chosen a neighbourhood, another price question adds friction without
     // materially improving the recommendation.

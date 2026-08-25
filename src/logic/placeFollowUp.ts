@@ -23,6 +23,10 @@ export function isPlaceInformationFollowUp(message: string): boolean {
     /\b(tell me more|more information|more info|meer informatie|meer info|vertel meer|en verder|plus d informations|plus d info|dis m en plus|mehr informationen|erzahl mir mehr)\b/.test(
       normalized
     );
+  const asksForStory =
+    /\b(story|story behind|history|origin|background|verhaal|verhaal achter|geschiedenis|ontstaan|histoire|histoire de|histoire derriere|origine|historique|geschichte|geschichte hinter|entstehung)\b/.test(
+      normalized
+    );
   const refersToCurrentPlace =
     /\b(it|there|this place|that place|the place|does it|is it|can you|daar|die plek|de plek|deze plek|heeft het|is het|kan je|er|cet endroit|ce lieu|la bas|là bas|est ce que|il y a|cette adresse|dort|dieser ort|der ort|hat es|ist es)\b/.test(
       normalized
@@ -32,5 +36,5 @@ export function isPlaceInformationFollowUp(message: string): boolean {
       normalized
     );
 
-  return asksForMore || (refersToCurrentPlace && (asksAboutPlaceFact || message.includes("?")));
+  return asksForStory || asksForMore || (refersToCurrentPlace && (asksAboutPlaceFact || message.includes("?")));
 }
