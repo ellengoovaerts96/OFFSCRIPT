@@ -192,6 +192,34 @@ function countMatches(place: Place, values: string[]): number {
   return values.filter((value) => placeMatchesSearchTerm(place, value)).length;
 }
 
+const OCCASION_MATCH_ALIASES: Record<string, string[]> = {
+  drinks: ["drinks", "drink", "bar", "cocktail", "cocktails", "sunset drink", "after work drink"],
+  sunset: ["sunset", "sunset drink", "sundowner"],
+  dinner: ["dinner", "evening", "tonight"],
+  lunch: ["lunch", "afternoon"],
+  breakfast: ["breakfast", "brunch"],
+  nightlife: ["nightlife", "night out", "party", "dancing"],
+  working: ["working", "work friendly", "remote work"]
+};
+
+export function countStructuredOccasionMatches(place: Place, occasions: string[]): number {
+  const structuredValues = [
+    ...place.occasionTags,
+    ...place.vibeTags,
+    ...place.categories,
+    ...place.subcategories.map((subcategory) => subcategory.name),
+    place.vibe
+  ].filter((value): value is string => Boolean(value)).map(normalize);
+
+  return occasions.filter((occasion) => {
+    const normalizedOccasion = normalize(occasion);
+    const aliases = (OCCASION_MATCH_ALIASES[normalizedOccasion] ?? [normalizedOccasion]).map(normalize);
+    return structuredValues.some((value) =>
+      aliases.some((alias) => value === alias || value.includes(alias))
+    );
+  }).length;
+}
+
 function budgetScore(place: Place, budget: string | undefined): number {
   if (!budget || place.priceLevel === undefined) return 0;
   if (budget === "budget") return place.priceLevel === 1 ? 30 : place.priceLevel === 2 ? 10 : -20;

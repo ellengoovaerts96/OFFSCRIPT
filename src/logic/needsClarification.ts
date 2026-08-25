@@ -7,6 +7,7 @@ import {
   recommendationReadiness
 } from "./recommendationReadiness.js";
 import { findClarificationCandidates } from "./selectBestPlace.js";
+import { countStructuredOccasionMatches } from "./searchProfileMatching.js";
 
 export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing" | "budget";
 
@@ -83,6 +84,7 @@ function needsSubcategory(context: UserContext): boolean {
   // A meal moment already makes a broad food request actionable. Asking what
   // to eat as well would waste one of the three available questions.
   if (context.intent === "food" && context.timing && context.timing !== "unknown") return false;
+  if (context.intent === "drink" && context.timing && context.timing !== "unknown") return false;
 
   return Boolean(
     context.intent &&
@@ -90,6 +92,91 @@ function needsSubcategory(context: UserContext): boolean {
     SUBCATEGORY_REQUIRED_INTENTS.has(context.intent) &&
     !hasMeaningfulSubcategory(context)
   );
+}
+
+function distinctCount(values: Array<string | number | boolean | undefined>): number {
+  return new Set(values.filter((value) => value !== undefined && value !== "")).size;
+}
+
+function candidateLocation(place: Place): string | undefined {
+  return normalizeRegion(place.neighbourhood ?? place.area ?? place.region);
+}
+
+function candidateVibeSignature(place: Place): string {
+  return [place.vibe, ...place.vibeTags]
+    .filter(Boolean)
+    .map((value) => value?.toLowerCase())
+    .sort()
+    .join("|");
+}
+
+function candidateTravellerSignature(place: Place): string {
+  return [...place.travellerTypes].sort().join("|");
+}
+
+function mostInformativeCandidateField(
+  context: UserContext,
+  candidates: Place[]
+): MissingContextField | null {
+  const options: Array<{ field: MissingContextField; score: number }> = [];
+  const hasSpecificFocus = Boolean(context.requestedSubcategory);
+  const childSuitabilityVaries = distinctCount(candidates.map((place) => place.childFriendly)) > 1;
+  const requestedOccasions = context.searchProfile?.occasions ?? [];
+  const occasionFitAlreadySeparatesCandidates =
+    requestedOccasions.length > 0 &&
+    distinctCount(
+      candidates.map((place) => countStructuredOccasionMatches(place, requestedOccasions))
+    ) > 1;
+
+  if (!hasSpecificLocation(context)) {
+    // Even when all candidates happen to share a neighbourhood, location still
+    // determines whether getting there is realistic. Skip it only for a single
+    // clear match, handled before this function is called.
+    const spansNeighbourhoods = distinctCount(candidates.map(candidateLocation)) > 1;
+    options.push({ field: "location", score: spansNeighbourhoods ? 100 : 95 });
+  }
+
+  if (
+    context.travellerType === "family" &&
+    context.hasChildren === undefined &&
+    childSuitabilityVaries
+  ) {
+    options.push({ field: "children", score: 90 });
+  }
+
+  if (
+    !hasSpecificFocus &&
+    (!context.travellerType || context.travellerType === "unknown") &&
+    (
+      childSuitabilityVaries ||
+      distinctCount(candidates.map(candidateTravellerSignature)) > 1
+    )
+  ) {
+    options.push({
+      field: "travellerType",
+      score: context.intent === "food" ? 80 : childSuitabilityVaries ? 60 : 45
+    });
+  }
+
+  if (
+    !hasSpecificFocus &&
+    !context.vibe &&
+    !context.requestedStyle &&
+    distinctCount(candidates.map(candidateVibeSignature)) > 1
+  ) {
+    options.push({ field: "vibe", score: 70 });
+  }
+
+  if (
+    !context.budget &&
+    context.requestedStyle !== "local" &&
+    !occasionFitAlreadySeparatesCandidates &&
+    distinctCount(candidates.map((place) => place.priceLevel)) > 1
+  ) {
+    options.push({ field: "budget", score: 50 });
+  }
+
+  return options.sort((left, right) => right.score - left.score)[0]?.field ?? null;
 }
 
 export function needsClarification(context: UserContext, places?: Place[]): MissingContextField | null {
@@ -104,46 +191,10 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (places) {
     const candidates = findClarificationCandidates(places, context);
 
-    // One clear database match needs no logistical questionnaire. With several
-    // valid choices, location and price are useful discriminators. With none,
-    // proceed to the normal no-match response instead of asking irrelevant
-    // preference questions.
+    // Ask only about a field that actually separates the remaining database
+    // candidates. One clear match should be recommended immediately.
     if (candidates.length <= 1) return null;
-    if (!hasSpecificLocation(context)) return "location";
-    // A broad meal request feels more personal when we first learn who is
-    // joining and then ask one useful cuisine preference. This avoids turning
-    // the conversation into a budget-first booking form.
-    if (
-      context.intent === "food" &&
-      !context.requestedSubcategory &&
-      !context.requestedStyle &&
-      !context.vibe &&
-      (!context.travellerType || context.travellerType === "unknown")
-    ) {
-      return "travellerType";
-    }
-    if (
-      context.intent === "food" &&
-      !context.requestedSubcategory &&
-      !context.requestedStyle &&
-      !context.vibe &&
-      context.travellerType === "family" &&
-      context.hasChildren === undefined
-    ) {
-      return "children";
-    }
-    if (
-      context.intent === "food" &&
-      !context.requestedSubcategory &&
-      !context.requestedStyle &&
-      !context.vibe
-    ) {
-      return "vibe";
-    }
-    // Local Senegalese food is generally budget-friendly. Once the user has
-    // chosen a neighbourhood, another price question adds friction without
-    // materially improving the recommendation.
-    if (!context.budget && context.requestedStyle !== "local") return "budget";
+    return mostInformativeCandidateField(context, candidates);
   }
 
   if (isSpecificDirectRequest(context)) return null;

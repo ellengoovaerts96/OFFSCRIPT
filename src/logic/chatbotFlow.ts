@@ -38,7 +38,11 @@ import {
   isOffscriptStartMessage
 } from "./greeting.js";
 import { needsClarification, type MissingContextField } from "./needsClarification.js";
-import { selectBestAlternativePlace, selectBestPlace } from "./selectBestPlace.js";
+import {
+  findClarificationCandidates,
+  selectBestAlternativePlace,
+  selectBestPlace
+} from "./selectBestPlace.js";
 import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
@@ -697,6 +701,40 @@ function chooseClarificationFieldForMessage(
   return missingField;
 }
 
+function lowerFirst(value: string): string {
+  return value ? `${value[0]?.toLowerCase()}${value.slice(1)}` : value;
+}
+
+function buildProgressClarification(
+  context: UserContext,
+  places: Place[],
+  question: string
+): string {
+  if ((context.clarificationCount ?? 0) < 1) return question;
+
+  const candidates = findClarificationCandidates(places, context);
+  if (candidates.length < 2) return question;
+
+  const location = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const locationText = location && location !== "Dakar" ? `, ${location}` : "";
+  const nextQuestion = lowerFirst(question);
+
+  if (context.language.startsWith("nl")) {
+    const options = candidates.length === 2 ? "twee plekken" : "een paar plekken";
+    return `Oké${locationText} — ik heb al ${options} in gedachten. Nog één ding: ${nextQuestion}`;
+  }
+  if (context.language.startsWith("fr")) {
+    const options = candidates.length === 2 ? "deux adresses" : "quelques adresses";
+    return `D’accord${locationText} — j’ai déjà ${options} en tête. Encore une chose : ${nextQuestion}`;
+  }
+  if (context.language.startsWith("de")) {
+    const options = candidates.length === 2 ? "zwei Orte" : "ein paar Orte";
+    return `Alles klar${locationText} — ich habe schon ${options} im Kopf. Nur noch eine Sache: ${nextQuestion}`;
+  }
+  const options = candidates.length === 2 ? "two places" : "a few places";
+  return `Okay${locationText} — I already have ${options} in mind. One more thing: ${nextQuestion}`;
+}
+
 function normalizeReplyForComparison(value: string): string {
   return normalizeSearchText(value).replace(/\s+/g, " ").trim();
 }
@@ -1170,11 +1208,12 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       ...context,
       clarificationCount: (context.clarificationCount ?? 0) + 1
     };
-    const messageText = needsLocalFoodNeighbourhood
+    const baseMessageText = needsLocalFoodNeighbourhood
       ? buildLocalDishLocationQuestion(contextAfterQuestion)
       : clarificationField === "travellerType"
         ? buildGreetingResponse(contextAfterQuestion, { useWolofGreeting })
         : buildClarifyingQuestion(clarificationField, contextAfterQuestion);
+    const messageText = buildProgressClarification(context, places, baseMessageText);
 
     await upsertConversationContext(userPhone, contextAfterQuestion);
 

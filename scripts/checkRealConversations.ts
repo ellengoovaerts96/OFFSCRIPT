@@ -322,6 +322,25 @@ const chezAm = place("Chez Am", {
   priceLevel: 2,
   offscriptPriority: 75
 });
+const prieto = place("Prieto", {
+  categories: ["food"],
+  subcategories: ["dinner", "live music", "mexican food"],
+  neighbourhood: "Almadies",
+  occasionTags: ["breakfast", "lunch", "brunch", "dinner"],
+  priceLevel: 3,
+  offscriptPickLevel: 2,
+  offscriptPriority: 85
+});
+const chezAmSunsetMusic = place("Chez Am", {
+  categories: ["bar"],
+  subcategories: ["bar", "live music", "cocktail"],
+  neighbourhood: "Yoff",
+  occasionTags: ["after work drink", "sunset drink", "cocktails"],
+  vibeTags: ["romantic", "relaxed"],
+  priceLevel: 1,
+  offscriptPickLevel: 3,
+  offscriptPriority: 90
+});
 const aimanBar = place("Aïman Bar", {
   categories: ["bar"],
   subcategories: ["bar"],
@@ -603,8 +622,8 @@ assert(
       affordableOceanSunsetContext
     ),
     affordableOceanSunsetContext
-  )[0]?.place.name === "Partially Tagged Editorial Favourite",
-  "Soft beach, ocean, sunset and calm metadata must not outrank a priority-99 editorial favourite."
+  )[0]?.place.name === "Ideal Beach",
+  "A documented match for the explicitly requested sunset-drinks occasion must outrank an untagged editorial favourite."
 );
 assert(
   rankRelevantPlaces(
@@ -973,6 +992,31 @@ assert(
   pizzaRanking[0]?.place.name === "Pizzammore",
   "An explicit upscale match must outrank a stronger editorial budget pizza."
 );
+const sunsetMusicContext: UserContext = {
+  language: "en",
+  intent: "drink",
+  timing: "flexible",
+  budget: "mid-range",
+  vibe: "scenic",
+  requestedSubcategory: "Live music",
+  targetRegion: "Dakar",
+  searchProfile: {
+    activity: "drink",
+    products: ["live_music"],
+    locationFeatures: [],
+    occasions: ["sunset", "drinks"],
+    vibes: ["scenic"],
+    mobility: "dakar_wide",
+    budget: "mid-range",
+    amenities: [],
+    dietaryRequirements: [],
+    exclusions: { products: [], categories: [], audienceTags: [], dietary: [] }
+  }
+};
+assert(
+  selectBestPlace([prieto, chezAmSunsetMusic], sunsetMusicContext)?.place.name === "Chez Am",
+  "A sunset drink with music must prefer the structured sunset-drinks match over a mid-range restaurant."
+);
 assert(
   pizzaRanking[0]?.score ===
     pizzaRanking[0]?.matchScore +
@@ -1098,8 +1142,8 @@ assert(
   needsClarification(
     { language: "nl", intent: "food", timing: "tonight", targetRegion: "Ngor" },
     [
-      { ...localYoffOne, neighbourhood: "Ngor" },
-      { ...localYoffTwo, neighbourhood: "Ngor" }
+      { ...localYoffOne, neighbourhood: "Ngor", childFriendly: true, vibeTags: ["calm"] },
+      { ...localYoffTwo, neighbourhood: "Ngor", childFriendly: false, vibeTags: ["lively"] }
     ]
   ) === "travellerType",
   "A broad dinner conversation must ask who is joining before asking budget."
@@ -1114,11 +1158,45 @@ assert(
       travellerType: "friends"
     },
     [
-      { ...localYoffOne, neighbourhood: "Ngor" },
-      { ...localYoffTwo, neighbourhood: "Ngor" }
+      { ...localYoffOne, neighbourhood: "Ngor", childFriendly: true, vibeTags: ["calm"] },
+      { ...localYoffTwo, neighbourhood: "Ngor", childFriendly: false, vibeTags: ["lively"] }
     ]
   ) === "vibe",
   "After location and company, a broad dinner conversation must ask one natural cuisine preference."
+);
+assert(
+  needsClarification(
+    {
+      language: "nl",
+      intent: "food",
+      timing: "tonight",
+      targetRegion: "Ngor",
+      travellerType: "friends"
+    },
+    [
+      { ...localYoffOne, neighbourhood: "Ngor", priceLevel: 2, vibeTags: ["calm"] },
+      { ...localYoffTwo, neighbourhood: "Ngor", priceLevel: 2, vibeTags: ["calm"] }
+    ]
+  ) === null,
+  "TUUTI must not ask a question when the answer cannot distinguish the remaining places."
+);
+assert(
+  needsClarification(
+    {
+      language: "nl",
+      intent: "food",
+      requestedSubcategory: "sushi",
+      targetRegion: "Dakar",
+      directRequest: true
+    },
+    [
+      place("Only Sushi Match", {
+        categories: ["food"],
+        subcategories: ["sushi"]
+      })
+    ]
+  ) === null,
+  "One clear product match must be recommended without an irrelevant questionnaire."
 );
 assert(
   isFrustratedReply("Tu es tellement con!!!") && isFrustratedReply("Tu n'es pas intelligent"),

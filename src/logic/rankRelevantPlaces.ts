@@ -5,7 +5,10 @@ import {
   placeMatchesSpecificFocus,
   scorePlace
 } from "./scorePlace.js";
-import { scoreSearchProfilePreferences } from "./searchProfileMatching.js";
+import {
+  countStructuredOccasionMatches,
+  scoreSearchProfilePreferences
+} from "./searchProfileMatching.js";
 
 export type RankedPlace = {
   place: Place;
@@ -42,6 +45,13 @@ function compareRankedPlaces(
   right: RankedPlace,
   context: UserContext
 ): number {
+  const requestedOccasions = context.searchProfile?.occasions ?? [];
+  if (requestedOccasions.length) {
+    const leftOccasionFit = countStructuredOccasionMatches(left.place, requestedOccasions);
+    const rightOccasionFit = countStructuredOccasionMatches(right.place, requestedOccasions);
+    if (rightOccasionFit !== leftOccasionFit) return rightOccasionFit - leftOccasionFit;
+  }
+
   const leftBudgetFit = budgetFitTier(left.place, context.budget);
   const rightBudgetFit = budgetFitTier(right.place, context.budget);
   if (rightBudgetFit !== leftBudgetFit) return rightBudgetFit - leftBudgetFit;
