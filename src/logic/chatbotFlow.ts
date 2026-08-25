@@ -6,6 +6,11 @@ import {
 import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
 import { generateFreeConversationReply } from "../ai/generateFreeConversationReply.js";
+import {
+  findCurrentEvent,
+  isCurrentEventRequest,
+  type CuratedEventVenue
+} from "../ai/findCurrentEvent.js";
 import { generatePlaceFollowUpReply } from "../ai/generatePlaceFollowUpReply.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
@@ -1215,6 +1220,34 @@ export async function handleChatMessage(input: {
   imageUrls: string[];
   afterMediaMessages: string[];
 }> {
+  if (isCurrentEventRequest(input.message)) {
+    let curatedVenues: CuratedEventVenue[] = [];
+    try {
+      const language = detectLanguage(input.message, "fr");
+      const places = await listRecommendationPlaces(language);
+      curatedVenues = places
+        .sort((left, right) =>
+          right.offscriptPickLevel - left.offscriptPickLevel ||
+          right.offscriptPriority - left.offscriptPriority
+        )
+        .map((place) => ({
+          name: place.name,
+          area: place.area ?? place.neighbourhood
+        }));
+    } catch (error) {
+      console.error("Could not load curated venues for current event search", error);
+    }
+
+    const currentEventReply = await findCurrentEvent(input.message, curatedVenues);
+    return {
+      reply: currentEventReply ?? "",
+      followUpMessages: [],
+      locationActions: [],
+      imageUrls: [],
+      afterMediaMessages: []
+    };
+  }
+
   const result = await runChatbotFlow(input.userPhone, input.message);
   const startsNewConversation =
     isResetCommand(input.message) || isOffscriptStartMessage(input.message);

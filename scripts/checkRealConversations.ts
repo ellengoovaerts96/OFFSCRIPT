@@ -1,4 +1,5 @@
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
+import { currentEventDateRange, isCurrentEventRequest } from "../src/ai/findCurrentEvent.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import {
   inferBudget,
@@ -43,6 +44,23 @@ import {
   startsNewSearch
 } from "../src/logic/searchSession.js";
 import type { Place, PlaceCategory } from "../src/types/place.js";
+
+assert(
+  isCurrentEventRequest("Wat is er dit weekend te doen in Dakar?"),
+  "A current Dakar weekend request must use live event search."
+);
+assert(
+  !isCurrentEventRequest("Waar kan ik dit weekend koffie drinken in Dakar?"),
+  "An ordinary place request must not accidentally use live event search."
+);
+const eventWeekend = currentEventDateRange(
+  "Wat is er dit weekend te doen in Dakar?",
+  new Date("2026-08-25T12:00:00Z")
+);
+assert(
+  eventWeekend.start === "2026-08-29" && eventWeekend.end === "2026-08-30",
+  `The Dakar weekend must resolve to exact dates, received ${JSON.stringify(eventWeekend)}.`
+);
 import type { UserContext } from "../src/types/userContext.js";
 
 type ConversationTurn = {
