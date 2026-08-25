@@ -101,6 +101,11 @@ const buildUserContextSchema = z.object({
   confidence: z.number().min(0).max(1)
 });
 
+// Context extraction shares the WhatsApp webhook budget with database reads,
+// recommendation ranking and prose localization. Fall back deterministically
+// before Twilio needs the initial HTTP response.
+const CONTEXT_EXTRACTION_TIMEOUT_MS = 3_500;
+
 export type BuildUserContextInput = {
   message: string;
   previousContext?: UserContext | null;
@@ -649,12 +654,21 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
   const explicitRegion = findKnownRegion(input.message);
   const broadTargetRegion = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message) ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
+  const deterministicDirectRequest = Boolean(
+    explicitRegion &&
+    isDirectRecommendationRequest(input.message) &&
+    inferRequestedSubcategory(input.message)
+  );
 
   // Short answers to a question we just asked are fully deterministic. Sending
   // "n'importe où", "Ouakam" or "abordable" through the LLM adds latency and
   // can leave a WhatsApp webhook waiting even though no semantic analysis is
   // needed.
-  if (!hasOpenAIKey() || isShortDeterministicClarificationReply(input.message)) {
+  if (
+    !hasOpenAIKey() ||
+    isShortDeterministicClarificationReply(input.message) ||
+    deterministicDirectRequest
+  ) {
     return withSearchProfile(
       input.message,
       fallbackBuildUserContext(input),
@@ -665,9 +679,11 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
   }
 
   const client = getOpenAIClient();
-  const response = await client.responses.parse({
-    model: openaiModel,
-    instructions: `${systemPrompt}
+  let response;
+  try {
+    response = await client.responses.parse({
+      model: openaiModel,
+      instructions: `${systemPrompt}
 
 Extract updated user travel context as JSON.
 Rules:
@@ -716,10 +732,22 @@ Also extract searchProfileSignals independently from the legacy context:
       recentConversation: input.conversationHistory ?? [],
       knownSubcategoryTaxonomy: input.subcategoryTaxonomy ?? []
     }),
-    text: {
-      format: zodTextFormat(buildUserContextSchema, "build_user_context")
-    }
-  });
+      text: {
+        format: zodTextFormat(buildUserContextSchema, "build_user_context")
+      }
+    }, {
+      timeout: CONTEXT_EXTRACTION_TIMEOUT_MS
+    });
+  } catch (error) {
+    console.error("AI context extraction failed; using deterministic fallback", error);
+    return withSearchProfile(
+      input.message,
+      fallbackBuildUserContext(input),
+      input.previousContext,
+      undefined,
+      input.subcategoryTaxonomy
+    );
+  }
 
   const parsed = response.output_parsed;
   if (!parsed) {
