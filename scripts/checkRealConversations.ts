@@ -485,6 +485,12 @@ const pizzaContext = runConversation("pizza: location, then budget, then chic ma
 ]);
 assert(pizzaContext.searchProfile?.products.includes("pizza"), "SearchProfile must retain pizza.");
 
+const midRangePizzammore = { ...pizzammore, priceLevel: 3 };
+assert(
+  selectBestPlace([anima, midRangePizzammore], pizzaContext)?.place.name === "Pizzammore",
+  "Without an upscale pizza, the nearest lower price tier must outrank a budget editorial favourite."
+);
+
 const correctedDrinkContext = runConversation("negation: no pizza, only a chilled drink", pizzaContext, [
   {
     user: "Ik wil geen pizza, gewoon een chilled drink aan het strand.",
@@ -892,6 +898,28 @@ const genericBeachBar = place("Generic High Priority Beach Bar", {
 assert(
   !placePassesSearchProfileHardConstraints(anima, correctedDrinkContext.searchProfile),
   "An explicitly excluded product must fail the SearchProfile hard filter."
+);
+const mixedMenuVegetarianPlace = place("Mixed-menu Vegetarian Restaurant", {
+  categories: ["food"],
+  subcategories: ["dinner", "vegetarian", "seafood"]
+});
+assert(
+  placePassesSearchProfileHardConstraints(mixedMenuVegetarianPlace, {
+    activity: "eat",
+    products: ["vegetarian"],
+    locationFeatures: [],
+    occasions: ["dinner"],
+    vibes: [],
+    amenities: [],
+    dietaryRequirements: ["vegetarian"],
+    exclusions: {
+      products: ["meat", "fish", "seafood"],
+      categories: [],
+      audienceTags: [],
+      dietary: ["meat", "fish", "seafood"]
+    }
+  }),
+  "A documented vegetarian option must keep a mixed-menu restaurant eligible."
 );
 assert(
   findMatchingCandidates(

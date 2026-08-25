@@ -164,6 +164,19 @@ function buildBudgetMatchLine(
   priceLevel: Place["priceLevel"],
   offscriptPickLevel: Place["offscriptPickLevel"]
 ): string | undefined {
+  if (context.budget === "upscale" && priceLevel === 3) {
+    if (context.language.startsWith("nl")) {
+      return "Ik heb geen passende upscale optie gevonden; dit is de beste match één prijsniveau lager, in de middenklasse.";
+    }
+    if (context.language.startsWith("fr")) {
+      return "Je n’ai pas trouvé d’option chic adaptée ; c’est le meilleur choix un niveau de prix plus bas, dans la gamme moyenne.";
+    }
+    if (context.language.startsWith("de")) {
+      return "Ich habe keine passende gehobene Option gefunden; dies ist die beste Wahl eine Preisstufe darunter, im mittleren Preissegment.";
+    }
+    return "I couldn’t find a suitable upscale option; this is the best match one price level lower, in the mid-range category.";
+  }
+
   if (offscriptPickLevel >= 2) {
     if (context.language.startsWith("nl")) {
       return "Dit is een van onze favoriete OFFSCRIPT-plekken.";

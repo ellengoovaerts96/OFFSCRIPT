@@ -278,7 +278,9 @@ export function scorePlace(place: Place, context: UserContext): number {
   if (context.budget === "budget" && place.priceLevel !== undefined) score += place.priceLevel === 1 ? 45 : place.priceLevel === 2 ? 15 : -30;
   if (context.budget === "affordable" && place.priceLevel !== undefined) score += place.priceLevel === 2 ? 40 : place.priceLevel === 1 ? 20 : -30;
   if (context.budget === "mid-range" && place.priceLevel !== undefined) score += place.priceLevel === 3 ? 40 : -15;
-  if (context.budget === "upscale" && place.priceLevel !== undefined) score += place.priceLevel >= 4 ? 40 : -30;
+  if (context.budget === "upscale" && place.priceLevel !== undefined) {
+    score += place.priceLevel === 4 ? 40 : place.priceLevel === 3 ? 15 : place.priceLevel === 5 ? 10 : -30;
+  }
   if (context.budget === "luxury" && place.priceLevel !== undefined) {
     score += place.priceLevel === 5 ? 50 : place.priceLevel === 4 ? 35 : -30;
   }

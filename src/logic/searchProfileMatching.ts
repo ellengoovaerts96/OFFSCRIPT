@@ -124,8 +124,19 @@ export function placePassesSearchProfileHardConstraints(
 ): boolean {
   if (!profile) return true;
 
+  const hasDocumentedPlantBasedOption = profile.dietaryRequirements.some(
+    (requirement) =>
+      ["vegetarian", "vegan"].includes(normalize(requirement)) &&
+      placeMatchesSearchTerm(place, requirement)
+  );
+  const appliesAsRestaurantWideExclusion = (term: string) =>
+    !hasDocumentedPlantBasedOption ||
+    !["meat", "fish", "seafood"].includes(normalize(term));
+
   if (!placeMatchesSearchActivity(place, profile.activity)) return false;
-  if (profile.exclusions.products.some((term) => placeMatchesSearchTerm(place, term))) return false;
+  if (profile.exclusions.products.some(
+    (term) => appliesAsRestaurantWideExclusion(term) && placeMatchesSearchTerm(place, term)
+  )) return false;
   if (
     profile.exclusions.categories.some((term) =>
       place.categories.some((category) => normalize(category) === normalize(term))
@@ -136,7 +147,9 @@ export function placePassesSearchProfileHardConstraints(
       place.audienceTags.some((candidate) => normalize(candidate) === normalize(tag))
     )
   ) return false;
-  if (profile.exclusions.dietary.some((term) => placeMatchesSearchTerm(place, term))) return false;
+  if (profile.exclusions.dietary.some(
+    (term) => appliesAsRestaurantWideExclusion(term) && placeMatchesSearchTerm(place, term)
+  )) return false;
   if (profile.amenities.some((amenity) => !place.amenities.includes(amenity as Place["amenities"][number]))) {
     return false;
   }
@@ -184,7 +197,7 @@ function budgetScore(place: Place, budget: string | undefined): number {
   if (budget === "budget") return place.priceLevel === 1 ? 30 : place.priceLevel === 2 ? 10 : -20;
   if (budget === "affordable") return place.priceLevel === 2 ? 25 : place.priceLevel === 1 ? 10 : -20;
   if (budget === "mid-range") return place.priceLevel === 3 ? 25 : -10;
-  if (budget === "upscale") return place.priceLevel === 4 ? 25 : place.priceLevel === 5 ? 10 : -20;
+  if (budget === "upscale") return place.priceLevel === 4 ? 25 : place.priceLevel === 3 ? 10 : place.priceLevel === 5 ? 5 : -20;
   if (budget === "luxury") return place.priceLevel === 5 ? 30 : place.priceLevel === 4 ? 20 : -20;
   return 0;
 }

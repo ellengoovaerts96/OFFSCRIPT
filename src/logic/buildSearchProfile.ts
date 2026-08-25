@@ -75,6 +75,31 @@ function mergeUnique(previous: string[], current: string[]): string[] {
   return unique([...previous, ...current]);
 }
 
+const ANIMAL_PRODUCT_EXCLUSIONS = new Set(["meat", "fish", "seafood"]);
+
+function dietaryOptionExclusions(
+  exclusions: SearchProfile["exclusions"],
+  dietaryRequirements: string[]
+): SearchProfile["exclusions"] {
+  const requestsPlantBasedOption = dietaryRequirements.some((requirement) =>
+    ["vegetarian", "vegan"].includes(normalizeText(requirement))
+  );
+  if (!requestsPlantBasedOption) return exclusions;
+
+  // A vegetarian guest needs a suitable dish; the restaurant itself does not
+  // need to be meat- or seafood-free. Applying these terms to all place text
+  // incorrectly removes mixed-menu restaurants with documented veg options.
+  return {
+    ...exclusions,
+    products: exclusions.products.filter(
+      (term) => !ANIMAL_PRODUCT_EXCLUSIONS.has(normalizeText(term))
+    ),
+    dietary: exclusions.dietary.filter(
+      (term) => !ANIMAL_PRODUCT_EXCLUSIONS.has(normalizeText(term))
+    )
+  };
+}
+
 function supportedSemanticProducts(
   deterministicProducts: string[],
   semanticProducts: string[]
@@ -325,7 +350,7 @@ export function buildSearchProfile(
   const baseLocationFeatures = changedActivity ? [] : compatiblePreviousProfile.locationFeatures;
   const baseOccasions = changedActivity ? [] : compatiblePreviousProfile.occasions;
   const baseVibes = changedActivity ? [] : compatiblePreviousProfile.vibes;
-  const exclusions = {
+  const rawExclusions = {
     products: mergeUnique(compatiblePreviousProfile.exclusions.products, signals.exclusions.products),
     categories: mergeUnique(compatiblePreviousProfile.exclusions.categories, signals.exclusions.categories),
     audienceTags: mergeUnique(compatiblePreviousProfile.exclusions.audienceTags, signals.exclusions.audienceTags),
@@ -342,6 +367,7 @@ export function buildSearchProfile(
       ? [normalizeText(context.requestedSubcategory ?? "")]
       : [])
   ]);
+  const exclusions = dietaryOptionExclusions(rawExclusions, dietaryRequirements);
 
   return {
     activity: signals.activity ?? compatiblePreviousProfile.activity,

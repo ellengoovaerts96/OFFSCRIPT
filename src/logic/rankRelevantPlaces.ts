@@ -29,7 +29,10 @@ function budgetFitTier(place: Place, budget: UserContext["budget"]): number {
   if (budget === "budget") return place.priceLevel === 1 ? 2 : place.priceLevel === 2 ? 1 : 0;
   if (budget === "affordable") return place.priceLevel === 2 ? 2 : place.priceLevel === 1 ? 1 : 0;
   if (budget === "mid-range") return place.priceLevel === 3 ? 2 : 0;
-  if (budget === "upscale") return place.priceLevel === 4 ? 2 : place.priceLevel === 5 ? 1 : 0;
+  // When no level-4 option exists, prefer the nearest cheaper tier before
+  // editorial judgement. A mid-range match is a more honest fallback for an
+  // upscale request than an unrelated budget favourite.
+  if (budget === "upscale") return place.priceLevel === 4 ? 3 : place.priceLevel === 3 ? 2 : place.priceLevel === 5 ? 1 : 0;
   if (budget === "luxury") return place.priceLevel === 5 ? 2 : place.priceLevel === 4 ? 1 : 0;
   return 1;
 }

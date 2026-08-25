@@ -65,6 +65,39 @@ if (
   );
 }
 
+const vegetarianDinner = buildSearchProfile(
+  "Je veux dîner mais je suis végétarien.",
+  {
+    language: "fr",
+    intent: "food",
+    timing: "dinner",
+    requestedSubcategory: "vegetarian"
+  },
+  undefined,
+  {
+    activity: "eat",
+    products: ["vegetarian"],
+    locationFeatures: [],
+    occasions: ["dinner"],
+    vibes: [],
+    exclusions: {
+      products: ["meat", "fish", "seafood"],
+      categories: [],
+      audienceTags: [],
+      dietary: ["meat", "fish", "seafood"]
+    }
+  }
+);
+if (
+  !vegetarianDinner.dietaryRequirements.includes("vegetarian") ||
+  vegetarianDinner.exclusions.products.some((term) => ["meat", "fish", "seafood"].includes(term)) ||
+  vegetarianDinner.exclusions.dietary.some((term) => ["meat", "fish", "seafood"].includes(term))
+) {
+  throw new Error(
+    `Vegetarian preference became a restaurant-wide animal-product exclusion: ${JSON.stringify(vegetarianDinner)}`
+  );
+}
+
 const explicitSunsetCocktail = buildSearchProfile(
   "Waar kan ik een cocktail drinken met zicht op de oceaan bij zonsondergang?",
   {
