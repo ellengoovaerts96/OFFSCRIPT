@@ -68,22 +68,15 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
 
     void logChatMessage(from, "outgoing", reply);
 
-    if (canSendWhatsAppMessage(twilioTo)) {
-      sendTwilioMessages(res, [reply]);
-      scheduleRecommendationFollowUps(from, twilioTo, followUpMessages, locationActions, imageUrls, afterMediaMessages);
-      return;
-    }
-
-    if (followUpMessages.length || locationActions.length || imageUrls.length || afterMediaMessages.length) {
-      console.error(
-        "Delayed WhatsApp recommendation follow-ups are unavailable. Falling back to one combined description and Maps message."
-      );
-    }
-
     for (const outgoingMessage of [...followUpMessages, ...afterMediaMessages]) {
       void logChatMessage(from, "outgoing", outgoingMessage);
     }
 
+    // When processing finishes within Twilio's webhook deadline, return the
+    // complete recommendation in the TwiML response. Previously only the
+    // title was returned immediately while all information and photos relied
+    // on best-effort REST calls after the response. A REST delivery failure
+    // therefore left the traveller with a place name and nothing else.
     sendTwilioMessages(res, buildFallbackMessages(reply, followUpMessages), imageUrls, afterMediaMessages);
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
@@ -216,21 +209,6 @@ function buildFallbackMessages(reply: string, followUpMessages: string[]): strin
   if (!followUpMessages.length) return [reply];
 
   return [`${reply}\n\n${followUpMessages.join("\n\n")}`];
-}
-
-function scheduleRecommendationFollowUps(
-  to: string,
-  fromOverride: string,
-  followUpMessages: string[],
-  locationActions: string[],
-  imageUrls: string[],
-  afterMediaMessages: string[]
-): void {
-  if (!followUpMessages.length && !locationActions.length && !imageUrls.length && !afterMediaMessages.length) return;
-
-  setTimeout(() => {
-    void sendRecommendationFollowUps(to, fromOverride, followUpMessages, locationActions, imageUrls, afterMediaMessages);
-  }, 1500);
 }
 
 async function sendRecommendationFollowUps(
