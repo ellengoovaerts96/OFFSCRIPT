@@ -3,6 +3,10 @@ import { detectLanguage } from "../ai/detectLanguage.js";
 import { createChatMessage } from "../data/chatMessagesRepository.js";
 import { canSendWhatsAppMessage, sendWhatsAppMessage } from "../integrations/twilio.js";
 import { handleChatMessage } from "../logic/chatbotFlow.js";
+import {
+  prepareInboundWhatsAppMessage,
+  validateTwilioWebhook
+} from "../logic/twilioWebhook.js";
 
 export const whatsappRouter = Router();
 const WEBHOOK_RESPONSE_DEADLINE_MS = 10_000;
@@ -10,16 +14,30 @@ const DELAYED_PROCESSING_DEADLINE_MS = 35_000;
 
 type ChatbotMessageResult = Awaited<ReturnType<typeof handleChatMessage>>;
 
-whatsappRouter.post("/", async (req, res) => {
+whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
   try {
-    const incomingMessage = String(req.body.Body ?? "").trim();
+    const rawIncomingMessage = String(req.body.Body ?? "").trim();
     const from = String(req.body.From ?? "");
     const twilioTo = String(req.body.To ?? "");
+    const messageSid = String(req.body.MessageSid ?? "").trim();
 
-    if (!incomingMessage || !from) {
+    if (!rawIncomingMessage || !from || !messageSid) {
       sendTwilioMessages(res, ["Send a message to start."]);
       return;
     }
+
+    const prepared = await prepareInboundWhatsAppMessage({
+      messageSid,
+      userPhone: from,
+      message: rawIncomingMessage
+    });
+
+    if (prepared.duplicate) {
+      sendTwilioMessages(res, []);
+      return;
+    }
+
+    const incomingMessage = prepared.message;
 
     // Logging must never delay the Twilio webhook response. Railway/Postgres
     // can briefly be slow even while recommendation processing is healthy.

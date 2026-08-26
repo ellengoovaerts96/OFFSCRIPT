@@ -64,6 +64,18 @@ If no good match exists, it should say something friendly and honest:
 
 ## 3. Main User Flows
 
+### 3.0 Accommodation acquisition
+
+An active accommodation or partner source can link to `GET /go/:slug`. The
+backend resolves the source and redirects to the single TUUTI WhatsApp number
+with a short source token. When that first WhatsApp message arrives, TUUTI stores
+first-touch acquisition in `whatsapp_users`; a later scan does not replace it.
+
+Acquisition is separate from `conversation_context` because conversation resets
+must clear search preferences without erasing where the traveller originally
+found TUUTI. The source's home neighbourhood is stored as a historical snapshot,
+but is not yet injected into recommendation or location-clarification logic.
+
 ### 3.1 Greeting Flow
 
 When the user only sends a greeting, such as “Hallo”, “Hi”, “Hello” or “Bonjour”, the chatbot must not recommend a place or activity yet.

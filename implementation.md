@@ -103,7 +103,13 @@ OPENAI_MODEL=
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_FROM=
+TWILIO_WEBHOOK_BASE_URL=
+TUUTI_PUBLIC_WHATSAPP_NUMBER=
 ```
+
+`TWILIO_WEBHOOK_BASE_URL` is the public HTTPS origin used by Twilio and is
+required for signature validation. `TUUTI_PUBLIC_WHATSAPP_NUMBER` is optional;
+the `/go/:slug` redirect falls back to `TWILIO_WHATSAPP_FROM`.
 
 Railway will provide `DATABASE_URL` when PostgreSQL is attached to the project.
 

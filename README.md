@@ -1,5 +1,26 @@
 # OFFSCRIPT
 
+## TUUTI accommodation source foundation
+
+Pilot accommodations and other acquisition partners are stored in `sources`.
+Each active source can use a public link such as `/go/villa-ngor`; that route
+redirects to the existing TUUTI WhatsApp number with a machine-readable
+`SRC:<code>` token in the prefilled message. `TUUTI_PUBLIC_WHATSAPP_NUMBER` may
+override the public number; otherwise `TWILIO_WHATSAPP_FROM` is used.
+
+The first valid source for a phone number is stored in `whatsapp_users`, along
+with a snapshot of the source's home neighbourhood. This acquisition record is
+deliberately separate from `conversation_context`, so resetting a conversation
+does not erase or replace the original source. Later QR scans never overwrite
+first-touch acquisition.
+
+Twilio signs both WhatsApp webhook routes. Set `TWILIO_WEBHOOK_BASE_URL` to the
+public HTTPS origin Twilio calls, for example `https://your-service.example`
+(without a webhook path). Requests are validated with `TWILIO_AUTH_TOKEN` before
+they are processed. Each inbound `MessageSid` is claimed atomically in
+`processed_twilio_messages`, preventing Twilio retries from running the chatbot
+twice.
+
 ## Google Sheets field-research sync
 
 The sync reads every row from the `Form responses 1` worksheet and upserts it into

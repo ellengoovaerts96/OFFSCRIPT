@@ -2,6 +2,7 @@ import express from "express";
 import { inboxRouter } from "./channels/inbox.js";
 import { whatsappRouter } from "./channels/whatsapp.js";
 import { webchatRouter } from "./channels/webchat.js";
+import { sourceRedirectRouter } from "./channels/sourceRedirect.js";
 import { handleChatMessage } from "./logic/chatbotFlow.js";
 
 export const app = express();
@@ -20,6 +21,7 @@ app.get("/health", (_req, res) => {
 app.use("/webhooks/whatsapp", whatsappRouter);
 app.use("/webhooks/twilio/whatsapp", whatsappRouter);
 app.use("/webchat", webchatRouter);
+app.use("/go", sourceRedirectRouter);
 app.use(inboxRouter);
 
 app.post("/chat/test", async (req, res) => {

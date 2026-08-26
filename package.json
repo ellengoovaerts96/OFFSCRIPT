@@ -19,6 +19,7 @@
     "logic:check": "tsx scripts/checkLogic.ts",
     "search-profile:check": "tsx scripts/checkSearchProfile.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",
+    "source-tracking:check": "node --import tsx scripts/checkSourceTracking.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/migrate.js && node dist/server.js"
