@@ -3,6 +3,8 @@ const REGION_ALIASES: Record<string, string> = {
   ngor: "Ngor",
   yoff: "Yoff",
   almadies: "Almadies",
+  "pointe des almadies": "Pointe des Almadies",
+  "pointe almadies": "Pointe des Almadies",
   plateau: "Plateau",
   medina: "Médina",
   "médina": "Médina",

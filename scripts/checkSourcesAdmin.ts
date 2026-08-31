@@ -81,6 +81,8 @@ assert.equal(parsed.data.active, true);
 assert.equal(parseSourceForm({ name: "Hotel", source_type: "accommodation", home_neighbourhood: "", active: "on", slug: "" }).success, false);
 assert.equal(parseSourceForm({ name: "Hotel", source_type: "accommodation", home_neighbourhood: "Ngor", active: "on", slug: "Bad Slug" }).success, false);
 assert.equal(parseSourceForm({ name: "Hotel", source_type: "accommodation", home_neighbourhood: "Ngor", active: "on", slug: "hotel", latitude: "91" }).success, false);
+assert.equal(parseSourceForm({ name: "Hotel", source_type: "accommodation", home_neighbourhood: "Pointe des Almadies", active: "on", slug: "hotel" }).success, true);
+assert.equal(parseSourceForm({ name: "Hotel", source_type: "accommodation", home_neighbourhood: "Plateau", active: "on", slug: "hotel" }).success, false);
 console.log("Source form and slug validation checks passed.");
 
 const generatedCodes = new Set(Array.from({ length: 500 }, generateSourceCode));
@@ -113,6 +115,7 @@ const summary: SourceAcquisitionSummary = {
 const listHtml = renderSourcesList({ sources: [summary], filters: {} });
 assert.match(listHtml, /Inactive/);
 assert.match(listHtml, /31 acquired/);
+assert.match(listHtml, /Pointe des Almadies/);
 const url = publicSourceUrl(summary.slug, "https://tuuti.example/");
 assert.equal(url, "https://tuuti.example/go/villa-ile-de-ngor");
 const detailHtml = renderSourceDetail({ source: summary, publicUrl: url });

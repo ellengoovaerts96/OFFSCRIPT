@@ -2,7 +2,15 @@ import { randomInt } from "node:crypto";
 import { z } from "zod";
 import { createSource } from "../data/sourcesRepository.js";
 import { SOURCE_TYPES, type AcquisitionSource, type SourceWriteInput } from "../types/source.js";
-import { KNOWN_REGIONS, normalizeRegion } from "../utils/normalizeRegion.js";
+import { normalizeRegion } from "../utils/normalizeRegion.js";
+
+export const PILOT_SOURCE_NEIGHBOURHOODS = [
+  "Yoff",
+  "Ngor",
+  "Ouakam",
+  "Almadies",
+  "Pointe des Almadies"
+] as const;
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 8;
@@ -28,8 +36,8 @@ const sourceFormSchema = z.object({
   }
   if (value.homeNeighbourhood) {
     const normalized = normalizeRegion(value.homeNeighbourhood);
-    if (!normalized || !KNOWN_REGIONS.includes(normalized)) {
-      context.addIssue({ code: "custom", path: ["homeNeighbourhood"], message: "Choose a known neighbourhood or region." });
+    if (!normalized || !PILOT_SOURCE_NEIGHBOURHOODS.includes(normalized as (typeof PILOT_SOURCE_NEIGHBOURHOODS)[number])) {
+      context.addIssue({ code: "custom", path: ["homeNeighbourhood"], message: "Choose one of the five TUUTI pilot neighbourhoods." });
     }
   }
   if (value.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug)) {
