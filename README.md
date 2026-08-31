@@ -21,6 +21,24 @@ they are processed. Each inbound `MessageSid` is claimed atomically in
 `processed_twilio_messages`, preventing Twilio retries from running the chatbot
 twice.
 
+### Sources Admin
+
+The internal Sources Admin is available at `/admin/sources`. It reuses the same
+HTTP Basic Auth credentials as `/inbox` (`INBOX_USERNAME` and
+`INBOX_PASSWORD`). It can list, filter, create, edit, activate and deactivate
+sources, and displays only aggregate acquisition counts. It never displays phone
+numbers or chat content and deliberately offers no hard-delete operation.
+
+Each detail page shows the public `/go/:slug` URL, its WhatsApp start token and a
+dynamically generated, downloadable PNG QR code. The QR encodes the public TUUTI
+URL so redirect behaviour can change later without reprinting it. The public
+origin uses `TWILIO_WEBHOOK_BASE_URL` when configured. Source codes are generated
+once and remain read-only; editing a name or slug therefore does not affect
+historical `whatsapp_users.acquisition_source_id` attribution.
+
+No additional migration is required for this admin: it uses the existing
+`sources` and `whatsapp_users` tables from migration 048.
+
 ## Google Sheets field-research sync
 
 The sync reads every row from the `Form responses 1` worksheet and upserts it into

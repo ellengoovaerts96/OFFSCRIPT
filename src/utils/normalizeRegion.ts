@@ -25,6 +25,10 @@ const REGION_ALIASES: Record<string, string> = {
   "lac rose": "Lac Rose"
 };
 
+export const KNOWN_REGIONS = [...new Set(Object.values(REGION_ALIASES))].sort((left, right) =>
+  left.localeCompare(right)
+);
+
 function normalizeKey(value: string): string {
   return value
     .trim()

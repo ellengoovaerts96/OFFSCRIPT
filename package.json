@@ -20,6 +20,7 @@
     "search-profile:check": "tsx scripts/checkSearchProfile.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",
     "source-tracking:check": "node --import tsx scripts/checkSourceTracking.ts",
+    "sources-admin:check": "node --import tsx scripts/checkSourcesAdmin.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/migrate.js && node dist/server.js"
@@ -34,6 +35,7 @@
     "googleapis": "^173.0.0",
     "openai": "^6.38.0",
     "pg": "^8.20.0",
+    "qrcode": "^1.5.4",
     "twilio": "^6.0.2",
     "zod": "^4.4.3"
   },
@@ -41,6 +43,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.8.0",
     "@types/pg": "^8.20.0",
+    "@types/qrcode": "^1.5.6",
     "tsx": "^4.22.1",
     "typescript": "^6.0.3"
   }

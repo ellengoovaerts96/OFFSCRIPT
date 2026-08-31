@@ -1,34 +1,10 @@
-import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { listInboxItems } from "../data/chatMessagesRepository.js";
+import { requireAdminBasicAuth } from "../middleware/adminBasicAuth.js";
 
 export const inboxRouter = Router();
 
-inboxRouter.use(["/api/inbox", "/inbox"], (req, res, next) => {
-  const expectedUsername = process.env.INBOX_USERNAME;
-  const expectedPassword = process.env.INBOX_PASSWORD;
-
-  if (!expectedUsername || !expectedPassword) {
-    res.status(503).send("Inbox access is not configured.");
-    return;
-  }
-
-  const authorization = req.headers.authorization;
-  const credentials = authorization?.startsWith("Basic ")
-    ? Buffer.from(authorization.slice(6), "base64").toString("utf8")
-    : "";
-  const separatorIndex = credentials.indexOf(":");
-  const username = separatorIndex >= 0 ? credentials.slice(0, separatorIndex) : "";
-  const password = separatorIndex >= 0 ? credentials.slice(separatorIndex + 1) : "";
-
-  if (!secureEqual(username, expectedUsername) || !secureEqual(password, expectedPassword)) {
-    res.setHeader("WWW-Authenticate", 'Basic realm="OFFSCRIPT Inbox"');
-    res.status(401).send("Authentication required.");
-    return;
-  }
-
-  next();
-});
+inboxRouter.use(["/api/inbox", "/inbox"], requireAdminBasicAuth);
 
 inboxRouter.get("/api/inbox", async (req, res) => {
   try {
@@ -220,10 +196,3 @@ const INBOX_HTML = `<!doctype html>
     </script>
   </body>
 </html>`;
-
-function secureEqual(value: string, expected: string): boolean {
-  const valueBuffer = Buffer.from(value);
-  const expectedBuffer = Buffer.from(expected);
-
-  return valueBuffer.length === expectedBuffer.length && timingSafeEqual(valueBuffer, expectedBuffer);
-}
