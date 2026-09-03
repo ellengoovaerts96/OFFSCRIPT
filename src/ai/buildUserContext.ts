@@ -98,6 +98,13 @@ const searchProfileSignalsSchema = z.object({
 const buildUserContextSchema = z.object({
   route: z.enum(["conversation", "needs_clarification", "place_lookup"]),
   conversationReply: z.string().nullable(),
+  previousQuestionResolution: z.enum([
+    "accepted",
+    "rejected",
+    "answered_with_detail",
+    "not_applicable"
+  ]),
+  locationScope: z.enum(["dakar_wide", "keep_current_location", "unspecified"]),
   context: userContextSchema,
   searchProfileSignals: searchProfileSignalsSchema,
   confidence: z.number().min(0).max(1)
@@ -764,11 +771,15 @@ Routing rules:
 - TUUTI's current geographic scope is Dakar only: Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Never imply that recommendations cover all of Senegal.
 - Use needs_clarification for a TUUTI/Senegal travel request that still lacks information needed for a useful recommendation. Write exactly one natural, context-aware question in conversationReply.
 - Use place_lookup only when the accumulated structured context is sufficient for a concrete recommendation, or when the user asks for factual information about a named place. For place_lookup, conversationReply must be null.
-- Short contextual answers such as yes, sure, a neighbourhood, a budget, a group type or "another area is fine" continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
+- Interpret every short answer semantically in light of previousAssistantMessage; do not classify it from keywords alone. Record whether it accepts or rejects the previous proposal, or answers it with a concrete detail, in previousQuestionResolution.
+- Natural acceptance can be indirect or idiomatic, for example permission to proceed, encouragement to choose, indifference between offered options, or agreement in the user's own words. It does not need to repeat an option or resemble "yes".
+- If the previous assistant asked permission to broaden a search beyond one neighbourhood and the user accepts, set locationScope to dakar_wide, set targetRegion to Dakar, preserve the accumulated request, and continue with place_lookup. Do not ask for confirmation again.
+- If the user rejects broadening, set locationScope to keep_current_location and preserve the specific location.
+- Short contextual answers such as a neighbourhood, a budget or a group type also continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
 - Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
 - For conversation, write conversationReply in the language of the newest user message. Acknowledge its actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
 - A standalone greeting is always conversation. Never answer a greeting by asking for traveller type, budget, timing or location.
-- When location is the useful next detail, ask naturally about Ngor, Yoff, Ouakam, Almadies, Pointe des Almadies, or whether anywhere in Dakar is fine. Never ask for a city or neighbourhood elsewhere in Senegal.
+- When location is the useful next detail, ask where the user is or whether anywhere in Dakar is fine. Do not repeat the complete list of five neighbourhoods; it is already stated in the welcome message. Never ask for a city or neighbourhood elsewhere in Senegal.
 - If the user requests a place outside the current Dakar scope, explain the current scope naturally instead of pretending TUUTI can search there.
 - Never recommend or name a place yourself. The application queries verified places only after place_lookup.
 
@@ -784,6 +795,7 @@ Rules:
 - Keep exclusions until the user explicitly reverses them or the conversation is reset.
 - Interpret short replies in the context of the previous assistant message. A short reply often selects one of the options in that question.
 - Do not require the user to repeat the exact wording of an option. Resolve natural synonyms and partial answers semantically.
+- Never re-ask a choice that the newest reply has accepted, rejected or answered. Apply the answer to the structured context and move the task forward.
 - Examples: after a pizza-style question, "bon restaurant" means the good Italian restaurant option; after a children question, "oui" means children are joining; after a location question, "n’importe où" means Dakar-wide mobility.
 - The newest user message determines the reply language. Preserve the previous language only when the newest message is language-neutral. Treat a standalone "hallo" as Dutch unless that message itself contains clear German words.
 - Only store these supported locations: Dakar, Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Do not store or invent any other city, region or neighbourhood.
@@ -857,7 +869,15 @@ Also extract searchProfileSignals independently from the legacy context:
     inferBudget(input.message)
   );
 
-  if (parsed.route === "conversation" && !unmistakableDatabaseMessage) {
+  const acceptedDakarWideSearch =
+    parsed.previousQuestionResolution === "accepted" &&
+    parsed.locationScope === "dakar_wide";
+
+  if (
+    parsed.route === "conversation" &&
+    !unmistakableDatabaseMessage &&
+    !acceptedDakarWideSearch
+  ) {
     return {
       route: "conversation",
       conversationReply: parsed.conversationReply ?? undefined,
@@ -876,8 +896,10 @@ Also extract searchProfileSignals independently from the legacy context:
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
   const semanticExclusions = parsed.context.excludedSubcategories;
   return withSearchProfile(input.message, {
-    route: parsed.route,
-    conversationReply: parsed.conversationReply ?? undefined,
+    route: acceptedDakarWideSearch ? "place_lookup" : parsed.route,
+    conversationReply: acceptedDakarWideSearch
+      ? undefined
+      : parsed.conversationReply ?? undefined,
     context: {
       language: resolveConversationLanguage(
         input.message,
@@ -888,7 +910,11 @@ Also extract searchProfileSignals independently from the legacy context:
         nullToUndefined(parsed.context.currentLocation) ?? input.previousContext?.currentLocation
       ),
       targetRegion: normalizeSupportedRegion(
-        explicitRegion ?? broadTargetRegion ?? nullToUndefined(parsed.context.targetRegion) ?? input.previousContext?.targetRegion
+        explicitRegion ??
+        (acceptedDakarWideSearch ? "Dakar" : undefined) ??
+        broadTargetRegion ??
+        nullToUndefined(parsed.context.targetRegion) ??
+        input.previousContext?.targetRegion
       ),
       travellerType:
         mergeTravellerType(
