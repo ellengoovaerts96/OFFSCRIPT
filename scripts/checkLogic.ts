@@ -60,6 +60,9 @@ if (!await shouldUseConversationBoundary({ message: "Hahaha" })) {
 if (!await shouldUseConversationBoundary({ message: "Wel sterk logo!" })) {
   throw new Error("A comment about TUUTI itself must not be interpreted as a database preference.");
 }
+if (resolveConversationLanguage("heel mooi logo!", "fr") !== "nl") {
+  throw new Error("A clearly Dutch short aside must override an earlier French conversation language.");
+}
 
 const rastaBarContext: UserContext = {
   language: "nl",
