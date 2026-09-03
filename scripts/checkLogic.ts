@@ -16,7 +16,6 @@ import {
 } from "../src/ai/buildUserContext.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
-import { shouldUseConversationBoundary } from "../src/ai/classifyConversationTurn.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
@@ -54,6 +53,24 @@ if (
   throw new Error("A direct coffee request must use the deterministic database context flow.");
 }
 
+const broadenedCoffeeContext = await buildUserContext({
+  message: "zeker!",
+  previousContext: {
+    ...directCoffeeContext.context,
+    targetRegion: "Yoff",
+    clarificationCount: 1
+  },
+  previousAssistantMessage: "Ik heb nog geen sterke TUUTI-pick in Yoff. Wil je naar een andere buurt in Dakar gaan? Dan kan ik breder zoeken.",
+  subcategoryTaxonomy: [{ name: "bar", intent: "drink" }]
+});
+if (
+  broadenedCoffeeContext.context.targetRegion !== "Dakar" ||
+  broadenedCoffeeContext.context.searchProfile?.mobility !== "dakar_wide" ||
+  !broadenedCoffeeContext.context.searchProfile?.products.includes("coffee")
+) {
+  throw new Error("An affirmative answer to the broader-location question must search all Dakar while retaining coffee.");
+}
+
 if (!isOffscriptStartMessage("Bonjour TUUTI 👋")) {
   throw new Error("The TUUTI website WhatsApp message must start the welcome flow.");
 }
@@ -65,12 +82,6 @@ if (!isOffscriptStartMessage("Bonjour TUUTI �")) {
 }
 if (isOffscriptStartMessage("Bonjour TUUTI, je cherche un restaurant")) {
   throw new Error("A specific TUUTI question must remain a normal conversation message.");
-}
-if (!await shouldUseConversationBoundary({ message: "Hahaha" })) {
-  throw new Error("Laughter must leave the database flow and use the conversational boundary.");
-}
-if (!await shouldUseConversationBoundary({ message: "Wel sterk logo!" })) {
-  throw new Error("A comment about TUUTI itself must not be interpreted as a database preference.");
 }
 if (resolveConversationLanguage("heel mooi logo!", "fr") !== "nl") {
   throw new Error("A clearly Dutch short aside must override an earlier French conversation language.");

@@ -108,6 +108,16 @@ function supportedSemanticProducts(
 
   return semanticProducts.flatMap((product) => {
     const normalizedProduct = normalizeText(product);
+    const canonicalProduct = PRODUCT_PATTERNS.find(([, pattern]) =>
+      pattern.test(normalizedProduct)
+    )?.[0];
+
+    // The LLM may return the user's translated word (for example "koffie")
+    // alongside the deterministic canonical value ("coffee"). Keep only the
+    // canonical value so one request never becomes two hard requirements.
+    if (canonicalProduct && explicitProducts.has(normalizeText(canonicalProduct))) {
+      return [];
+    }
 
     // A generic request to have a drink is not automatically a cocktail
     // request. Products are used as hard candidate filters, so accepting this

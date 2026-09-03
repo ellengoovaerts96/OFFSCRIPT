@@ -96,6 +96,8 @@ const searchProfileSignalsSchema = z.object({
 });
 
 const buildUserContextSchema = z.object({
+  route: z.enum(["database_flow", "conversation"]),
+  conversationReply: z.string().nullable(),
   context: userContextSchema,
   searchProfileSignals: searchProfileSignalsSchema,
   confidence: z.number().min(0).max(1)
@@ -117,6 +119,8 @@ export type BuildUserContextInput = {
 export type BuildUserContextResult = {
   context: UserContext;
   confidence: number;
+  route: "database_flow" | "conversation";
+  conversationReply?: string;
 };
 
 function withSearchProfile(
@@ -200,12 +204,6 @@ function inferTravellerType(message: string): TravellerType | undefined {
   return undefined;
 }
 
-function isTravellerTypeOnly(message: string): boolean {
-  return /^(?:solo|alone|alleen|seul|allein|alleine|couple|koppel|partner|paar|friends|vrienden|amis|amies|freunde|freundinnen|family|familie|famille|group|groep|groupe|business|work|werk|travail)[!,.?\s]*$/i.test(
-    message.trim()
-  );
-}
-
 function normalizeContextText(value: string): string {
   return value
     .trim()
@@ -246,6 +244,21 @@ function acceptsBroaderLocation(message: string): boolean {
   return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|andere buurt|andere wijk|andere regio|andere plek|andere plaats|elders|autre quartier|autre zone|autre endroit|anderes viertel|andere gegend)\b/.test(
     lower
   );
+}
+
+function acceptsBroaderLocationInContext(
+  message: string,
+  previousAssistantMessage?: string | null
+): boolean {
+  if (acceptsBroaderLocation(message)) return true;
+  if (!previousAssistantMessage) return false;
+
+  const answer = normalizeContextText(message);
+  const previousQuestion = normalizeContextText(previousAssistantMessage);
+  const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|yes|sure|absolutely|no problem|oui|bien sur|d accord|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
+  const askedToBroaden = /\b(?:andere buurt|andere wijk|another neighbourhood|another neighborhood|other area|autre quartier|autre zone|anderes viertel|andere gegend)\b/.test(previousQuestion);
+
+  return affirmative && askedToBroaden;
 }
 
 function isBeachLocationPreference(message: string): boolean {
@@ -583,7 +596,9 @@ function mergeTravellerType(message: string, previousTravellerType?: TravellerTy
 function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContextResult {
   const previous = input.previousContext;
   const inferredRegion = findKnownRegion(input.message);
-  const acceptsBroadLocation = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message);
+  const acceptsBroadLocation =
+    acceptsAnyLocation(input.message) ||
+    acceptsBroaderLocationInContext(input.message, input.previousAssistantMessage);
   const targetRegion = normalizeRegion(inferredRegion ?? (acceptsBroadLocation ? "Dakar" : previous?.targetRegion));
   const timing = inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previous?.timing);
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
@@ -598,10 +613,50 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const avoidAudienceTags = new Set(previous?.avoidAudienceTags ?? []);
   if (/\b(?:geen|zonder|no|without|pas de|sans)\b.{0,24}\b(?:toeristen|tourists|touristes)\b/.test(normalizedMessage)) avoidAudienceTags.add("tourists");
   const noAlcohol = /\b(?:geen|zonder|no|without|pas d alcool|sans alcool)\b.{0,24}\b(?:alcohol|alcool)\b/.test(normalizedMessage);
+  const routeMessage = normalizeContextText(input.message);
+  const answersPreviousQuestion =
+    Boolean(input.previousAssistantMessage?.includes("?")) &&
+    /^(?:ja|nee|zeker|graag|yes|no|sure|oui|non|d accord|ja gerne|nein)$/.test(routeMessage);
+  const clearDatabaseMessage = Boolean(
+    inferredRegion ||
+    acceptsBroadLocation ||
+    answersPreviousQuestion ||
+    detectIntent(input.message) ||
+    inferRequestedSubcategory(input.message) ||
+    inferTiming(input.message) ||
+    inferBudget(input.message) ||
+    inferTravellerType(input.message) ||
+    inferTextVibe(input.message)
+  );
+  const conversationalMessage =
+    /^(?:hallo|hoi|hey|hi|hello|bonjour|bonsoir|salut|haha|hahaha|lol|mdr)$/.test(routeMessage) ||
+    (/\b(?:logo|website|site)\b/.test(routeMessage) &&
+      /\b(?:mooi|sterk|leuk|tof|joli|beau|belle|nice|great|cool)\b/.test(routeMessage)) ||
+    !clearDatabaseMessage;
+  const language = resolveConversationLanguage(input.message, previous?.language);
+  const fallbackConversationReply = language.startsWith("nl")
+    ? "Fijn dat je iets laat horen 😊 TUUTI helpt je graag met bijzondere plekken en ervaringen in Senegal. Waar heb je zin in?"
+    : language.startsWith("fr")
+      ? "Merci pour ton message 😊 TUUTI t’aide volontiers à trouver de belles adresses et expériences au Sénégal. De quoi as-tu envie ?"
+      : language.startsWith("de")
+        ? "Danke für deine Nachricht 😊 TUUTI hilft dir gern mit besonderen Orten und Erlebnissen im Senegal. Worauf hast du Lust?"
+        : "Thanks for your message 😊 TUUTI will gladly help with special places and experiences in Senegal. What are you in the mood for?";
+
+  if (conversationalMessage) {
+    return {
+      route: "conversation",
+      conversationReply: fallbackConversationReply,
+      context: { ...previous, language },
+      confidence: 0.55
+    };
+  }
+
   return {
+    route: "database_flow",
+    conversationReply: undefined,
     context: {
       ...previous,
-      language: resolveConversationLanguage(input.message, previous?.language),
+      language,
       targetRegion,
       travellerType: mergeTravellerType(input.message, previous?.travellerType),
       hasChildren: inferHasChildren(input.message) ?? previous?.hasChildren,
@@ -635,39 +690,14 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   };
 }
 
-function isShortDeterministicClarificationReply(message: string): boolean {
-  const normalized = normalizeContextText(message);
-  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-
-  if (wordCount > 6) return false;
-
-  return Boolean(
-    acceptsAnyLocation(message) ||
-      acceptsBroaderLocation(message) ||
-      isKnownRegionOnly(message) ||
-      isTravellerTypeOnly(message) ||
-      inferBudget(message)
-  );
-}
-
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
-  const broadTargetRegion = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message) ? "Dakar" : undefined;
+  const acceptsBroadLocation =
+    acceptsAnyLocation(input.message) ||
+    acceptsBroaderLocationInContext(input.message, input.previousAssistantMessage);
+  const broadTargetRegion = acceptsBroadLocation ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
-  const deterministicDirectRequest = Boolean(
-    isDirectRecommendationRequest(input.message) &&
-    inferRequestedSubcategory(input.message)
-  );
-
-  // Short answers to a question we just asked are fully deterministic. Sending
-  // "n'importe où", "Ouakam", "abordable" or an explicit request for coffee
-  // through the LLM adds latency and can leave a WhatsApp webhook waiting even
-  // though no semantic analysis is needed.
-  if (
-    !hasOpenAIKey() ||
-    isShortDeterministicClarificationReply(input.message) ||
-    deterministicDirectRequest
-  ) {
+  if (!hasOpenAIKey()) {
     return withSearchProfile(
       input.message,
       fallbackBuildUserContext(input),
@@ -684,7 +714,15 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
       model: openaiModel,
       instructions: `${systemPrompt}
 
-Extract updated user travel context as JSON.
+Interpret the newest WhatsApp message once, then return both its route and updated travel context as JSON.
+Routing rules:
+- Use database_flow when the newest message asks a TUUTI/Senegal travel question, requests a place or experience, supplies a preference, or answers the previous assistant question.
+- Short contextual answers such as yes, sure, a neighbourhood, a budget, a group type or "another area is fine" belong to database_flow. Read previousAssistantMessage to resolve their meaning.
+- Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
+- For conversation, write conversationReply in the language of the newest user message. Acknowledge its actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
+- For database_flow, conversationReply must be null. The application will query verified database places; do not recommend a place yourself.
+
+Travel-context rules:
 Rules:
 - Keep previous context unless the user clearly changes it.
 - Read the complete meaning of the sentence. Negated concepts are exclusions, never positive requests.
@@ -726,16 +764,16 @@ Also extract searchProfileSignals independently from the legacy context:
 - For short follow-up replies, only emit signals actually expressed or clearly selected in that reply. Previous values are merged by the application.`,
     input: JSON.stringify({
       message: input.message,
-      previousContext: input.previousContext ?? null,
       previousAssistantMessage: input.previousAssistantMessage ?? null,
-      recentConversation: input.conversationHistory ?? [],
       knownSubcategoryTaxonomy: input.subcategoryTaxonomy ?? []
     }),
       text: {
         format: zodTextFormat(buildUserContextSchema, "build_user_context")
       }
     }, {
-      timeout: CONTEXT_EXTRACTION_TIMEOUT_MS
+      timeout: CONTEXT_EXTRACTION_TIMEOUT_MS,
+      maxRetries: 0,
+      signal: AbortSignal.timeout(CONTEXT_EXTRACTION_TIMEOUT_MS)
     });
   } catch (error) {
     console.error("AI context extraction failed; using deterministic fallback", error);
@@ -759,9 +797,36 @@ Also extract searchProfileSignals independently from the legacy context:
     );
   }
 
+  const unmistakableDatabaseMessage = Boolean(
+    acceptsBroadLocation ||
+    explicitRegion ||
+    detectIntent(input.message) ||
+    inferRequestedSubcategory(input.message) ||
+    inferTiming(input.message) ||
+    inferBudget(input.message)
+  );
+
+  if (parsed.route === "conversation" && !unmistakableDatabaseMessage) {
+    return {
+      route: "conversation",
+      conversationReply: parsed.conversationReply ?? undefined,
+      context: {
+        ...(input.previousContext ?? {}),
+        language: resolveConversationLanguage(
+          input.message,
+          input.previousContext?.language,
+          parsed.context.language
+        )
+      },
+      confidence: parsed.confidence
+    };
+  }
+
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
   const semanticExclusions = parsed.context.excludedSubcategories;
   return withSearchProfile(input.message, {
+    route: parsed.route,
+    conversationReply: parsed.conversationReply ?? undefined,
     context: {
       language: resolveConversationLanguage(
         input.message,

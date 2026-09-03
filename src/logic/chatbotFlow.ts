@@ -3,10 +3,7 @@ import {
   inferRequestedStyle,
   isLocalSenegaleseDishRequest
 } from "../ai/buildUserContext.js";
-import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
-import { shouldUseConversationBoundary } from "../ai/classifyConversationTurn.js";
-import { generateFreeConversationReply } from "../ai/generateFreeConversationReply.js";
 import {
   findCurrentEvent,
   isCurrentEventRequest,
@@ -35,7 +32,6 @@ import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "./build
 import {
   buildGreetingResponse,
   buildOffscriptWelcomeResponse,
-  isGreetingOnly,
   isOffscriptStartMessage
 } from "./greeting.js";
 import { needsClarification, type MissingContextField } from "./needsClarification.js";
@@ -101,33 +97,33 @@ function buildNoMatchResponse(context: UserContext): string {
 
   if (context.language?.startsWith("nl")) {
     if (hasSpecificLocation) {
-      return `Ik heb nog geen sterke OFFSCRIPT-match in ${location}. Wil je naar een andere buurt in Dakar gaan? Dan kan ik breder zoeken.`;
+      return `Ik heb nog geen sterke TUUTI-pick in ${location}. Wil je naar een andere buurt in Dakar gaan? Dan kan ik breder zoeken.`;
     }
 
-    return "Ik heb daar nog geen sterke OFFSCRIPT-match voor in mijn huidige data.";
+    return "Ik heb daar nog geen sterke TUUTI-pick voor in mijn huidige data.";
   }
 
   if (context.language?.startsWith("fr")) {
     if (hasSpecificLocation) {
-      return `Je n’ai pas encore de match OFFSCRIPT vraiment solide à ${location}. Est-ce que tu veux te déplacer dans un autre quartier de Dakar ? Je peux chercher plus largement.`;
+      return `Je n’ai pas encore de TUUTI-pick vraiment solide à ${location}. Est-ce que tu veux te déplacer dans un autre quartier de Dakar ? Je peux chercher plus largement.`;
     }
 
-    return "Je n’ai pas encore de match OFFSCRIPT vraiment solide pour ça dans mes données actuelles.";
+    return "Je n’ai pas encore de TUUTI-pick vraiment solide pour ça dans mes données actuelles.";
   }
 
   if (context.language?.startsWith("de")) {
     if (hasSpecificLocation) {
-      return `Ich habe noch keinen starken OFFSCRIPT-Match in ${location}. Wärst du offen für ein anderes Viertel in Dakar? Dann kann ich breiter suchen.`;
+      return `Ich habe noch keinen starken TUUTI-Pick in ${location}. Wärst du offen für ein anderes Viertel in Dakar? Dann kann ich breiter suchen.`;
     }
 
-    return "Ich habe dafür in meinen aktuellen Daten noch keinen starken OFFSCRIPT-Match.";
+    return "Ich habe dafür in meinen aktuellen Daten noch keinen starken TUUTI-Pick.";
   }
 
   if (hasSpecificLocation) {
-    return `I do not have a strong OFFSCRIPT match in ${location} yet. Would you be open to another Dakar neighbourhood? I can search more broadly.`;
+    return `I do not have a strong TUUTI pick in ${location} yet. Would you be open to another Dakar neighbourhood? I can search more broadly.`;
   }
 
-  return "I do not have a strong OFFSCRIPT match for that in my current data yet.";
+  return "I do not have a strong TUUTI pick for that in my current data yet.";
 }
 
 function buildNoNewMatchResponse(context: UserContext): string {
@@ -313,196 +309,6 @@ function buildRespectfulSocialResponse(context: UserContext): string {
   return location
     ? `I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places in ${location}, like a bar, live music or somewhere to dance. Do you want something calm, local or more nightlife?`
     : "I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
-}
-
-function containsTravelSignal(message: string): boolean {
-  const normalized = normalizeSearchText(message);
-
-  return [
-    "senegal",
-    "dakar",
-    "ngor",
-    "yoff",
-    "almadies",
-    "mbour",
-    "saly",
-    "goree",
-    "saint louis",
-    "travel",
-    "trip",
-    "place",
-    "places",
-    "recommend",
-    "recommendation",
-    "restaurant",
-    "dinner",
-    "lunch",
-    "bar",
-    "beach",
-    "culture",
-    "art",
-    "artwork",
-    "artworks",
-    "local art",
-    "craft",
-    "crafts",
-    "gallery",
-    "galerie",
-    "atelier",
-    "artist",
-    "artists",
-    "market",
-    "music",
-    "dance",
-    "hotel",
-    "taxi",
-    "transport",
-    "fitness",
-    "gym",
-    "sport",
-    "sports",
-    "workout",
-    "training",
-    "surf",
-    "surfing",
-    "surfen",
-    "surfer",
-    "voyage",
-    "recommander",
-    "manger",
-    "art local",
-    "artiste",
-    "artistes",
-    "artisanat",
-    "artisanal",
-    "plage",
-    "quartier",
-    "reizen",
-    "reis",
-    "kunst",
-    "kunstenaars",
-    "lokaal kunst",
-    "plek",
-    "plekken",
-    "plaats",
-    "plaatsen",
-    "aanbevel",
-    "aanraden",
-    "eten",
-    "strand",
-    "buurt"
-  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
-}
-
-function containsContextAnswerSignal(message: string): boolean {
-  const normalized = normalizeSearchText(message);
-
-  return [
-    "solo",
-    "alone",
-    "alleen",
-    "seul",
-    "couple",
-    "koppel",
-    "friends",
-    "vrienden",
-    "amis",
-    "family",
-    "familie",
-    "famille",
-    "tonight",
-    "lunch",
-    "tomorrow",
-    "morgen",
-    "demain",
-    "noon",
-    "midday",
-    "vanavond",
-    "ce soir",
-    "morning",
-    "ochtend",
-    "matin",
-    "afternoon",
-    "middag",
-    "apres midi",
-    "evening",
-    "avond",
-    "soir"
-  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
-}
-
-function containsOffTopicSignal(message: string): boolean {
-  const normalized = normalizeSearchText(message);
-
-  return [
-    "homework",
-    "huiswerk",
-    "devoir",
-    "code",
-    "coding",
-    "javascript",
-    "python",
-    "printer",
-    "wifi",
-    "crypto",
-    "bitcoin",
-    "tax",
-    "taxes",
-    "belasting",
-    "impot",
-    "medical",
-    "doctor",
-    "legal",
-    "lawyer",
-    "contract",
-    "recipe",
-    "recept",
-    "love advice",
-    "relationship advice",
-    "tell me a joke",
-    "vertel een mop",
-    "raconte une blague",
-    "schrijf een gedicht",
-    "write a poem",
-    "ecris un poeme",
-    "horoscope",
-    "weather on mars",
-    "pink elephant",
-    "pink elephants",
-    "roze olifant",
-    "roze olifanten",
-    "bevalling van",
-    "zien bevallen",
-    "zien bevalling",
-    "leeuwin bevalling",
-    "bevalling leeuwin",
-    "leeuwin zien bevallen",
-    "lioness birth",
-    "birth of a lioness",
-    "lion giving birth",
-    "lioness giving birth",
-    "see a lioness giving birth"
-  ].some((phrase) => normalized.includes(normalizeSearchText(phrase)));
-}
-
-function isAbsurdOrOffTopicRequest(message: string): boolean {
-  const trimmed = message.trim();
-  const normalized = normalizeSearchText(trimmed);
-
-  if (trimmed.length < 8) return false;
-  if (detectIntent(trimmed)) return false;
-  if (containsTravelSignal(trimmed) || containsContextAnswerSignal(trimmed)) return false;
-  if (containsOffTopicSignal(trimmed)) return true;
-
-  if (
-    /\b(ik wil|ik zou graag|ik zou willen|i want|i would like|je veux|je voudrais|j aimerais|ich will|ich mochte|ich wurde gern)\b.+\b(zien|bevallen|see|voir|sehen)\b/i.test(
-      normalized
-    )
-  ) {
-    return true;
-  }
-
-  return /[?]/.test(trimmed) && /\b(can you|could you|do you|what is|who is|why is|how do|how are|when is|kan je|kun je|wat is|wie is|waarom|hoe werkt|hoe gaat|wanneer|waar kan|waar kan ik|comment|qui est|pourquoi|quand|ca va|ça va)\b/i.test(trimmed);
 }
 
 function isRecommendationFeedbackOnly(message: string): boolean {
@@ -983,26 +789,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  if (isGreetingOnly(message)) {
-    const context: UserContext = {
-      ...previousContext,
-      language: resolveConversationLanguage(message, previousContext?.language)
-    };
-
-    const greetingReply = await generateFreeConversationReply({
-      message,
-      language: context.language
-    });
-
-    await upsertConversationContext(userPhone, context);
-
-    return {
-      type: "clarification",
-      context,
-      message: greetingReply
-    };
-  }
-
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
   const knownRegion = findKnownRegion(message);
@@ -1159,41 +945,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return recommendationResult(explicitPlace, context, message);
   }
 
-  const boundaryConversationHistory = await listRecentConversationMessages(userPhone, 6);
-  const hasClearDatabaseSignal = Boolean(
-    detectIntent(message) ||
-    knownRegion ||
-    containsTravelSignal(message) ||
-    containsContextAnswerSignal(message)
-  );
-  const useConversationBoundary =
-    isAbsurdOrOffTopicRequest(message) ||
-    (!hasClearDatabaseSignal &&
-      await shouldUseConversationBoundary({
-        message,
-        previousAssistantMessage
-      }));
-
-  if (useConversationBoundary) {
-    const context: UserContext = {
-      ...previousContext,
-      language: storyLanguage
-    };
-    const freeConversationReply = await generateFreeConversationReply({
-      message,
-      language: context.language,
-      conversationHistory: boundaryConversationHistory
-    });
-
-    await upsertConversationContext(userPhone, context);
-
-    return {
-      type: "clarification",
-      context,
-      message: freeConversationReply
-    };
-  }
-
   const didStartNewSearch = startsNewSearch(message, previousContext);
   if (didStartNewSearch) {
     previousContext = contextForNewSearch(previousContext, storyLanguage);
@@ -1203,13 +954,23 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const conversationHistory = didStartNewSearch
     ? []
     : await listRecentConversationMessages(userPhone, 8);
-  const { context } = await buildUserContext({
+  const interpretation = await buildUserContext({
     message,
     previousContext,
     previousAssistantMessage,
     conversationHistory,
     subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
   });
+  const { context } = interpretation;
+
+  if (interpretation.route === "conversation") {
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: interpretation.conversationReply ?? buildGreetingResponse(context)
+    };
+  }
 
   const contextLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
   const isBroadLocalFoodRequest =
