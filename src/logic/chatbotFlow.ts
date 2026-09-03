@@ -872,16 +872,23 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   if (effectiveRoute === "needs_clarification") {
-    const contextAfterQuestion: UserContext = {
-      ...context,
-      clarificationCount: (context.clarificationCount ?? 0) + 1
-    };
-    await upsertConversationContext(userPhone, contextAfterQuestion);
-    return {
-      type: "clarification",
-      context: contextAfterQuestion,
-      message: interpretation.conversationReply ?? buildGreetingResponse(contextAfterQuestion)
-    };
+    places ??= await listRecommendationPlaces(storyLanguage);
+    const missingField = needsClarification(context, places);
+    if (!missingField) {
+      // The LLM extracted enough structured context despite choosing the
+      // cautious route. Continue to verified selection instead of re-asking.
+    } else {
+      const contextAfterQuestion: UserContext = {
+        ...context,
+        clarificationCount: (context.clarificationCount ?? 0) + 1
+      };
+      await upsertConversationContext(userPhone, contextAfterQuestion);
+      return {
+        type: "clarification",
+        context: contextAfterQuestion,
+        message: buildClarifyingQuestion(missingField, contextAfterQuestion)
+      };
+    }
   }
 
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);

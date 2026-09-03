@@ -294,7 +294,7 @@ function acceptsBroaderLocation(message: string): boolean {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|andere buurt|andere wijk|andere regio|andere plek|andere plaats|elders|autre quartier|autre zone|autre endroit|anderes viertel|andere gegend)\b/.test(
+  return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|broader|wider|andere buurt|andere wijk|andere regio|andere plek|andere plaats|elders|breder|ruimer|autre quartier|autre zone|autre endroit|plus largement|elargir|anderes viertel|andere gegend|breiter)\b/.test(
     lower
   );
 }
@@ -893,11 +893,17 @@ Also extract searchProfileSignals independently from the legacy context:
   const acceptedDakarWideSearch =
     parsed.previousQuestionResolution === "accepted" &&
     parsed.locationScope === "dakar_wide";
+  const continuesDakarWideSearch = Boolean(
+    acceptsBroadLocation &&
+    input.previousContext?.intent &&
+    input.previousContext.intent !== "unknown"
+  );
 
   if (
     parsed.route === "conversation" &&
     !unmistakableDatabaseMessage &&
-    !acceptedDakarWideSearch
+    !acceptedDakarWideSearch &&
+    !continuesDakarWideSearch
   ) {
     return {
       route: "conversation",
@@ -924,11 +930,11 @@ Also extract searchProfileSignals independently from the legacy context:
       ? inferRequestedAmenities(input.previousAssistantMessage)
       : [];
   return withSearchProfile(input.message, {
-    route: acceptedDakarWideSearch ? "place_lookup" : parsed.route,
+    route: acceptedDakarWideSearch || continuesDakarWideSearch ? "place_lookup" : parsed.route,
     recommendationAction: parsed.recommendationAction,
     previousQuestionAction: parsed.previousQuestionAction,
     previousQuestionResolution: parsed.previousQuestionResolution,
-    conversationReply: acceptedDakarWideSearch
+    conversationReply: acceptedDakarWideSearch || continuesDakarWideSearch
       ? undefined
       : parsed.conversationReply ?? undefined,
     context: {
@@ -942,7 +948,7 @@ Also extract searchProfileSignals independently from the legacy context:
       ),
       targetRegion: normalizeSupportedRegion(
         explicitRegion ??
-        (acceptedDakarWideSearch ? "Dakar" : undefined) ??
+        (acceptedDakarWideSearch || continuesDakarWideSearch ? "Dakar" : undefined) ??
         broadTargetRegion ??
         nullToUndefined(parsed.context.targetRegion) ??
         input.previousContext?.targetRegion
