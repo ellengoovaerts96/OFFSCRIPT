@@ -231,8 +231,8 @@ const japanesePlace = {
   amenities: [],
   images: []
 } as unknown as Place;
-if (needsClarification(japaneseContext, [japanesePlace]) !== null) {
-  throw new Error("One clear database match must be recommended without asking for a neighbourhood.");
+if (needsClarification(japaneseContext, [japanesePlace]) !== "location") {
+  throw new Error("A single database match must still ask for the traveller's location before recommending it.");
 }
 const secondJapanesePlace = {
   ...japanesePlace,

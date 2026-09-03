@@ -189,10 +189,16 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (needsSubcategory(context)) return "subcategory";
 
   if (places) {
+    // A content match does not tell us whether the place is practical for the
+    // traveller. Always establish their neighbourhood (or Dakar-wide
+    // mobility) before recommending an unnamed place, even when only one
+    // database candidate matches the request.
+    if (!hasSpecificLocation(context)) return "location";
+
     const candidates = findClarificationCandidates(places, context);
 
-    // Ask only about a field that actually separates the remaining database
-    // candidates. One clear match should be recommended immediately.
+    // Once mobility is known, ask only about a field that actually separates
+    // the remaining database candidates.
     if (candidates.length <= 1) return null;
     return mostInformativeCandidateField(context, candidates);
   }
