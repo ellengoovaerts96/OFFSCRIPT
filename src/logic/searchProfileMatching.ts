@@ -100,7 +100,39 @@ function placeSearchValues(place: Place): string[] {
     .map(normalize);
 }
 
+function placeServesCoffee(place: Place): boolean {
+  const coffeeTerms = TERM_ALIASES.coffee.map(normalize);
+  const containsCoffee = (value: string | undefined) => {
+    if (!value) return false;
+    const normalizedValue = normalize(value);
+    return coffeeTerms.some((term) => normalizedValue.includes(term));
+  };
+  const hospitalityCategories = new Set([
+    "food_and_drink",
+    "food",
+    "restaurant",
+    "cafe",
+    "bar"
+  ]);
+  const isHospitalityPlace =
+    place.categories.some((category) => hospitalityCategories.has(normalize(category).replaceAll(" ", "_"))) ||
+    place.subcategories.some((subcategory) =>
+      ["coffee", "cafe", "bar", "breakfast"].some((type) => normalize(subcategory.name).includes(type))
+    );
+  const hasDocumentedCoffeeService =
+    containsCoffee(place.name) ||
+    containsCoffee(place.shortDescription) ||
+    place.bestFor.some(containsCoffee) ||
+    place.subcategories.some((subcategory) =>
+      containsCoffee(subcategory.name) || containsCoffee(subcategory.description)
+    ) ||
+    place.occasionTags.some(containsCoffee);
+
+  return isHospitalityPlace && Boolean(hasDocumentedCoffeeService);
+}
+
 export function placeMatchesSearchTerm(place: Place, term: string): boolean {
+  if (normalize(term) === "coffee") return placeServesCoffee(place);
   const terms = aliases(term);
   return placeSearchValues(place).some((value) =>
     terms.some((candidate) => value.includes(candidate))

@@ -392,7 +392,7 @@ const coffeeSearchProfile = {
 const agriculturalPowderShop = {
   ...beachReggaePlace,
   name: "Agricultural powder shop",
-  shortDescription: "Natural fruit and plant powders that can be added to drinks.",
+  shortDescription: "Natural fruit, coffee and plant powders that can be added to drinks.",
   categories: ["drink"],
   subcategories: [{ id: "products", name: "Natural products", displayOrder: 1, images: [] }],
   occasionTags: ["drinks"]
