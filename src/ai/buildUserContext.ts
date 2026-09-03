@@ -108,6 +108,36 @@ const buildUserContextSchema = z.object({
 // before Twilio needs the initial HTTP response.
 const CONTEXT_EXTRACTION_TIMEOUT_MS = 6_500;
 
+function isPureGreeting(message: string): boolean {
+  return /^(?:hallo|hoi|hey|hi|hello|bonjour|bonsoir|salut|goedemorgen|goedenavond)[!.?\s]*$/i.test(
+    message.trim()
+  );
+}
+
+async function buildGreetingReply(message: string): Promise<string | undefined> {
+  const client = getOpenAIClient();
+
+  try {
+    const response = await client.responses.create({
+      model: openaiModel,
+      instructions: `Reply to this greeting as TUUTI, a warm Senegal travel companion.
+Write one short, natural reply and nothing else. Do not use a category list, questionnaire or stock travel sentence.
+Reply in the language of the user's current greeting. Treat "hallo" as Dutch unless the current message itself contains clear German words.
+You may naturally invite the user to tell you what they need, but do not ask about group type, budget, timing or location yet.`,
+      input: message
+    }, {
+      timeout: CONTEXT_EXTRACTION_TIMEOUT_MS,
+      maxRetries: 0,
+      signal: AbortSignal.timeout(CONTEXT_EXTRACTION_TIMEOUT_MS)
+    });
+
+    return response.output_text.trim() || undefined;
+  } catch (error) {
+    console.error("AI greeting reply failed; using conversational fallback", error);
+    return undefined;
+  }
+}
+
 export type BuildUserContextInput = {
   message: string;
   previousContext?: UserContext | null;
@@ -709,6 +739,19 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
     );
   }
 
+  // A standalone greeting has no recommendation intent. Give the LLM a focused
+  // conversation task so old travel context cannot turn it into a questionnaire.
+  if (isPureGreeting(input.message)) {
+    const language = resolveConversationLanguage(input.message, undefined);
+    const conversationReply = await buildGreetingReply(input.message);
+    return {
+      route: "conversation",
+      conversationReply: conversationReply ?? fallbackBuildUserContext(input).conversationReply,
+      context: { ...(input.previousContext ?? {}), language },
+      confidence: 1
+    };
+  }
+
   const client = getOpenAIClient();
   let response;
   try {
@@ -723,6 +766,7 @@ Routing rules:
 - Short contextual answers such as yes, sure, a neighbourhood, a budget, a group type or "another area is fine" continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
 - Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
 - For conversation, write conversationReply in the language of the newest user message. Acknowledge its actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
+- A standalone greeting is always conversation. Never answer a greeting by asking for traveller type, budget, timing or location.
 - Never recommend or name a place yourself. The application queries verified places only after place_lookup.
 
 Travel-context rules:
@@ -738,7 +782,7 @@ Rules:
 - Interpret short replies in the context of the previous assistant message. A short reply often selects one of the options in that question.
 - Do not require the user to repeat the exact wording of an option. Resolve natural synonyms and partial answers semantically.
 - Examples: after a pizza-style question, "bon restaurant" means the good Italian restaurant option; after a children question, "oui" means children are joining; after a location question, "n’importe où" means Dakar-wide mobility.
-- Preserve the existing conversation language. Only change it when the user explicitly requests another language.
+- The newest user message determines the reply language. Preserve the previous language only when the newest message is language-neutral. Treat a standalone "hallo" as Dutch unless that message itself contains clear German words.
 - Normalize known Senegal regions.
 - Use "unknown" for unclear travellerType or intent.
 - Use "unknown" for unclear timing.
