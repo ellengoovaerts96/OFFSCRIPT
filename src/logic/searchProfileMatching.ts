@@ -134,6 +134,10 @@ export function placePassesSearchProfileHardConstraints(
     !["meat", "fish", "seafood"].includes(normalize(term));
 
   if (!placeMatchesSearchActivity(place, profile.activity)) return false;
+  // Concrete requested products are promises, not soft ranking hints. If the
+  // traveller asks for coffee, sushi or cocktails, never fall back to a place
+  // that merely matches the broad activity (for example any place to drink).
+  if (profile.products.some((term) => !placeMatchesSearchTerm(place, term))) return false;
   if (profile.exclusions.products.some(
     (term) => appliesAsRestaurantWideExclusion(term) && placeMatchesSearchTerm(place, term)
   )) return false;

@@ -23,6 +23,7 @@ import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "../src/
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { recommendationReadiness } from "../src/logic/recommendationReadiness.js";
 import { placePassesHardConstraints, selectBestPlace } from "../src/logic/selectBestPlace.js";
+import { placePassesSearchProfileHardConstraints } from "../src/logic/searchProfileMatching.js";
 import { scorePlace } from "../src/logic/scorePlace.js";
 import type { Place } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
@@ -371,6 +372,38 @@ if (selectBestPlace([workFriendlyPlace], workContext)?.place.name !== "Quiet wor
 }
 if (placePassesHardConstraints({ ...workFriendlyPlace, amenities: ["wifi"] } as Place, workContext)) {
   throw new Error("A place without an explicitly requested amenity must be excluded.");
+}
+const coffeeSearchProfile = {
+  activity: "drink" as const,
+  products: ["coffee"],
+  locationFeatures: [],
+  occasions: [],
+  vibes: [],
+  amenities: [],
+  dietaryRequirements: [],
+  exclusions: { products: [], categories: [], audienceTags: [], dietary: [] }
+};
+const agriculturalPowderShop = {
+  ...beachReggaePlace,
+  name: "Agricultural powder shop",
+  shortDescription: "Natural fruit and plant powders that can be added to drinks.",
+  categories: ["drink"],
+  subcategories: [{ id: "products", name: "Natural products", displayOrder: 1, images: [] }],
+  occasionTags: ["drinks"]
+} as unknown as Place;
+const documentedCoffeeBar = {
+  ...beachReggaePlace,
+  name: "Documented coffee bar",
+  shortDescription: "A neighbourhood café known for freshly made coffee.",
+  categories: ["food_and_drink"],
+  subcategories: [{ id: "bar", name: "Bar", displayOrder: 1, images: [] }],
+  occasionTags: ["drinks"]
+} as unknown as Place;
+if (placePassesSearchProfileHardConstraints(agriculturalPowderShop, coffeeSearchProfile)) {
+  throw new Error("A generic drink-related shop must never satisfy an explicit coffee request.");
+}
+if (!placePassesSearchProfileHardConstraints(documentedCoffeeBar, coffeeSearchProfile)) {
+  throw new Error("A place with documented coffee must satisfy an explicit coffee request.");
 }
 const genericFoodStyleQuestion = buildClarifyingQuestion("vibe", { language: "fr", intent: "food" });
 if (/pizza|seafood|beach/i.test(genericFoodStyleQuestion)) {
