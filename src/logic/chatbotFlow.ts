@@ -948,9 +948,11 @@ function recommendationResult(
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
-  let previousContext = await getConversationContext(userPhone);
+  let [previousContext, previousAssistantMessage] = await Promise.all([
+    getConversationContext(userPhone),
+    getLastOutgoingMessage(userPhone)
+  ]);
   let places: Place[] | undefined;
-  const previousAssistantMessage = await getLastOutgoingMessage(userPhone);
   const useWolofGreeting = !previousAssistantMessage;
 
   if (isOffscriptStartMessage(message)) {

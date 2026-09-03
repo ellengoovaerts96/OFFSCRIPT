@@ -42,6 +42,18 @@ const incompleteContext: UserContext = {
   targetRegion: "Mbour"
 };
 
+const directCoffeeContext = await buildUserContext({
+  message: "waar kan ik de lekkerste koffie drinken?",
+  previousContext: { language: "nl", clarificationCount: 0 },
+  subcategoryTaxonomy: [{ name: "bar", intent: "drink" }]
+});
+if (
+  directCoffeeContext.context.intent !== "drink" ||
+  !directCoffeeContext.context.searchProfile?.products.includes("coffee")
+) {
+  throw new Error("A direct coffee request must use the deterministic database context flow.");
+}
+
 if (!isOffscriptStartMessage("Bonjour TUUTI 👋")) {
   throw new Error("The TUUTI website WhatsApp message must start the welcome flow.");
 }

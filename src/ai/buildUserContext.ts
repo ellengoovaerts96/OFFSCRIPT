@@ -655,15 +655,14 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
   const broadTargetRegion = acceptsAnyLocation(input.message) || acceptsBroaderLocation(input.message) ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
   const deterministicDirectRequest = Boolean(
-    explicitRegion &&
     isDirectRecommendationRequest(input.message) &&
     inferRequestedSubcategory(input.message)
   );
 
   // Short answers to a question we just asked are fully deterministic. Sending
-  // "n'importe où", "Ouakam" or "abordable" through the LLM adds latency and
-  // can leave a WhatsApp webhook waiting even though no semantic analysis is
-  // needed.
+  // "n'importe où", "Ouakam", "abordable" or an explicit request for coffee
+  // through the LLM adds latency and can leave a WhatsApp webhook waiting even
+  // though no semantic analysis is needed.
   if (
     !hasOpenAIKey() ||
     isShortDeterministicClarificationReply(input.message) ||
