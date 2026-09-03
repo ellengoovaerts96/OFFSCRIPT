@@ -40,6 +40,16 @@ const incompleteContext: UserContext = {
   targetRegion: "Mbour"
 };
 
+if (!isOffscriptStartMessage("Bonjour TUUTI 👋")) {
+  throw new Error("The TUUTI website WhatsApp message must start the welcome flow.");
+}
+if (!isOffscriptStartMessage("Start TUUTI 👋")) {
+  throw new Error("A TUUTI start message must start the welcome flow.");
+}
+if (isOffscriptStartMessage("Bonjour TUUTI, je cherche un restaurant")) {
+  throw new Error("A specific TUUTI question must remain a normal conversation message.");
+}
+
 const rastaBarContext: UserContext = {
   language: "nl",
   targetRegion: "Dakar",
@@ -397,6 +407,8 @@ try {
         upscalePizzaSelection: upscalePizzaSelection.place.name,
         inferredRastaVibe: inferTextVibe("Waar kan ik een rasta bar vinden?"),
         englishAfterFrenchReset: resolveConversationLanguage("Is there an Irish pub?", "fr"),
+        recognisesWebsiteTuutiStart: isOffscriptStartMessage("Bonjour TUUTI 👋"),
+        recognisesTuutiStart: isOffscriptStartMessage("Start TUUTI 👋"),
         recognisesNewOffscriptStart: isOffscriptStartMessage("Bonjour OFFSCRIPT 👋"),
         recognisesFlyerOffscriptStart: isOffscriptStartMessage("Start OFFSCRIPT 👋"),
         offscriptWelcome: buildOffscriptWelcomeResponse(),
