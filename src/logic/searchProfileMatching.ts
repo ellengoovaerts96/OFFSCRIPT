@@ -3,7 +3,7 @@ import type { SearchActivity, SearchProfile } from "../types/searchProfile.js";
 
 const ACTIVITY_INTENTS: Partial<Record<SearchActivity, string[]>> = {
   eat: ["food", "restaurant", "lunch", "dinner"],
-  drink: ["drink", "bar", "cocktail"],
+  drink: ["drink", "bar", "cocktail", "coffee", "cafe"],
   shop: ["shopping", "shop", "market"],
   surf: ["surfing", "surf", "sports"],
   work: ["working", "work", "coworking"],
@@ -114,12 +114,21 @@ function placeServesCoffee(place: Place): boolean {
     "cafe",
     "bar"
   ]);
-  // A retail place can sell coffee, beans or drink powders without being a
-  // place where the traveller can sit down for coffee. Never allow incidental
-  // hospitality/drink labels to turn a shop into a coffee recommendation.
-  if (place.categories.some((category) => normalize(category) === "shopping")) {
-    return false;
-  }
+  // A retail category alone must not exclude a real counter or café. Some
+  // local businesses sell products as well as serving coffee. Require explicit
+  // service evidence before allowing such a mixed-category place.
+  const isRetailPlace = place.categories.some(
+    (category) => normalize(category) === "shopping"
+  );
+  const hasExplicitCoffeeService =
+    /\b(cafe|coffee)\b/.test(normalize(place.name)) ||
+    place.subcategories.some((subcategory) =>
+      /\b(cafe|coffee|takeaway|take away|breakfast)\b/.test(normalize(subcategory.name))
+    ) ||
+    place.occasionTags.some((tag) =>
+      /\b(cafe|coffee|takeaway|take away|breakfast)\b/.test(normalize(tag))
+    );
+  if (isRetailPlace && !hasExplicitCoffeeService) return false;
   const isHospitalityPlace =
     place.categories.some((category) => hospitalityCategories.has(normalize(category).replaceAll(" ", "_"))) ||
     place.subcategories.some((subcategory) =>

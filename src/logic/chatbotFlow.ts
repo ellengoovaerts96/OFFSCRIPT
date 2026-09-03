@@ -832,7 +832,18 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     }
   }
 
-  if (activeRecommendation && interpretation.recommendationAction === "accept_recommendation") {
+  const continuesProposedSearch =
+    interpretation.previousQuestionResolution === "accepted" &&
+    (
+      interpretation.previousQuestionAction === "continue_search" ||
+      interpretation.route === "place_lookup"
+    );
+
+  if (
+    activeRecommendation &&
+    interpretation.recommendationAction === "accept_recommendation" &&
+    !continuesProposedSearch
+  ) {
     const feedbackContext = { ...context, language: storyLanguage };
     await upsertConversationContext(userPhone, feedbackContext);
     return {
@@ -842,7 +853,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  const effectiveRoute = interpretation.recommendationAction === "find_alternative"
+  const effectiveRoute = interpretation.recommendationAction === "find_alternative" || continuesProposedSearch
     ? "place_lookup"
     : interpretation.route;
 

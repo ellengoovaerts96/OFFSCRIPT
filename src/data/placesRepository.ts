@@ -150,7 +150,12 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
       row.practical_info_en,
       row.practical_info_fr,
       row.short_description,
-      row.vibe
+      row.vibe,
+      ...(row.legacy_subcategories ?? []),
+      ...(row.subcategories ?? []).flatMap((subcategory) => [
+        subcategory.name,
+        subcategory.description
+      ])
     ]),
     workFriendly: row.work_friendly ?? undefined,
     categories: compatibleCategories(row.categories),

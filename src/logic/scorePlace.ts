@@ -34,7 +34,7 @@ const SHOPPING_FOCUS_ALIASES: Record<string, string[]> = {
 const VIBE_ALIASES: Record<string, string[]> = {
   rasta_reggae: vibeTagAliases("rasta_reggae"),
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
-  quick_casual: ["quick", "casual", "informal", "fast", "takeaway", "snelle", "informeel", "rapide", "décontracté"],
+  quick_casual: ["quick", "casual", "informal", "fast", "takeaway", "take away", "snelle", "snel", "afhalen", "informeel", "rapide", "a emporter", "décontracté"],
   italian_restaurant: ["italian", "italian restaurant", "italiaans", "restaurant italien", "italienisch"],
   local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],
   calm: ["calm", "quiet", "rustig", "calme", "tranquil", "tranquille", "ruhig", "relax", "relaxed"],
@@ -77,7 +77,14 @@ const OCCASION_ALIASES: Record<string, string[]> = {
   local_experience: ["local_experience", "local", "authentic"]
 };
 
-const STRUCTURED_ONLY_VIBES = new Set(["fitness", "surfing", "yoga", "running", "rasta_reggae"]);
+const STRUCTURED_ONLY_VIBES = new Set([
+  "fitness",
+  "surfing",
+  "yoga",
+  "running",
+  "rasta_reggae",
+  "quick_casual"
+]);
 
 function normalizeValue(value: string): string {
   return value
@@ -89,7 +96,10 @@ function normalizeValue(value: string): string {
 
 function matchesAny(value: string, candidates: string[]): boolean {
   const normalizedValue = normalizeValue(value);
-  return candidates.map(normalizeValue).some((candidate) => normalizedValue === candidate || normalizedValue.includes(candidate));
+  const searchableValue = ` ${normalizedValue} `;
+  return candidates.map(normalizeValue).some((candidate) =>
+    normalizedValue === candidate || searchableValue.includes(` ${candidate} `)
+  );
 }
 
 function textMatchesLocation(value: string | undefined, targetLocation: string): boolean {
@@ -132,7 +142,10 @@ function placeMatchesTiming(place: Place, timing: string): boolean {
 function textIncludesAny(value: string | undefined, candidates: string[]): boolean {
   if (!value) return false;
   const normalizedValue = normalizeValue(value);
-  return candidates.map(normalizeValue).some((candidate) => normalizedValue.includes(candidate));
+  const searchableValue = ` ${normalizedValue} `;
+  return candidates.map(normalizeValue).some((candidate) =>
+    normalizedValue === candidate || searchableValue.includes(` ${candidate} `)
+  );
 }
 
 function placeMatchesShoppingFocus(place: Place, focus: string | undefined): boolean {

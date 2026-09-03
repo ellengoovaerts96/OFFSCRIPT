@@ -112,6 +112,7 @@ const buildUserContextSchema = z.object({
     "answered_with_detail",
     "not_applicable"
   ]),
+  previousQuestionAction: z.enum(["continue_search", "accept_recommendation", "none"]),
   locationScope: z.enum(["dakar_wide", "keep_current_location", "unspecified"]),
   context: userContextSchema,
   searchProfileSignals: searchProfileSignalsSchema,
@@ -171,6 +172,8 @@ export type BuildUserContextResult = {
   route: "conversation" | "needs_clarification" | "place_lookup";
   conversationReply?: string;
   recommendationAction?: "none" | "ask_about_place" | "explain_match" | "accept_recommendation" | "find_alternative" | "new_search";
+  previousQuestionAction?: "continue_search" | "accept_recommendation" | "none";
+  previousQuestionResolution?: "accepted" | "rejected" | "answered_with_detail" | "not_applicable";
 };
 
 function withSearchProfile(
@@ -523,7 +526,7 @@ export function inferRequestedAmenities(message: string): string[] {
   if (/\b(parking|car park|stationnement)\b/.test(lower)) amenities.push("parking");
   if (/\b(wheelchair accessible|rolstoeltoegankelijk|accessible en fauteuil roulant)\b/.test(lower)) amenities.push("wheelchair_accessible");
   if (/\b(delivery|bezorging|livraison)\b/.test(lower)) amenities.push("delivery");
-  if (/\b(takeaway|take away|afhalen|a emporter)\b/.test(lower)) amenities.push("takeaway");
+  if (/\b(takeaway|take away|afhalen|meenemen|mee te nemen|a emporter)\b/.test(lower)) amenities.push("takeaway");
   if (/\b(reservation possible|reservations possible|reserveren mogelijk|reservation possible)\b/.test(lower)) amenities.push("reservation_possible");
   if (/\b(whatsapp contact|contact via whatsapp|whatsapp)\b/.test(lower)) amenities.push("whatsapp_contact");
   if (/\b(live music|livemuziek|musique live|musique en direct)\b/.test(lower)) amenities.push("live_music");
@@ -789,6 +792,7 @@ Routing rules:
 - Use place_lookup only when the accumulated structured context is sufficient for a concrete recommendation, or when the user asks for factual information about a named place. For place_lookup, conversationReply must be null.
 - Interpret every short answer semantically in light of previousAssistantMessage; do not classify it from keywords alone. Record whether it accepts or rejects the previous proposal, or answers it with a concrete detail, in previousQuestionResolution.
 - Natural acceptance can be indirect or idiomatic, for example permission to proceed, encouragement to choose, indifference between offered options, or agreement in the user's own words. It does not need to repeat an option or resemble "yes".
+- Resolve a short answer against the direct previousAssistantMessage before the older activeRecommendation. If the assistant just offered to refine, broaden or continue the search and the user accepts, set previousQuestionAction to continue_search and recommendationAction to find_alternative. Only use accept_recommendation when the user is accepting the place itself rather than an offered search action.
 - If the previous assistant asked permission to broaden a search beyond one neighbourhood and the user accepts, set locationScope to dakar_wide, set targetRegion to Dakar, preserve the accumulated request, and continue with place_lookup. Do not ask for confirmation again.
 - If the user rejects broadening, set locationScope to keep_current_location and preserve the specific location.
 - Short contextual answers such as a neighbourhood, a budget or a group type also continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
@@ -898,6 +902,8 @@ Also extract searchProfileSignals independently from the legacy context:
     return {
       route: "conversation",
       recommendationAction: parsed.recommendationAction,
+      previousQuestionAction: parsed.previousQuestionAction,
+      previousQuestionResolution: parsed.previousQuestionResolution,
       conversationReply: parsed.conversationReply ?? undefined,
       context: {
         ...(input.previousContext ?? {}),
@@ -913,9 +919,15 @@ Also extract searchProfileSignals independently from the legacy context:
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
   const semanticExclusions = parsed.context.excludedSubcategories;
+  const acceptedPreviousAmenities =
+    parsed.previousQuestionResolution === "accepted" && input.previousAssistantMessage
+      ? inferRequestedAmenities(input.previousAssistantMessage)
+      : [];
   return withSearchProfile(input.message, {
     route: acceptedDakarWideSearch ? "place_lookup" : parsed.route,
     recommendationAction: parsed.recommendationAction,
+    previousQuestionAction: parsed.previousQuestionAction,
+    previousQuestionResolution: parsed.previousQuestionResolution,
     conversationReply: acceptedDakarWideSearch
       ? undefined
       : parsed.conversationReply ?? undefined,
@@ -973,6 +985,7 @@ Also extract searchProfileSignals independently from the legacy context:
         ...new Set([
           ...(input.previousContext?.requestedAmenities ?? []),
           ...parsed.context.requestedAmenities,
+          ...acceptedPreviousAmenities,
           ...inferRequestedAmenities(input.message)
         ])
       ],
