@@ -413,11 +413,14 @@ export function isLocalSenegaleseDishRequest(message: string): boolean {
 
 export function inferRequestedStyle(message: string): string | undefined {
   const lower = normalizeContextText(message);
+  if (/\b(espresso|cappuccino|latte|flat white|americano)\b/.test(lower)) {
+    return "international";
+  }
   if (/\b(international|internationaal|internationale|internationales|cosmopolitan|cosmopolitain)\b/.test(lower)) {
     return "international";
   }
   if (
-    /\b(local|lokaal|lokale|locale|locales|lokal|authentic|authentiek|authentique)\b/.test(lower) ||
+    /\b(local|lokaal|lokale|locale|locales|lokal|authentic|authentiek|authentique|cafe touba)\b/.test(lower) ||
     isLocalSenegaleseDishRequest(message)
   ) {
     return "local";
@@ -824,6 +827,7 @@ Rules:
 - Use "unknown" for unclear timing.
 - Treat beach/plage/strand as requestedSubcategory, not as vibe.
 - Store local/international as requestedStyle, not as vibe.
+- For coffee, store Café Touba or a local coffee preference as requestedStyle local. Store espresso, cappuccino, latte, flat white or americano as requestedStyle international; these are examples of the broader style, not separate required subcategories.
 - Treat Thiéboudienne, Yassa and Mafé as local Senegalese food: set intent to food and requestedStyle to local. Do not store the dish name as requestedSubcategory.
 - Store explicitly requested facilities in requestedAmenities using only: ${PLACE_AMENITIES.join(", ")}.
 - Normalize price preference to affordable, mid-range, upscale or luxury in budget.

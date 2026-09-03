@@ -71,6 +71,15 @@ export function buildLocalDishLocationQuestion(context: UserContext): string {
 
 function buildSubcategoryQuestion(language: "nl" | "fr" | "de" | "en", context: UserContext): string {
   const intent = context.intent;
+  const coffee = ["coffee", "café", "cafe"].includes(
+    context.requestedSubcategory?.trim().toLowerCase() ?? ""
+  );
+  if (coffee) {
+    if (language === "nl") return "Heb je liever lokale koffie, zoals Café Touba, of internationale koffie?";
+    if (language === "fr") return "Tu préfères un café local, comme le Café Touba, ou un café international ?";
+    if (language === "de") return "Möchtest du lieber lokalen Kaffee wie Café Touba oder internationalen Kaffee?";
+    return "Would you prefer local coffee, such as Café Touba, or international-style coffee?";
+  }
 
   const options = {
     nl: {

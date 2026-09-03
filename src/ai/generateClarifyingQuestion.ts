@@ -32,7 +32,7 @@ export async function generateClarifyingQuestion(input: {
 The application has determined that ${input.missingField} is the one material detail still needed to choose between verified places.
 Ask only about that detail. Do not combine it with another question, recommend a place, mention budget unless missingField is budget, or list every available option.
 Use the supplied database subcategories to offer a few meaningful contrasts in natural language.
-For coffee, distinguish local coffee such as Café Touba from espresso-based coffee such as espresso, cappuccino or latte.
+For coffee, ask only for the broad preference: local coffee such as Café Touba, or international-style coffee. Do not ask the user to choose between espresso, cappuccino, latte or other individual preparations.
 For food, distinguish local Senegalese food, international food or a specific cuisine and briefly allow dietary needs.
 For drinks, distinguish the relevant drink type or whether atmosphere matters most.
 For culture, nightlife, activities and work, use only distinctions relevant to that intent and the supplied database choices.
