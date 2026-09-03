@@ -22,7 +22,8 @@ const SUBCATEGORY_REQUIRED_INTENTS = new Set([
   "sports",
   "nature",
   "nightlife",
-  "shopping"
+  "shopping",
+  "work"
 ]);
 
 function hasSpecificLocation(context: UserContext): boolean {
@@ -84,6 +85,17 @@ function needsSubcategory(context: UserContext): boolean {
   // to eat as well would waste one of the three available questions.
   if (context.intent === "food" && context.timing && context.timing !== "unknown") return false;
   if (context.intent === "drink" && context.timing && context.timing !== "unknown") return false;
+
+  const normalizedSubcategory = context.requestedSubcategory?.trim().toLowerCase();
+  if (
+    ["coffee", "café", "cafe"].includes(normalizedSubcategory ?? "") &&
+    !context.requestedStyle &&
+    !(context.searchProfile?.products ?? []).some((product) =>
+      /cafe touba|café touba|espresso|cappuccino|latte/i.test(product)
+    )
+  ) {
+    return true;
+  }
 
   return Boolean(
     context.intent &&

@@ -10,6 +10,7 @@ import {
   type CuratedEventVenue
 } from "../ai/findCurrentEvent.js";
 import { generatePlaceFollowUpReply } from "../ai/generatePlaceFollowUpReply.js";
+import { generateClarifyingQuestion } from "../ai/generateClarifyingQuestion.js";
 import { localizeRecommendationText } from "../ai/localizeRecommendationText.js";
 import {
   deleteConversationContext,
@@ -730,6 +731,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     activeRecommendation = null;
   }
 
+  places ??= await listRecommendationPlaces(storyLanguage);
   const interpretation = await buildUserContext({
     message,
     previousContext,
@@ -738,7 +740,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       placeName: activeRecommendation.placeName,
       needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage }
     } : null,
-    subcategoryTaxonomy: []
+    subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
   });
   const context = interpretation.context;
   const recommendationNeeds = activeRecommendation?.contextSnapshot ?? previousContext ?? context;
@@ -801,22 +803,24 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  if (effectiveRoute === "needs_clarification") {
-    places ??= await listRecommendationPlaces(storyLanguage);
+  if (["needs_clarification", "place_lookup"].includes(effectiveRoute)) {
     const missingField = needsClarification(context, places);
-    if (!missingField) {
-      // The LLM extracted enough structured context despite choosing the
-      // cautious route. Continue to verified selection instead of re-asking.
-    } else {
+    if (missingField) {
+      const candidates = findClarificationCandidates(places, context);
       const contextAfterQuestion: UserContext = {
         ...context,
         clarificationCount: (context.clarificationCount ?? 0) + 1
       };
+      const question = await generateClarifyingQuestion({
+        missingField,
+        context: contextAfterQuestion,
+        candidates
+      });
       await upsertConversationContext(userPhone, contextAfterQuestion);
       return {
         type: "clarification",
         context: contextAfterQuestion,
-        message: buildClarifyingQuestion(missingField, contextAfterQuestion)
+        message: question
       };
     }
   }

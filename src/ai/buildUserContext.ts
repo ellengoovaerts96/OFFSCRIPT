@@ -951,7 +951,9 @@ Also extract searchProfileSignals independently from the legacy context:
         explicitRegion ??
         (acceptedDakarWideSearch || continuesDakarWideSearch ? "Dakar" : undefined) ??
         broadTargetRegion ??
-        nullToUndefined(parsed.context.targetRegion) ??
+        (nullToUndefined(parsed.context.targetRegion)?.toLowerCase() === "dakar"
+          ? undefined
+          : nullToUndefined(parsed.context.targetRegion)) ??
         input.previousContext?.targetRegion
       ),
       travellerType:
