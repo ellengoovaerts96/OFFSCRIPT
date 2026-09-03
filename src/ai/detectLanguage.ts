@@ -8,7 +8,7 @@ export function detectLanguage(message: string, fallback = "fr"): string {
   const lower = message.toLowerCase();
 
   if (
-    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|ik|wil|ontmoeten|wat|betekent|bedoelt|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie|heel|mooi|lekker|graag|dankjewel|bedankt)\b/.test(
+    /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|ik|wil|ontmoeten|wat|betekent|bedoelt|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie|heel|mooi|lekker|graag|dankjewel|bedankt|aangename|kennismaking)\b/.test(
       lower
     )
   ) {
@@ -74,7 +74,7 @@ export function resolveConversationLanguage(
   // conversational asides such as "heel mooi logo" in a French-started chat.
   const strongShortLanguage = (() => {
     const lower = message.toLowerCase();
-    if (/\b(heel|mooi|lekker|graag|dankjewel|bedankt|gezellig)\b/.test(lower)) return "nl";
+    if (/\b(heel|mooi|lekker|graag|dankjewel|bedankt|gezellig|aangename|kennismaking)\b/.test(lower)) return "nl";
     if (/\b(beaucoup|merci|joli|belle|plaisir|volontiers)\b/.test(lower)) return "fr";
     if (/\b(thanks|lovely|beautiful|really|gladly)\b/.test(lower)) return "en";
     if (/\b(danke|schon|schön|gerne|wirklich)\b/.test(lower)) return "de";

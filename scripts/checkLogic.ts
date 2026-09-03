@@ -63,6 +63,9 @@ if (!await shouldUseConversationBoundary({ message: "Wel sterk logo!" })) {
 if (resolveConversationLanguage("heel mooi logo!", "fr") !== "nl") {
   throw new Error("A clearly Dutch short aside must override an earlier French conversation language.");
 }
+if (resolveConversationLanguage("aangename kennismaking!", "fr") !== "nl") {
+  throw new Error("The newest user's Dutch language must override the earlier French conversation language.");
+}
 
 const rastaBarContext: UserContext = {
   language: "nl",
