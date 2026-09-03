@@ -5,6 +5,7 @@ import {
 } from "../ai/buildUserContext.js";
 import { detectIntent } from "../ai/detectIntent.js";
 import { detectLanguage, detectRequestedLanguage, resolveConversationLanguage } from "../ai/detectLanguage.js";
+import { shouldUseConversationBoundary } from "../ai/classifyConversationTurn.js";
 import { generateFreeConversationReply } from "../ai/generateFreeConversationReply.js";
 import {
   findCurrentEvent,
@@ -1151,16 +1152,30 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return recommendationResult(explicitPlace, context, message);
   }
 
-  if (isAbsurdOrOffTopicRequest(message)) {
+  const boundaryConversationHistory = await listRecentConversationMessages(userPhone, 6);
+  const hasClearDatabaseSignal = Boolean(
+    detectIntent(message) ||
+    knownRegion ||
+    containsTravelSignal(message) ||
+    containsContextAnswerSignal(message)
+  );
+  const useConversationBoundary =
+    isAbsurdOrOffTopicRequest(message) ||
+    (!hasClearDatabaseSignal &&
+      await shouldUseConversationBoundary({
+        message,
+        previousAssistantMessage
+      }));
+
+  if (useConversationBoundary) {
     const context: UserContext = {
       ...previousContext,
       language: storyLanguage
     };
-    const conversationHistory = await listRecentConversationMessages(userPhone, 6);
     const freeConversationReply = await generateFreeConversationReply({
       message,
       language: context.language,
-      conversationHistory
+      conversationHistory: boundaryConversationHistory
     });
 
     await upsertConversationContext(userPhone, context);

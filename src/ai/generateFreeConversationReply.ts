@@ -20,15 +20,15 @@ const languageName = (language: string): string => {
 
 function fallbackReply(language: string): string {
   if (language.startsWith("nl")) {
-    return "Daar kan ik gerust even met je over praten. Wat wil je precies weten?";
+    return "Haha, ik hoor je 😄 Ik blijf wel bij waar TUUTI goed in is: bijzondere plekken en ervaringen in Senegal. Zeg maar waar je zin in hebt, dan help ik je graag.";
   }
   if (language.startsWith("fr")) {
-    return "On peut tout à fait en parler. Qu’est-ce que tu veux savoir exactement ?";
+    return "Haha, je te suis 😄 Mais je reste dans ce que TUUTI fait vraiment bien : les belles adresses et expériences au Sénégal. Dis-moi ce qui te ferait plaisir et je t’aide volontiers.";
   }
   if (language.startsWith("de")) {
-    return "Darüber können wir gern kurz sprechen. Was genau möchtest du wissen?";
+    return "Haha, verstanden 😄 Ich bleibe aber bei dem, was TUUTI wirklich gut kann: besondere Orte und Erlebnisse im Senegal. Sag mir, worauf du Lust hast, dann helfe ich dir gern.";
   }
-  return "We can absolutely talk about that. What would you like to know exactly?";
+  return "Haha, I hear you 😄 I will stay with what TUUTI does really well: special places and experiences in Senegal. Tell me what you feel like doing and I will gladly help.";
 }
 
 export async function generateFreeConversationReply(
@@ -39,17 +39,17 @@ export async function generateFreeConversationReply(
   try {
     const response = await getOpenAIClient().responses.create({
       model: openaiModel,
-      instructions: `You are the conversational voice of OFFSCRIPT.
+      instructions: `You are the conversational voice of TUUTI.
 
-The user has sent a message that is not a request to find, rank or explain a place.
+The user has sent laughter, banter, nonsense, an unrelated request or another message outside TUUTI's purpose.
 Reply directly and naturally, using only the language specified below.
-Do not query, mention or pretend to use the OFFSCRIPT places database.
-Do not force the conversation back to travel and do not give the old scope-rejection message.
-You may answer ordinary questions, small talk and light general-knowledge questions.
-Be warm, concise and useful. Usually use no more than three short sentences.
-Do not claim access to live information. Do not invent facts.
-For medical, legal, financial or emergency matters, give only cautious general information and encourage appropriate professional help.
-If the message could reasonably be a short answer to the preceding OFFSCRIPT question, do not reinterpret it as an unrelated topic.
+First acknowledge the actual meaning and tone of the user's message, so the reply never feels generic or scolding.
+Then explain gently that TUUTI focuses on carefully selected places and experiences in Senegal, and invite one relevant travel preference.
+Do not answer unrelated general-knowledge requests and do not pretend to search the places database.
+For harmless laughter or a compliment, respond lightly and warmly before redirecting; never lecture the user.
+For offensive or unsafe content, set a calm boundary without repeating graphic wording.
+Use the user's current brand name TUUTI, never OFFSCRIPT.
+Be warm and concise: one or two short sentences.
 
 TARGET LANGUAGE: ${languageName(input.language)}.`,
       input: JSON.stringify({

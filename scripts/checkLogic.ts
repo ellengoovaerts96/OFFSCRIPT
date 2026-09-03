@@ -16,6 +16,7 @@ import {
 } from "../src/ai/buildUserContext.js";
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
+import { shouldUseConversationBoundary } from "../src/ai/classifyConversationTurn.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
@@ -51,6 +52,12 @@ if (!isOffscriptStartMessage("Bonjour TUUTI �")) {
 }
 if (isOffscriptStartMessage("Bonjour TUUTI, je cherche un restaurant")) {
   throw new Error("A specific TUUTI question must remain a normal conversation message.");
+}
+if (!await shouldUseConversationBoundary({ message: "Hahaha" })) {
+  throw new Error("Laughter must leave the database flow and use the conversational boundary.");
+}
+if (!await shouldUseConversationBoundary({ message: "Wel sterk logo!" })) {
+  throw new Error("A comment about TUUTI itself must not be interpreted as a database preference.");
 }
 
 const rastaBarContext: UserContext = {
