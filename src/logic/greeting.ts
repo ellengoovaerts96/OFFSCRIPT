@@ -18,7 +18,7 @@ export function isOffscriptStartMessage(message: string): boolean {
 }
 
 export function buildOffscriptWelcomeResponse(): string {
-  return "Na nga def! 👋\n\nJe connais Dakar. Dis-moi ce que tu cherches, je m’occupe du reste.\n\nJe ne vais pas te montrer 100 endroits — je vais t’aider à trouver le bon.\n\n🍽️ Manger · 🍸 Boire un verre · 🌅 Sunset · 🎶 Musique\n👨‍👩‍👧 Famille · 🏄 Activités · 🎨 Culture · 💻 Travailler\n\nTu peux répondre dans la langue que tu veux.";
+  return "Na nga def! 👋\n\nJe te guide dans cinq quartiers de Dakar : Ngor, Yoff, Ouakam, Almadies et Pointe des Almadies. Dis-moi ce que tu cherches, je m’occupe du reste.\n\nJe ne vais pas te montrer 100 endroits — je vais t’aider à trouver le bon.\n\n🍽️ Manger · 🍸 Boire un verre · 🌅 Sunset · 🎶 Musique\n👨‍👩‍👧 Famille · 🏄 Activités · 🎨 Culture · 💻 Travailler\n\nTu peux répondre dans la langue que tu veux.";
 }
 
 export function buildGreetingResponse(context: UserContext, options: { useWolofGreeting?: boolean } = {}): string {
