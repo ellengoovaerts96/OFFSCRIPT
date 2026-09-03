@@ -5,31 +5,15 @@ const REGION_ALIASES: Record<string, string> = {
   almadies: "Almadies",
   "pointe des almadies": "Pointe des Almadies",
   "pointe almadies": "Pointe des Almadies",
-  plateau: "Plateau",
-  medina: "Médina",
-  "médina": "Médina",
-  "sacre coeur": "Sacré-Cœur",
-  "sacré coeur": "Sacré-Cœur",
-  "sacre cœur": "Sacré-Cœur",
-  "sacre-coeur": "Sacré-Cœur",
-  "sacré-cœur": "Sacré-Cœur",
-  "sacré-coeur": "Sacré-Cœur",
-  "sacre-cœur": "Sacré-Cœur",
+  oakam: "Ouakam",
   ouakam: "Ouakam",
-  mamelles: "Mamelles",
-  goree: "Île de Gorée",
-  gorée: "Île de Gorée",
-  mbour: "Mbour",
-  saly: "Saly",
-  "saint-louis": "Saint-Louis",
-  "saint louis": "Saint-Louis",
-  casamance: "Casamance",
-  "lac rose": "Lac Rose"
 };
 
 export const KNOWN_REGIONS = [...new Set(Object.values(REGION_ALIASES))].sort((left, right) =>
   left.localeCompare(right)
 );
+
+const SUPPORTED_REGIONS = new Set(KNOWN_REGIONS);
 
 function normalizeKey(value: string): string {
   return value
@@ -46,6 +30,11 @@ export function normalizeRegion(value: string | undefined): string | undefined {
 
   const key = normalizeKey(value);
   return REGION_ALIASES[key] ?? value.trim();
+}
+
+export function normalizeSupportedRegion(value: string | undefined): string | undefined {
+  const normalized = normalizeRegion(value);
+  return normalized && SUPPORTED_REGIONS.has(normalized) ? normalized : undefined;
 }
 
 export function findKnownRegion(message: string): string | undefined {

@@ -2,7 +2,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
 import type { TravellerType, UserContext, UserIntent } from "../types/userContext.js";
-import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
+import { findKnownRegion, normalizeRegion, normalizeSupportedRegion } from "../utils/normalizeRegion.js";
 import { detectIntent } from "./detectIntent.js";
 import { resolveConversationLanguage } from "./detectLanguage.js";
 import { systemPrompt } from "./systemPrompt.js";
@@ -120,7 +120,7 @@ async function buildGreetingReply(message: string): Promise<string | undefined> 
   try {
     const response = await client.responses.create({
       model: openaiModel,
-      instructions: `Reply to this greeting as TUUTI, a warm Senegal travel companion.
+      instructions: `Reply to this greeting as TUUTI, a warm Dakar travel companion currently covering Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies.
 Write one short, natural reply and nothing else. Do not use a category list, questionnaire or stock travel sentence.
 Reply in the language of the user's current greeting. Treat "hallo" as Dutch unless the current message itself contains clear German words.
 You may naturally invite the user to tell you what they need, but do not ask about group type, budget, timing or location yet.`,
@@ -629,7 +629,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const acceptsBroadLocation =
     acceptsAnyLocation(input.message) ||
     acceptsBroaderLocationInContext(input.message, input.previousAssistantMessage);
-  const targetRegion = normalizeRegion(inferredRegion ?? (acceptsBroadLocation ? "Dakar" : previous?.targetRegion));
+  const targetRegion = normalizeSupportedRegion(inferredRegion ?? (acceptsBroadLocation ? "Dakar" : previous?.targetRegion));
   const timing = inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previous?.timing);
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
 
@@ -761,12 +761,15 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 
 Interpret the newest WhatsApp message once, then return both its route and updated travel context as JSON.
 Routing rules:
+- TUUTI's current geographic scope is Dakar only: Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Never imply that recommendations cover all of Senegal.
 - Use needs_clarification for a TUUTI/Senegal travel request that still lacks information needed for a useful recommendation. Write exactly one natural, context-aware question in conversationReply.
 - Use place_lookup only when the accumulated structured context is sufficient for a concrete recommendation, or when the user asks for factual information about a named place. For place_lookup, conversationReply must be null.
 - Short contextual answers such as yes, sure, a neighbourhood, a budget, a group type or "another area is fine" continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
 - Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
 - For conversation, write conversationReply in the language of the newest user message. Acknowledge its actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
 - A standalone greeting is always conversation. Never answer a greeting by asking for traveller type, budget, timing or location.
+- When location is the useful next detail, ask naturally about Ngor, Yoff, Ouakam, Almadies, Pointe des Almadies, or whether anywhere in Dakar is fine. Never ask for a city or neighbourhood elsewhere in Senegal.
+- If the user requests a place outside the current Dakar scope, explain the current scope naturally instead of pretending TUUTI can search there.
 - Never recommend or name a place yourself. The application queries verified places only after place_lookup.
 
 Travel-context rules:
@@ -783,7 +786,7 @@ Rules:
 - Do not require the user to repeat the exact wording of an option. Resolve natural synonyms and partial answers semantically.
 - Examples: after a pizza-style question, "bon restaurant" means the good Italian restaurant option; after a children question, "oui" means children are joining; after a location question, "n’importe où" means Dakar-wide mobility.
 - The newest user message determines the reply language. Preserve the previous language only when the newest message is language-neutral. Treat a standalone "hallo" as Dutch unless that message itself contains clear German words.
-- Normalize known Senegal regions.
+- Only store these supported locations: Dakar, Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Do not store or invent any other city, region or neighbourhood.
 - Use "unknown" for unclear travellerType or intent.
 - Use "unknown" for unclear timing.
 - Treat beach/plage/strand as requestedSubcategory, not as vibe.
@@ -881,10 +884,10 @@ Also extract searchProfileSignals independently from the legacy context:
         input.previousContext?.language,
         parsed.context.language
       ),
-      currentLocation: normalizeRegion(
+      currentLocation: normalizeSupportedRegion(
         nullToUndefined(parsed.context.currentLocation) ?? input.previousContext?.currentLocation
       ),
-      targetRegion: normalizeRegion(
+      targetRegion: normalizeSupportedRegion(
         explicitRegion ?? broadTargetRegion ?? nullToUndefined(parsed.context.targetRegion) ?? input.previousContext?.targetRegion
       ),
       travellerType:
