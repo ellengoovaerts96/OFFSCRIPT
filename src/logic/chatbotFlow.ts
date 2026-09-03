@@ -142,76 +142,6 @@ function buildNoNewMatchResponse(context: UserContext): string {
   return "I cannot currently find a second strong place with the same preferences without repeating the previous recommendation. If you like, I can broaden the budget, neighbourhood, or vibe slightly.";
 }
 
-function buildRecommendationAssumption(context: UserContext): string | undefined {
-  if ((context.clarificationCount ?? 0) < 3) return undefined;
-
-  const missingLocation = !normalizeRegion(context.targetRegion ?? context.currentLocation);
-  const missingStyle = !context.requestedStyle && !context.budget && !context.vibe;
-  if (!missingLocation && !missingStyle) return undefined;
-
-  if (context.language.startsWith("nl")) {
-    if (missingLocation) return "Ik ga ervan uit dat je je binnen Dakar kunt verplaatsen.";
-    return "Ik kies de beste algemene match omdat je geen specifieke stijl of budget noemde.";
-  }
-  if (context.language.startsWith("fr")) {
-    if (missingLocation) return "Je pars du principe que tu peux te déplacer dans Dakar.";
-    return "Je choisis le meilleur choix général, car tu n’as pas indiqué de style ou de budget précis.";
-  }
-  if (context.language.startsWith("de")) {
-    if (missingLocation) return "Ich gehe davon aus, dass du dich innerhalb Dakars bewegen kannst.";
-    return "Ich wähle die beste allgemeine Option, da du keinen bestimmten Stil oder kein Budget genannt hast.";
-  }
-  if (missingLocation) return "I’m assuming you’re able to travel within Dakar.";
-  return "I’m choosing the strongest general match because you didn’t specify a style or budget.";
-}
-
-function buildBudgetMatchLine(
-  context: UserContext,
-  priceLevel: Place["priceLevel"]
-): string | undefined {
-  if (context.budget === "upscale" && priceLevel === 3) {
-    if (context.language.startsWith("nl")) {
-      return "Ik heb geen passende upscale optie gevonden; dit is de beste match één prijsniveau lager, in de middenklasse.";
-    }
-    if (context.language.startsWith("fr")) {
-      return "Je n’ai pas trouvé d’option chic adaptée ; c’est le meilleur choix un niveau de prix plus bas, dans la gamme moyenne.";
-    }
-    if (context.language.startsWith("de")) {
-      return "Ich habe keine passende gehobene Option gefunden; dies ist die beste Wahl eine Preisstufe darunter, im mittleren Preissegment.";
-    }
-    return "I couldn’t find a suitable upscale option; this is the best match one price level lower, in the mid-range category.";
-  }
-
-  if (
-    !["budget", "affordable"].includes(context.budget ?? "") ||
-    priceLevel === undefined ||
-    priceLevel > 2
-  ) {
-    return undefined;
-  }
-
-  const isStrictBudget = context.budget === "budget";
-
-  if (context.language.startsWith("nl")) {
-    return isStrictBudget
-      ? "Dit is een van de meest budgetvriendelijke opties die bij je vraag passen."
-      : "Dit is een van de betaalbare opties die bij je vraag passen.";
-  }
-  if (context.language.startsWith("fr")) {
-    return isStrictBudget
-      ? "C’est l’une des options les plus économiques qui correspondent à ta demande."
-      : "C’est l’une des options abordables qui correspondent à ta demande.";
-  }
-  if (context.language.startsWith("de")) {
-    return isStrictBudget
-      ? "Das ist eine der besonders günstigen Optionen, die zu deiner Anfrage passen."
-      : "Das ist eine der günstigen Optionen, die zu deiner Anfrage passen.";
-  }
-  return isStrictBudget
-    ? "This is one of the most budget-friendly options that matches what you asked for."
-    : "This is one of the affordable options that matches what you asked for.";
-}
-
 function buildLanguagePreferenceResponse(context: UserContext): string {
   const missingField = needsClarification(context);
 
@@ -1156,14 +1086,9 @@ export async function handleChatMessage(input: {
     result.type === "recommendation" && localizedRecommendation
       ? [
           localizedRecommendation.shortDescription,
-          buildBudgetMatchLine(
-            result.context,
-            result.priceLevel
-          ),
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
           whatsAppContactLine,
-          buildRecommendationAssumption(result.context),
           result.socialUrl,
           result.googleMapsUrl
         ].filter(

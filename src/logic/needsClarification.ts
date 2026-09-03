@@ -7,7 +7,6 @@ import {
   recommendationReadiness
 } from "./recommendationReadiness.js";
 import { findClarificationCandidates } from "./selectBestPlace.js";
-import { countStructuredOccasionMatches } from "./searchProfileMatching.js";
 
 export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing" | "budget";
 
@@ -121,12 +120,6 @@ function mostInformativeCandidateField(
   const options: Array<{ field: MissingContextField; score: number }> = [];
   const hasSpecificFocus = Boolean(context.requestedSubcategory);
   const childSuitabilityVaries = distinctCount(candidates.map((place) => place.childFriendly)) > 1;
-  const requestedOccasions = context.searchProfile?.occasions ?? [];
-  const occasionFitAlreadySeparatesCandidates =
-    requestedOccasions.length > 0 &&
-    distinctCount(
-      candidates.map((place) => countStructuredOccasionMatches(place, requestedOccasions))
-    ) > 1;
 
   if (!hasSpecificLocation(context)) {
     // Even when all candidates happen to share a neighbourhood, location still
@@ -165,15 +158,6 @@ function mostInformativeCandidateField(
     distinctCount(candidates.map(candidateVibeSignature)) > 1
   ) {
     options.push({ field: "vibe", score: 70 });
-  }
-
-  if (
-    !context.budget &&
-    context.requestedStyle !== "local" &&
-    !occasionFitAlreadySeparatesCandidates &&
-    distinctCount(candidates.map((place) => place.priceLevel)) > 1
-  ) {
-    options.push({ field: "budget", score: 50 });
   }
 
   return options.sort((left, right) => right.score - left.score)[0]?.field ?? null;

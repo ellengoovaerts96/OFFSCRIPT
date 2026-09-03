@@ -789,6 +789,7 @@ Routing rules:
 - A reaction such as "too busy", "not quiet enough" or "I don't want to work" is preference feedback about the active recommendation, not casual conversation. Translate its meaning into the desired context (for example calm, or work excluded) before finding an alternative.
 - TUUTI's current geographic scope is Dakar only: Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Never imply that recommendations cover all of Senegal.
 - Use needs_clarification for a TUUTI/Senegal travel request that still lacks information needed for a useful recommendation. Write exactly one natural, context-aware question in conversationReply.
+- Never ask for a budget or price preference unless the user has explicitly raised price, cost or budget. Budget is optional and must not delay a recommendation.
 - Use place_lookup only when the accumulated structured context is sufficient for a concrete recommendation, or when the user asks for factual information about a named place. For place_lookup, conversationReply must be null.
 - Interpret every short answer semantically in light of previousAssistantMessage; do not classify it from keywords alone. Record whether it accepts or rejects the previous proposal, or answers it with a concrete detail, in previousQuestionResolution.
 - Natural acceptance can be indirect or idiomatic, for example permission to proceed, encouragement to choose, indifference between offered options, or agreement in the user's own words. It does not need to repeat an option or resemble "yes".
