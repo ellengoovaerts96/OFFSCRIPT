@@ -114,6 +114,12 @@ function placeServesCoffee(place: Place): boolean {
     "cafe",
     "bar"
   ]);
+  // A retail place can sell coffee, beans or drink powders without being a
+  // place where the traveller can sit down for coffee. Never allow incidental
+  // hospitality/drink labels to turn a shop into a coffee recommendation.
+  if (place.categories.some((category) => normalize(category) === "shopping")) {
+    return false;
+  }
   const isHospitalityPlace =
     place.categories.some((category) => hospitalityCategories.has(normalize(category).replaceAll(" ", "_"))) ||
     place.subcategories.some((subcategory) =>

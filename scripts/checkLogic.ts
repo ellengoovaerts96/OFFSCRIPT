@@ -393,8 +393,11 @@ const agriculturalPowderShop = {
   ...beachReggaePlace,
   name: "Agricultural powder shop",
   shortDescription: "Natural fruit, coffee and plant powders that can be added to drinks.",
-  categories: ["drink"],
-  subcategories: [{ id: "products", name: "Natural products", displayOrder: 1, images: [] }],
+  categories: ["shopping", "bar"],
+  subcategories: [
+    { id: "products", name: "Natural products", displayOrder: 1, images: [] },
+    { id: "coffee", name: "Café", description: "Coffee powder", displayOrder: 2, images: [] }
+  ],
   occasionTags: ["drinks"]
 } as unknown as Place;
 const documentedCoffeeBar = {
