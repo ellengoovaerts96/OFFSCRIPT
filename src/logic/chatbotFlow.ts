@@ -989,12 +989,17 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       language: resolveConversationLanguage(message, previousContext?.language)
     };
 
+    const greetingReply = await generateFreeConversationReply({
+      message,
+      language: context.language
+    });
+
     await upsertConversationContext(userPhone, context);
 
     return {
       type: "clarification",
       context,
-      message: buildGreetingResponse(context, { useWolofGreeting })
+      message: greetingReply
     };
   }
 

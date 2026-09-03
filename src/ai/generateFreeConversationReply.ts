@@ -18,34 +18,41 @@ const languageName = (language: string): string => {
   return "British English";
 };
 
-function fallbackReply(language: string): string {
+function fallbackReply(message: string, language: string): string {
+  const greetingOnly = /^(?:hallo|hoi|hey|hi|hello|bonjour|bonsoir|salut|goedemorgen|goedemiddag|goedenavond)[!,.?\s]*$/i.test(message.trim());
+
   if (language.startsWith("nl")) {
+    if (greetingOnly) return "Hallo! 😊 Leuk dat je er bent. Waarmee kan TUUTI je helpen in Senegal?";
     return "Haha, ik hoor je 😄 Ik blijf wel bij waar TUUTI goed in is: bijzondere plekken en ervaringen in Senegal. Zeg maar waar je zin in hebt, dan help ik je graag.";
   }
   if (language.startsWith("fr")) {
+    if (greetingOnly) return "Bonjour ! 😊 Ravi de te voir ici. Comment TUUTI peut t’aider au Sénégal ?";
     return "Haha, je te suis 😄 Mais je reste dans ce que TUUTI fait vraiment bien : les belles adresses et expériences au Sénégal. Dis-moi ce qui te ferait plaisir et je t’aide volontiers.";
   }
   if (language.startsWith("de")) {
+    if (greetingOnly) return "Hallo! 😊 Schön, dass du da bist. Wobei kann TUUTI dir im Senegal helfen?";
     return "Haha, verstanden 😄 Ich bleibe aber bei dem, was TUUTI wirklich gut kann: besondere Orte und Erlebnisse im Senegal. Sag mir, worauf du Lust hast, dann helfe ich dir gern.";
   }
+  if (greetingOnly) return "Hello! 😊 Lovely to see you here. How can TUUTI help you in Senegal?";
   return "Haha, I hear you 😄 I will stay with what TUUTI does really well: special places and experiences in Senegal. Tell me what you feel like doing and I will gladly help.";
 }
 
 export async function generateFreeConversationReply(
   input: GenerateFreeConversationReplyInput
 ): Promise<string> {
-  if (!hasOpenAIKey()) return fallbackReply(input.language);
+  if (!hasOpenAIKey()) return fallbackReply(input.message, input.language);
 
   try {
     const response = await getOpenAIClient().responses.create({
       model: openaiModel,
       instructions: `You are the conversational voice of TUUTI.
 
-The user has sent laughter, banter, nonsense, an unrelated request or another message outside TUUTI's purpose.
+The user has sent a greeting, laughter, banter, nonsense, an unrelated request or another conversational message outside the database search flow.
 Detect the language of userMessage itself and reply only in that language. The fallback language below is only for genuinely language-neutral messages such as an emoji or a name; never let an earlier conversation language override clear language in the newest user message.
 First acknowledge the actual meaning and tone of the user's message, so the reply never feels generic or scolding.
 Then explain gently that TUUTI focuses on carefully selected places and experiences in Senegal, and invite one relevant travel preference.
 Do not answer unrelated general-knowledge requests and do not pretend to search the places database.
+For a greeting, greet the user back naturally before asking how TUUTI can help; do not output a standardised category list.
 For harmless laughter or a compliment, respond lightly and warmly before redirecting; never lecture the user.
 For offensive or unsafe content, set a calm boundary without repeating graphic wording.
 Use the user's current brand name TUUTI, never OFFSCRIPT.
@@ -58,9 +65,9 @@ FALLBACK LANGUAGE WHEN THE NEWEST MESSAGE IS LANGUAGE-NEUTRAL: ${languageName(in
       })
     });
 
-    return response.output_text.trim() || fallbackReply(input.language);
+    return response.output_text.trim() || fallbackReply(input.message, input.language);
   } catch (error) {
     console.error("Free conversation reply failed", error);
-    return fallbackReply(input.language);
+    return fallbackReply(input.message, input.language);
   }
 }

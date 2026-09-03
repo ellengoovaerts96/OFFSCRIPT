@@ -78,6 +78,9 @@ if (resolveConversationLanguage("heel mooi logo!", "fr") !== "nl") {
 if (resolveConversationLanguage("aangename kennismaking!", "fr") !== "nl") {
   throw new Error("The newest user's Dutch language must override the earlier French conversation language.");
 }
+if (resolveConversationLanguage("hallo!", "fr") !== "nl") {
+  throw new Error("An ambiguous 'hallo' greeting must prefer Dutch over German or the previous language.");
+}
 
 const rastaBarContext: UserContext = {
   language: "nl",
