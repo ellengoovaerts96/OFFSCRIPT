@@ -792,6 +792,42 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
   const knownRegion = findKnownRegion(message);
+  const didStartNewSearch = startsNewSearch(message, previousContext);
+  if (didStartNewSearch) {
+    previousContext = contextForNewSearch(previousContext, storyLanguage);
+    await deleteRecommendationHistoryForUser(userPhone);
+  }
+
+  const interpretation = await buildUserContext({
+    message,
+    previousContext,
+    previousAssistantMessage,
+    subcategoryTaxonomy: []
+  });
+  const context = interpretation.context;
+
+  if (interpretation.route === "conversation") {
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: interpretation.conversationReply ?? buildGreetingResponse(context)
+    };
+  }
+
+  if (interpretation.route === "needs_clarification") {
+    const contextAfterQuestion: UserContext = {
+      ...context,
+      clarificationCount: (context.clarificationCount ?? 0) + 1
+    };
+    await upsertConversationContext(userPhone, contextAfterQuestion);
+    return {
+      type: "clarification",
+      context: contextAfterQuestion,
+      message: interpretation.conversationReply ?? buildGreetingResponse(contextAfterQuestion)
+    };
+  }
+
   const storyMatch = await findStoryKnowledgeMatch(message, storyLanguage);
 
   if (isFrustratedReply(message)) {
@@ -943,68 +979,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       };
     }
     return recommendationResult(explicitPlace, context, message);
-  }
-
-  const didStartNewSearch = startsNewSearch(message, previousContext);
-  if (didStartNewSearch) {
-    previousContext = contextForNewSearch(previousContext, storyLanguage);
-    await deleteRecommendationHistoryForUser(userPhone);
-  }
-
-  const conversationHistory = didStartNewSearch
-    ? []
-    : await listRecentConversationMessages(userPhone, 8);
-  const interpretation = await buildUserContext({
-    message,
-    previousContext,
-    previousAssistantMessage,
-    conversationHistory,
-    subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
-  });
-  const { context } = interpretation;
-
-  if (interpretation.route === "conversation") {
-    await upsertConversationContext(userPhone, context);
-    return {
-      type: "clarification",
-      context,
-      message: interpretation.conversationReply ?? buildGreetingResponse(context)
-    };
-  }
-
-  const contextLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
-  const isBroadLocalFoodRequest =
-    context.intent === "food" &&
-    (
-      isLocalSenegaleseDishRequest(message) ||
-      inferRequestedStyle(message) === "local"
-    );
-  const needsLocalFoodNeighbourhood =
-    isBroadLocalFoodRequest &&
-    (!contextLocation || contextLocation === "Dakar");
-  const missingField: MissingContextField | null = needsLocalFoodNeighbourhood
-    ? "location"
-    : needsClarification(context, places);
-  if (missingField) {
-    const clarificationField = chooseClarificationFieldForMessage(message, context, missingField);
-    const contextAfterQuestion: UserContext = {
-      ...context,
-      clarificationCount: (context.clarificationCount ?? 0) + 1
-    };
-    const baseMessageText = needsLocalFoodNeighbourhood
-      ? buildLocalDishLocationQuestion(contextAfterQuestion)
-      : clarificationField === "travellerType"
-        ? buildGreetingResponse(contextAfterQuestion, { useWolofGreeting })
-        : buildClarifyingQuestion(clarificationField, contextAfterQuestion);
-    const messageText = buildProgressClarification(context, places, baseMessageText);
-
-    await upsertConversationContext(userPhone, contextAfterQuestion);
-
-    return {
-      type: "clarification",
-      context: contextAfterQuestion,
-      message: withEmojiAcknowledgement(message, contextAfterQuestion, messageText)
-    };
   }
 
   await upsertConversationContext(userPhone, context);

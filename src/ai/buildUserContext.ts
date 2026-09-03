@@ -96,7 +96,7 @@ const searchProfileSignalsSchema = z.object({
 });
 
 const buildUserContextSchema = z.object({
-  route: z.enum(["database_flow", "conversation"]),
+  route: z.enum(["conversation", "needs_clarification", "place_lookup"]),
   conversationReply: z.string().nullable(),
   context: userContextSchema,
   searchProfileSignals: searchProfileSignalsSchema,
@@ -106,7 +106,7 @@ const buildUserContextSchema = z.object({
 // Context extraction shares the WhatsApp webhook budget with database reads,
 // recommendation ranking and prose localization. Fall back deterministically
 // before Twilio needs the initial HTTP response.
-const CONTEXT_EXTRACTION_TIMEOUT_MS = 3_500;
+const CONTEXT_EXTRACTION_TIMEOUT_MS = 6_500;
 
 export type BuildUserContextInput = {
   message: string;
@@ -119,7 +119,7 @@ export type BuildUserContextInput = {
 export type BuildUserContextResult = {
   context: UserContext;
   confidence: number;
-  route: "database_flow" | "conversation";
+  route: "conversation" | "needs_clarification" | "place_lookup";
   conversationReply?: string;
 };
 
@@ -652,7 +652,9 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   }
 
   return {
-    route: "database_flow",
+    route: targetRegion && (detectIntent(input.message) ?? previous?.intent)
+      ? "place_lookup"
+      : "needs_clarification",
     conversationReply: undefined,
     context: {
       ...previous,
@@ -716,11 +718,12 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 
 Interpret the newest WhatsApp message once, then return both its route and updated travel context as JSON.
 Routing rules:
-- Use database_flow when the newest message asks a TUUTI/Senegal travel question, requests a place or experience, supplies a preference, or answers the previous assistant question.
-- Short contextual answers such as yes, sure, a neighbourhood, a budget, a group type or "another area is fine" belong to database_flow. Read previousAssistantMessage to resolve their meaning.
+- Use needs_clarification for a TUUTI/Senegal travel request that still lacks information needed for a useful recommendation. Write exactly one natural, context-aware question in conversationReply.
+- Use place_lookup only when the accumulated structured context is sufficient for a concrete recommendation, or when the user asks for factual information about a named place. For place_lookup, conversationReply must be null.
+- Short contextual answers such as yes, sure, a neighbourhood, a budget, a group type or "another area is fine" continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
 - Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
 - For conversation, write conversationReply in the language of the newest user message. Acknowledge its actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
-- For database_flow, conversationReply must be null. The application will query verified database places; do not recommend a place yourself.
+- Never recommend or name a place yourself. The application queries verified places only after place_lookup.
 
 Travel-context rules:
 Rules:
@@ -764,6 +767,7 @@ Also extract searchProfileSignals independently from the legacy context:
 - For short follow-up replies, only emit signals actually expressed or clearly selected in that reply. Previous values are merged by the application.`,
     input: JSON.stringify({
       message: input.message,
+      previousContext: input.previousContext ?? null,
       previousAssistantMessage: input.previousAssistantMessage ?? null,
       knownSubcategoryTaxonomy: input.subcategoryTaxonomy ?? []
     }),
