@@ -1,10 +1,12 @@
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
 import type { Place } from "../types/place.js";
+import type { UserContext } from "../types/userContext.js";
 
 type GeneratePlaceFollowUpReplyInput = {
   message: string;
   language: string;
   place: Place;
+  needs: UserContext;
 };
 
 const PLACE_FOLLOW_UP_TIMEOUT_MS = 5_000;
@@ -37,10 +39,11 @@ export async function generatePlaceFollowUpReply(
   try {
     const response = await getOpenAIClient().responses.create({
       model: openaiModel,
-      instructions: `You answer a follow-up question about the single OFFSCRIPT place supplied below.
+      instructions: `You answer a follow-up about the single OFFSCRIPT place supplied below, grounded in the traveller needs captured when it was recommended.
 
 Answer the user's actual question directly in ${languageName(input.language)}.
 Use only facts contained in the supplied place object.
+When asked why the place was chosen or whether it fits, explicitly connect supported place facts to the supplied traveller needs. Do not claim a fit that the place data does not support.
 Never recommend, compare or mention another place.
 Do not restart the search and do not repeat the full recommendation.
 If the requested fact is not supported by the supplied data, say briefly that OFFSCRIPT cannot confirm it.
@@ -49,6 +52,7 @@ For an ordinary factual question, answer in one to three sentences.
 When the user asks for the story, history, origin or background, tell the supported story naturally in four to seven flowing sentences. Focus on the human thread and the most memorable concrete details instead of mechanically summarizing fields.`,
       input: JSON.stringify({
         userMessage: input.message,
+        travellerNeeds: input.needs,
         place: input.place
       })
     }, {

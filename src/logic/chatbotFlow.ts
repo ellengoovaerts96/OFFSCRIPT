@@ -754,9 +754,10 @@ function recommendationResult(
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
-  let [previousContext, previousAssistantMessage] = await Promise.all([
+  let [previousContext, previousAssistantMessage, activeRecommendation] = await Promise.all([
     getConversationContext(userPhone),
-    getLastOutgoingMessage(userPhone)
+    getLastOutgoingMessage(userPhone),
+    getLastRecommendedPlace(userPhone)
   ]);
   let places: Place[] | undefined;
   const useWolofGreeting = !previousAssistantMessage;
@@ -792,21 +793,65 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
   const knownRegion = findKnownRegion(message);
-  const didStartNewSearch = startsNewSearch(message, previousContext);
+  const didStartNewSearch = !activeRecommendation && startsNewSearch(message, previousContext);
   if (didStartNewSearch) {
     previousContext = contextForNewSearch(previousContext, storyLanguage);
     await deleteRecommendationHistoryForUser(userPhone);
+    activeRecommendation = null;
   }
 
   const interpretation = await buildUserContext({
     message,
     previousContext,
     previousAssistantMessage,
+    activeRecommendation: activeRecommendation ? {
+      placeName: activeRecommendation.placeName,
+      needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage }
+    } : null,
     subcategoryTaxonomy: []
   });
   const context = interpretation.context;
+  const recommendationNeeds = activeRecommendation?.contextSnapshot ?? previousContext ?? context;
 
-  if (interpretation.route === "conversation") {
+  if (
+    activeRecommendation?.placeId &&
+    ["ask_about_place", "explain_match"].includes(interpretation.recommendationAction ?? "")
+  ) {
+    places = await listRecommendationPlaces(storyLanguage);
+    const place = places.find((candidate) => candidate.id === activeRecommendation?.placeId);
+    if (place) {
+      const followUpContext = { ...context, language: storyLanguage };
+      const followUpReply = await generatePlaceFollowUpReply({
+        message,
+        language: followUpContext.language,
+        place,
+        needs: recommendationNeeds
+      });
+      await upsertConversationContext(userPhone, followUpContext);
+      return { type: "clarification", context: followUpContext, message: followUpReply };
+    }
+  }
+
+  if (activeRecommendation && interpretation.recommendationAction === "accept_recommendation") {
+    const feedbackContext = { ...context, language: storyLanguage };
+    await upsertConversationContext(userPhone, feedbackContext);
+    return {
+      type: "clarification",
+      context: feedbackContext,
+      message: buildRecommendationFeedbackReply(feedbackContext)
+    };
+  }
+
+  const effectiveRoute = interpretation.recommendationAction === "find_alternative"
+    ? "place_lookup"
+    : interpretation.route;
+
+  if (interpretation.recommendationAction === "new_search") {
+    await deleteRecommendationHistoryForUser(userPhone);
+    activeRecommendation = null;
+  }
+
+  if (effectiveRoute === "conversation") {
     await upsertConversationContext(userPhone, context);
     return {
       type: "clarification",
@@ -815,7 +860,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  if (interpretation.route === "needs_clarification") {
+  if (effectiveRoute === "needs_clarification") {
     const contextAfterQuestion: UserContext = {
       ...context,
       clarificationCount: (context.clarificationCount ?? 0) + 1
@@ -892,7 +937,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         const followUpReply = await generatePlaceFollowUpReply({
           message,
           language: context.language,
-          place
+          place,
+          needs: lastRecommendedPlace.contextSnapshot ?? previousContext ?? context
         });
 
         await upsertConversationContext(userPhone, context);
@@ -970,7 +1016,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       const followUpReply = await generatePlaceFollowUpReply({
         message,
         language: context.language,
-        place: explicitPlace
+        place: explicitPlace,
+        needs: previousContext ?? context
       });
       return {
         type: "clarification",
@@ -1111,7 +1158,8 @@ export async function handleChatMessage(input: {
     await recordPlaceRecommendation({
       userPhone: input.userPhone,
       placeId: result.placeId,
-      placeName: result.placeName
+      placeName: result.placeName,
+      context: result.context
     });
   }
 

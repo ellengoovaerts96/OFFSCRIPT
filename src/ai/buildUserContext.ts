@@ -97,6 +97,14 @@ const searchProfileSignalsSchema = z.object({
 
 const buildUserContextSchema = z.object({
   route: z.enum(["conversation", "needs_clarification", "place_lookup"]),
+  recommendationAction: z.enum([
+    "none",
+    "ask_about_place",
+    "explain_match",
+    "accept_recommendation",
+    "find_alternative",
+    "new_search"
+  ]),
   conversationReply: z.string().nullable(),
   previousQuestionResolution: z.enum([
     "accepted",
@@ -151,6 +159,10 @@ export type BuildUserContextInput = {
   previousAssistantMessage?: string | null;
   conversationHistory?: Array<{ direction: "incoming" | "outgoing"; message: string }>;
   subcategoryTaxonomy?: SubcategoryTaxonomyEntry[];
+  activeRecommendation?: {
+    placeName: string;
+    needs: UserContext;
+  } | null;
 };
 
 export type BuildUserContextResult = {
@@ -158,6 +170,7 @@ export type BuildUserContextResult = {
   confidence: number;
   route: "conversation" | "needs_clarification" | "place_lookup";
   conversationReply?: string;
+  recommendationAction?: "none" | "ask_about_place" | "explain_match" | "accept_recommendation" | "find_alternative" | "new_search";
 };
 
 function withSearchProfile(
@@ -768,6 +781,9 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 
 Interpret the newest WhatsApp message once, then return both its route and updated travel context as JSON.
 Routing rules:
+- When activeRecommendation is present, first interpret whether the message discusses that recommendation. Set recommendationAction to ask_about_place for factual or practical questions, explain_match for questions about why it suits the user, accept_recommendation for acceptance or positive feedback, find_alternative for rejection, changed needs or a request for another option, and new_search only for a clearly different request. Otherwise use none.
+- For find_alternative, extract every newly expressed preference or rejection into context while preserving the earlier needs. Use place_lookup and never select or name a place yourself.
+- A reaction such as "too busy", "not quiet enough" or "I don't want to work" is preference feedback about the active recommendation, not casual conversation. Translate its meaning into the desired context (for example calm, or work excluded) before finding an alternative.
 - TUUTI's current geographic scope is Dakar only: Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Never imply that recommendations cover all of Senegal.
 - Use needs_clarification for a TUUTI/Senegal travel request that still lacks information needed for a useful recommendation. Write exactly one natural, context-aware question in conversationReply.
 - Use place_lookup only when the accumulated structured context is sufficient for a concrete recommendation, or when the user asks for factual information about a named place. For place_lookup, conversationReply must be null.
@@ -828,6 +844,7 @@ Also extract searchProfileSignals independently from the legacy context:
       message: input.message,
       previousContext: input.previousContext ?? null,
       previousAssistantMessage: input.previousAssistantMessage ?? null,
+      activeRecommendation: input.activeRecommendation ?? null,
       knownSubcategoryTaxonomy: input.subcategoryTaxonomy ?? []
     }),
       text: {
@@ -880,6 +897,7 @@ Also extract searchProfileSignals independently from the legacy context:
   ) {
     return {
       route: "conversation",
+      recommendationAction: parsed.recommendationAction,
       conversationReply: parsed.conversationReply ?? undefined,
       context: {
         ...(input.previousContext ?? {}),
@@ -897,6 +915,7 @@ Also extract searchProfileSignals independently from the legacy context:
   const semanticExclusions = parsed.context.excludedSubcategories;
   return withSearchProfile(input.message, {
     route: acceptedDakarWideSearch ? "place_lookup" : parsed.route,
+    recommendationAction: parsed.recommendationAction,
     conversationReply: acceptedDakarWideSearch
       ? undefined
       : parsed.conversationReply ?? undefined,
