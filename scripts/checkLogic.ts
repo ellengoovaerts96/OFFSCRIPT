@@ -46,6 +46,9 @@ if (!isOffscriptStartMessage("Bonjour TUUTI 👋")) {
 if (!isOffscriptStartMessage("Start TUUTI 👋")) {
   throw new Error("A TUUTI start message must start the welcome flow.");
 }
+if (!isOffscriptStartMessage("Bonjour TUUTI �")) {
+  throw new Error("A TUUTI website start with a damaged emoji must still start the welcome flow.");
+}
 if (isOffscriptStartMessage("Bonjour TUUTI, je cherche un restaurant")) {
   throw new Error("A specific TUUTI question must remain a normal conversation message.");
 }

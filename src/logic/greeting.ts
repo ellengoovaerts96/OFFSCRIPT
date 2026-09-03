@@ -7,7 +7,7 @@ const GREETING_ONLY_PATTERN =
 
 // Keep accepting the former OFFSCRIPT name for old printed links, while treating
 // the current website's prefilled TUUTI message as the same explicit start flow.
-const OFFSCRIPT_START_PATTERN = /^(?:bonjour|start)\s+(?:tuuti|offscript)[!,.?👋\s]*$/iu;
+const OFFSCRIPT_START_PATTERN = /^(?:bonjour|start)\s+(?:tuuti|offscript)[^\p{L}\p{N}]*$/iu;
 
 export function isGreetingOnly(message: string): boolean {
   return GREETING_ONLY_PATTERN.test(message.trim());
