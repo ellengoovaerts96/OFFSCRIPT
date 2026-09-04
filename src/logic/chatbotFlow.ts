@@ -158,6 +158,18 @@ function buildAlternativeLocationQuestion(language: string, neighbourhood: strin
   return `Would you like to stay in ${neighbourhood}, or explore another neighbourhood too?`;
 }
 
+function isRegionOnlyReply(message: string, region: string | undefined): boolean {
+  if (!region) return false;
+  const normalize = (value: string) => value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  const answer = normalize(message).replace(/^(?:in|at|dans|a|à)\s+/, "");
+  return answer === normalize(region);
+}
+
 function buildLanguagePreferenceResponse(context: UserContext): string {
   const missingField = needsClarification(context);
 
@@ -799,6 +811,11 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     previousContext.intent !== "unknown" &&
     acceptsBroaderLocation(message)
   );
+  const selectsRegionForExistingSearch = Boolean(
+    previousContext?.intent &&
+    previousContext.intent !== "unknown" &&
+    isRegionOnlyReply(message, knownRegion)
+  );
   const interpretation = broadensExistingSearch
     ? {
         context: {
@@ -819,7 +836,27 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         previousQuestionAction: "continue_search" as const,
         previousQuestionResolution: "accepted" as const
       }
-    : await buildUserContext({
+    : selectsRegionForExistingSearch
+      ? {
+          context: {
+            ...previousContext,
+            language: storyLanguage,
+            targetRegion: knownRegion,
+            searchProfile: previousContext?.searchProfile
+              ? {
+                  ...previousContext.searchProfile,
+                  neighbourhood: knownRegion,
+                  mobility: "nearby" as const
+                }
+              : undefined
+          } as UserContext,
+          confidence: 1,
+          route: "place_lookup" as const,
+          recommendationAction: activeRecommendation ? "find_alternative" as const : "none" as const,
+          previousQuestionAction: "continue_search" as const,
+          previousQuestionResolution: "answered_with_detail" as const
+        }
+      : await buildUserContext({
         message,
         previousContext,
         previousAssistantMessage,
