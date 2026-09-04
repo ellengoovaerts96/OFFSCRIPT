@@ -1,6 +1,7 @@
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import {
+  isSpecificFocus,
   placeMatchesIntent,
   placeMatchesLocation,
   placeMatchesSpecificFocus
@@ -75,9 +76,19 @@ function localCandidatesForContext(places: Place[], context: UserContext): Place
 
 function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
   const requestedSubcategory = context.requestedSubcategory;
-  return requestedSubcategory
-    ? places.filter((place) => placeMatchesSpecificFocus(place, requestedSubcategory))
-    : places;
+  if (requestedSubcategory) {
+    return places.filter((place) => placeMatchesSpecificFocus(place, requestedSubcategory));
+  }
+
+  // Explicit distinctive preferences are promises, not optional ranking
+  // bonuses. If no artistic (or similarly specific) option exists in the
+  // chosen neighbourhood, return no match and let the conversation offer a
+  // broader search instead of recommending an unrelated generic venue.
+  if (isSpecificFocus(context.vibe)) {
+    return places.filter((place) => placeMatchesSpecificFocus(place, context.vibe));
+  }
+
+  return places;
 }
 
 export function findMatchingCandidates(places: Place[], context: UserContext): Place[] {
