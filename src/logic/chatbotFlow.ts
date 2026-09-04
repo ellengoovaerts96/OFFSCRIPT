@@ -631,6 +631,29 @@ function normalizePhraseText(value: string): string {
     .trim();
 }
 
+export function isInformationalActiveRecommendationFollowUp(
+  message: string,
+  mentionedTopics: string[]
+): boolean {
+  const normalized = normalizePhraseText(message);
+  const asksForExplanation = /^(?:wat is|wat zijn|wat betekent|wat bedoel je met|wie is|what is|what are|what does|what do you mean by|who is|qu est ce que|que signifie|qui est|c est quoi|was ist|was bedeutet|wer ist)\b/.test(normalized);
+  const asksWhatWasMeant = /^(?:wat bedoel je met|what do you mean by|que veux tu dire par|que signifie|was meinst du mit|was bedeutet)\b/.test(normalized);
+  const subject = normalized
+    .replace(/^(?:wat is|wat zijn|wat betekent|wat bedoel je met|wie is|what is|what are|what does|what do you mean by|who is|qu est ce que|que signifie|qui est|c est quoi|was ist|was bedeutet|wer ist)\s+/, "")
+    .replace(/^(?:eigenlijk|exactly|actually|precisely)\s+/, "")
+    .trim();
+  const mentionsRecommendationTopic = mentionedTopics.some((topic) => {
+    const normalizedTopic = normalizePhraseText(topic);
+    return containsNormalizedPhrase(normalized, topic) ||
+      Boolean(subject && ` ${normalizedTopic} `.includes(` ${subject} `));
+  });
+  const contextualQuestion = /^(?:is dat|is het daar|kan ik daar|hoe ver|hoe duur|is that|is it|can i|how far|how expensive|est ce|c est|puis je|a quelle distance|ist das|ist es|kann ich|wie weit|wie teuer)\b/.test(normalized);
+
+  return asksWhatWasMeant ||
+    (mentionsRecommendationTopic && asksForExplanation) ||
+    contextualQuestion;
+}
+
 function containsNormalizedPhrase(normalizedMessage: string, phrase: string): boolean {
   const searchableMessage = ` ${normalizePhraseText(normalizedMessage)} `;
   const searchablePhrase = normalizePhraseText(phrase);
@@ -740,27 +763,54 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   places ??= await listRecommendationPlaces(storyLanguage);
+  const activePlace = activeRecommendation?.placeId
+    ? places.find((place) => place.id === activeRecommendation?.placeId)
+    : undefined;
+  const activeMentionedTopics = activePlace ? [
+    activePlace.name,
+    activePlace.neighbourhood,
+    activePlace.area,
+    ...activePlace.categories,
+    ...activePlace.subcategories.map((subcategory) => subcategory.name),
+    ...activePlace.occasionTags,
+    ...activePlace.vibeTags,
+    activePlace.shortDescription,
+    activePlace.offscriptReason,
+    activePlace.personalTip,
+    activePlace.practicalInfo,
+    activePlace.story
+  ].filter((topic): topic is string => Boolean(topic)) : [];
   const interpretation = await buildUserContext({
     message,
     previousContext,
     previousAssistantMessage,
     activeRecommendation: activeRecommendation ? {
       placeName: activeRecommendation.placeName,
-      needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage }
+      needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage },
+      mentionedTopics: activeMentionedTopics
     } : null,
     subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
   });
   const context = interpretation.context;
   const recommendationNeeds = activeRecommendation?.contextSnapshot ?? previousContext ?? context;
+  const isInformationalFollowUp = Boolean(
+    activePlace &&
+    isInformationalActiveRecommendationFollowUp(message, activeMentionedTopics)
+  );
 
   if (
     activeRecommendation?.placeId &&
-    ["ask_about_place", "explain_match"].includes(interpretation.recommendationAction ?? "")
+    (
+      isInformationalFollowUp ||
+      ["ask_about_place", "explain_match"].includes(interpretation.recommendationAction ?? "")
+    )
   ) {
-    places = await listRecommendationPlaces(storyLanguage);
-    const place = places.find((candidate) => candidate.id === activeRecommendation?.placeId);
+    const place = activePlace;
     if (place) {
-      const followUpContext = { ...context, language: storyLanguage };
+      const followUpContext = {
+        ...(previousContext ?? recommendationNeeds),
+        language: storyLanguage
+      };
       const followUpReply = await generatePlaceFollowUpReply({
         message,
         language: followUpContext.language,

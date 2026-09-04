@@ -163,6 +163,7 @@ export type BuildUserContextInput = {
   activeRecommendation?: {
     placeName: string;
     needs: UserContext;
+    mentionedTopics: string[];
   } | null;
 };
 
@@ -787,7 +788,8 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
 
 Interpret the newest WhatsApp message once, then return both its route and updated travel context as JSON.
 Routing rules:
-- When activeRecommendation is present, first interpret whether the message discusses that recommendation. Set recommendationAction to ask_about_place for factual or practical questions, explain_match for questions about why it suits the user, accept_recommendation for acceptance or positive feedback, find_alternative for rejection, changed needs or a request for another option, and new_search only for a clearly different request. Otherwise use none.
+- When activeRecommendation is present, first interpret whether the message discusses that recommendation or anything in its mentionedTopics. Set recommendationAction to ask_about_place for factual or explanatory questions about the place, a dish, drink, activity, cultural concept, neighbourhood or other mentioned topic; explain_match for questions about why it suits the user; accept_recommendation for acceptance or positive feedback; find_alternative for rejection, changed needs or a request for another option; and new_search only for a clearly different request. Otherwise use none.
+- An informational question such as "What is that dish?", "What does local mean?", "Is it far?" or "What is Café Touba?" never starts a new search when its subject appears in activeRecommendation or mentionedTopics. Preserve the prior travel context unchanged and keep the active recommendation.
 - For find_alternative, extract every newly expressed preference or rejection into context while preserving the earlier needs. Use place_lookup and never select or name a place yourself.
 - A reaction such as "too busy", "not quiet enough" or "I don't want to work" is preference feedback about the active recommendation, not casual conversation. Translate its meaning into the desired context (for example calm, or work excluded) before finding an alternative.
 - TUUTI's current geographic scope is Dakar only: Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Never imply that recommendations cover all of Senegal.

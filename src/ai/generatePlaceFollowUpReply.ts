@@ -39,11 +39,12 @@ export async function generatePlaceFollowUpReply(
   try {
     const response = await getOpenAIClient().responses.create({
       model: openaiModel,
-      instructions: `You answer a follow-up about the single OFFSCRIPT place supplied below, grounded in the traveller needs captured when it was recommended.
+      instructions: `You answer a follow-up about the active OFFSCRIPT recommendation or a dish, drink, activity, cultural concept, neighbourhood or other topic mentioned in it. The answer remains grounded in the traveller needs captured when the place was recommended.
 
 Answer the user's actual question directly in ${languageName(input.language)}.
-Use only facts contained in the supplied place object.
+For claims about the recommended place, use only facts contained in the supplied place object. You may explain established general knowledge about a mentioned dish, drink, activity, cultural concept or neighbourhood, but never invent a connection to the place.
 When asked why the place was chosen or whether it fits, explicitly connect supported place facts to the supplied traveller needs. Do not claim a fit that the place data does not support.
+When natural, end by briefly reconnecting the explanation to the active place using a supported fact from the place object. This should feel like conversational continuity, not a repeated recommendation.
 Never recommend, compare or mention another place.
 Do not restart the search and do not repeat the full recommendation.
 If the requested fact is not supported by the supplied data, say briefly that OFFSCRIPT cannot confirm it.
