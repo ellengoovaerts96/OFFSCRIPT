@@ -45,6 +45,7 @@ import {
 } from "./selectBestPlace.js";
 import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
 import { acceptsAnyLocation } from "./locationReply.js";
+import { preferredSocialUrl } from "./preferredSocialUrl.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import {
@@ -706,10 +707,6 @@ function isResetCommand(message: string): boolean {
   return /^(?:reset|opnieuw beginnen|begin opnieuw|start opnieuw|restart|start over)[!,.?\s]*$/i.test(
     message.trim()
   );
-}
-
-function preferredSocialUrl(place: Place): string | undefined {
-  return place.instagramUrl ?? place.tiktokUrl ?? place.facebookUrl;
 }
 
 function placeAreaLabel(place: Place): string | undefined {
