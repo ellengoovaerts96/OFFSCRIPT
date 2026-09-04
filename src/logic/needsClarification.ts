@@ -185,13 +185,16 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (needsSubcategory(context)) return "subcategory";
 
   if (places) {
-    // A content match does not tell us whether the place is practical for the
-    // traveller. Always establish their neighbourhood (or Dakar-wide
-    // mobility) before recommending an unnamed place, even when only one
-    // database candidate matches the request.
-    if (!hasSpecificLocation(context)) return "location";
-
     const candidates = findClarificationCandidates(places, context);
+
+    // Ask location only when it can change the result. Never fabricate area
+    // types: the eventual question is a neutral request for the current
+    // neighbourhood. A QR-provided accommodation neighbourhood already
+    // satisfies this requirement through currentLocation.
+    if (
+      !hasSpecificLocation(context) &&
+      distinctCount(candidates.map(candidateLocation)) > 1
+    ) return "location";
 
     // Once mobility is known, ask only about a field that actually separates
     // the remaining database candidates.

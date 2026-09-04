@@ -20,6 +20,7 @@ import {
 import { getLastOutgoingMessage, listRecentConversationMessages } from "../data/chatMessagesRepository.js";
 import { listPlaceContactDetails, type PlaceContactDetail } from "../data/contactsRepository.js";
 import { listRecommendationPlaces } from "../data/placesRepository.js";
+import { getWhatsAppUser } from "../data/whatsappUsersRepository.js";
 import {
   deleteRecommendationHistoryForUser,
   getLastRecommendedPlace,
@@ -685,11 +686,18 @@ function recommendationResult(
 }
 
 export async function runChatbotFlow(userPhone: string, message: string): Promise<ChatbotFlowResult> {
-  let [previousContext, previousAssistantMessage, activeRecommendation] = await Promise.all([
+  let [previousContext, previousAssistantMessage, activeRecommendation, whatsappUser] = await Promise.all([
     getConversationContext(userPhone),
     getLastOutgoingMessage(userPhone),
-    getLastRecommendedPlace(userPhone)
+    getLastRecommendedPlace(userPhone),
+    getWhatsAppUser(userPhone)
   ]);
+  if (whatsappUser?.homeNeighbourhood && !previousContext?.currentLocation) {
+    previousContext = {
+      ...(previousContext ?? { language: "fr", clarificationCount: 0 }),
+      currentLocation: normalizeRegion(whatsappUser.homeNeighbourhood)
+    };
+  }
   let places: Place[] | undefined;
   const useWolofGreeting = !previousAssistantMessage;
 

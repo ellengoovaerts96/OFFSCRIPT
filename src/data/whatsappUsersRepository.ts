@@ -38,6 +38,21 @@ export async function getOrCreateWhatsAppUser(userPhone: string): Promise<WhatsA
   return mapWhatsAppUser(result.rows[0]);
 }
 
+export async function getWhatsAppUser(userPhone: string): Promise<WhatsAppUser | null> {
+  const result = await pool.query<WhatsAppUserRow>(
+    `
+      SELECT user_phone, acquisition_source_id, acquired_at,
+             home_neighbourhood, created_at, updated_at
+      FROM public.whatsapp_users
+      WHERE user_phone = $1
+      LIMIT 1
+    `,
+    [userPhone]
+  );
+
+  return result.rows[0] ? mapWhatsAppUser(result.rows[0]) : null;
+}
+
 export async function setFirstTouchAcquisition(
   userPhone: string,
   source: AcquisitionSource

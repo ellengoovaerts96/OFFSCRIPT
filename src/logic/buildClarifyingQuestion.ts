@@ -3,7 +3,7 @@ import type { UserContext } from "../types/userContext.js";
 
 const questions: Record<string, Record<MissingContextField, string>> = {
   nl: {
-    location: "Waar ben je nu, of mag een taxi je overal in Dakar brengen?",
+    location: "In welke buurt ben je nu?",
     travellerType: "Voor wie zoek je iets: voor jezelf, voor jou en je partner, voor vrienden of voor familie?",
     children: "Zijn er kinderen bij, en zo ja welke leeftijden ongeveer?",
     intent: "Waar ben je vandaag naar op zoek? Bijvoorbeeld eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
@@ -13,7 +13,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     budget: "Welk budget past het best: budgetvriendelijk, betaalbaar, gemiddeld, chic of luxe?"
   },
   fr: {
-    location: "Tu es où maintenant, ou un taxi peut t’emmener n’importe où à Dakar ?",
+    location: "Tu es dans quel quartier en ce moment ?",
     travellerType: "Pour qui cherches-tu quelque chose : pour toi, pour toi et ton/ta partenaire, pour des amis ou pour la famille ?",
     children: "Il y a des enfants avec toi, et si oui quel âge environ ?",
     intent: "Qu’est-ce que tu cherches aujourd’hui ? Par exemple manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
@@ -23,7 +23,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     budget: "Quel budget te convient le mieux : petit budget, abordable, moyen, chic ou luxe ?"
   },
   de: {
-    location: "Wo bist du gerade, oder kann dich ein Taxi überall in Dakar hinbringen?",
+    location: "In welchem Viertel bist du gerade?",
     travellerType: "Für wen suchst du etwas: für dich, für dich und deinen Partner oder deine Partnerin, für Freunde oder für die Familie?",
     children: "Sind Kinder dabei, und wenn ja, ungefähr wie alt?",
     intent: "Was suchst du heute? Zum Beispiel Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
@@ -33,7 +33,7 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     budget: "Welches Budget passt am besten: sehr günstig, günstig, mittel, gehoben oder luxuriös?"
   },
   en: {
-    location: "Where are you now, or are you happy to take a taxi anywhere in Dakar?",
+    location: "Which neighbourhood are you in right now?",
     travellerType: "Who should the suggestion be for: just you, you and your partner, friends, or family?",
     children: "Are there children with you, and roughly how old are they?",
     intent: "What are you looking for today? For example food, culture, sport, beach, nature, drinks, or something else?",

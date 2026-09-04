@@ -19,6 +19,9 @@ export async function generateClarifyingQuestion(input: {
   candidates: Place[];
 }): Promise<string> {
   const fallback = buildClarifyingQuestion(input.missingField, input.context);
+  // Location is a logistical fact, not a creative choice. Keep this neutral
+  // so the model can never invent unsupported areas or neighbourhood types.
+  if (input.missingField === "location") return fallback;
   if (!hasOpenAIKey()) return fallback;
 
   const subcategories = [...new Set(
@@ -31,6 +34,7 @@ export async function generateClarifyingQuestion(input: {
       instructions: `Write exactly one short, friendly clarification question in ${languageName(input.context.language)}.
 The application has determined that ${input.missingField} is the one material detail still needed to choose between verified places.
 Ask only about that detail. Do not combine it with another question, recommend a place, mention budget unless missingField is budget, or list every available option.
+Never invent geographic choices such as city centre, markets, tourist areas, beaches or similar location types.
 Use the supplied database subcategories to offer a few meaningful contrasts in natural language.
 For coffee, ask only for the broad preference: local coffee such as Café Touba, or international-style coffee. Do not ask the user to choose between espresso, cappuccino, latte or other individual preparations.
 For food, distinguish local Senegalese food, international food or a specific cuisine and briefly allow dietary needs.
