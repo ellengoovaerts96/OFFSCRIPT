@@ -114,6 +114,9 @@ if (resolveConversationLanguage("hallo!", "fr") !== "nl") {
 if (resolveConversationLanguage("Heb je nog een andere optie?", "nl") !== "nl") {
   throw new Error("A Dutch alternative request must not switch the conversation to French.");
 }
+if (resolveConversationLanguage("Can you do my dishes?", "fr") !== "en") {
+  throw new Error("A complete English off-topic request must override the French reset default.");
+}
 
 const rastaBarContext: UserContext = {
   language: "nl",

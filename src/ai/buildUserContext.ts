@@ -4,7 +4,7 @@ import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/open
 import type { TravellerType, UserContext, UserIntent } from "../types/userContext.js";
 import { findKnownRegion, normalizeRegion, normalizeSupportedRegion } from "../utils/normalizeRegion.js";
 import { detectIntent } from "./detectIntent.js";
-import { resolveConversationLanguage } from "./detectLanguage.js";
+import { detectLanguage, resolveConversationLanguage } from "./detectLanguage.js";
 import { systemPrompt } from "./systemPrompt.js";
 import {
   buildSearchProfile,
@@ -807,7 +807,7 @@ Routing rules:
 - If the user rejects broadening, set locationScope to keep_current_location and preserve the specific location.
 - Short contextual answers such as a neighbourhood, a budget or a group type also continue the travel flow. Combine them with previousContext, then choose needs_clarification or place_lookup.
 - Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
-- For conversation, write conversationReply in the language of the newest user message. Acknowledge its actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
+- For conversation, write conversationReply in the exact requiredReplyLanguage supplied in the input. Acknowledge the newest message's actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list.
 - A standalone greeting is always conversation. Never answer a greeting by asking for traveller type, budget, timing or location.
 - When location is the useful next detail, ask where the user is or whether anywhere in Dakar is fine. Do not repeat the complete list of five neighbourhoods; it is already stated in the welcome message. Never ask for a city or neighbourhood elsewhere in Senegal.
 - If the user requests a place outside the current Dakar scope, explain the current scope naturally instead of pretending TUUTI can search there.
@@ -860,6 +860,11 @@ Also extract searchProfileSignals independently from the legacy context:
       previousContext: input.previousContext ?? null,
       previousAssistantMessage: input.previousAssistantMessage ?? null,
       activeRecommendation: input.activeRecommendation ?? null,
+      requiredReplyLanguage: resolveConversationLanguage(
+        input.message,
+        input.previousContext?.language,
+        detectLanguage(input.message, input.previousContext?.language ?? "fr")
+      ),
       knownSubcategoryTaxonomy: input.subcategoryTaxonomy ?? []
     }),
       text: {
@@ -916,19 +921,24 @@ Also extract searchProfileSignals independently from the legacy context:
     !acceptedDakarWideSearch &&
     !continuesDakarWideSearch
   ) {
+    const language = resolveConversationLanguage(
+      input.message,
+      input.previousContext?.language,
+      parsed.context.language
+    );
+    const parsedReply = parsed.conversationReply ?? undefined;
+    const replyLanguage = parsedReply ? detectLanguage(parsedReply, language) : language;
     return {
       route: "conversation",
       recommendationAction: parsed.recommendationAction,
       previousQuestionAction: parsed.previousQuestionAction,
       previousQuestionResolution: parsed.previousQuestionResolution,
-      conversationReply: parsed.conversationReply ?? undefined,
+      conversationReply: replyLanguage === language
+        ? parsedReply
+        : fallbackBuildUserContext({ ...input, previousContext: { ...input.previousContext, language } }).conversationReply,
       context: {
         ...(input.previousContext ?? {}),
-        language: resolveConversationLanguage(
-          input.message,
-          input.previousContext?.language,
-          parsed.context.language
-        )
+        language
       },
       confidence: parsed.confidence
     };

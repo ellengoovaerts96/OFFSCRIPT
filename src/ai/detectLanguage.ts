@@ -6,6 +6,25 @@ export function detectLanguage(message: string, fallback = "fr"): string {
   }
 
   const lower = message.toLowerCase();
+  const words = lower
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .match(/[a-z]+/g) ?? [];
+  const evidence: Record<string, Set<string>> = {
+    nl: new Set(["ik", "jij", "je", "heb", "hebt", "een", "het", "de", "van", "voor", "nog", "andere", "optie", "wil", "waar", "wat", "niet", "graag"]),
+    fr: new Set(["je", "tu", "vous", "une", "un", "le", "la", "les", "des", "pour", "avec", "pas", "est", "suis", "veux", "peux"]),
+    en: new Set(["i", "you", "my", "your", "the", "an", "can", "could", "would", "do", "does", "is", "are", "what", "where", "why", "how", "please", "me", "tell", "help"]),
+    de: new Set(["ich", "du", "sie", "ein", "eine", "der", "die", "das", "mit", "fur", "nicht", "kann", "mochte", "was", "wo", "bitte"])
+  };
+  const scores = Object.entries(evidence)
+    .map(([language, vocabulary]) => ({
+      language,
+      score: words.filter((word) => vocabulary.has(word)).length
+    }))
+    .sort((left, right) => right.score - left.score);
+  if (scores[0].score >= 2 && scores[0].score > scores[1].score) {
+    return scores[0].language;
+  }
 
   if (
     /\b(hallo|hoi|goedemorgen|goedemiddag|goedenavond|ik|heb|wil|ontmoeten|wat|betekent|bedoelt|kan|doen|morgen|waar|met wie|kinderen|ochtend|middag|avond|vanavond|cultuur|eten|strand|vrienden|alleen|koppel|familie|heel|mooi|lekker|graag|nog|andere|optie|dankjewel|bedankt|aangename|kennismaking)\b/.test(
