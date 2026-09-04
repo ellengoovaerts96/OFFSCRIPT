@@ -44,6 +44,7 @@ import {
   selectBestPlace
 } from "./selectBestPlace.js";
 import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
+import { acceptsAnyLocation } from "./locationReply.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import {
@@ -129,20 +130,51 @@ function buildNoMatchResponse(context: UserContext): string {
   return "I do not have a strong TUUTI pick for that in my current data yet.";
 }
 
-function buildNoNewMatchResponse(context: UserContext): string {
+function recommendationFocusLabel(context: UserContext): string | undefined {
+  const focus = context.requestedSubcategory ?? context.searchProfile?.products[0];
+  if (!focus) return undefined;
+
+  const normalized = focus.toLowerCase().replaceAll("_", " ");
+  const labels: Record<string, Record<string, string>> = {
+    nl: { japanese_food: "sushi", "japanese food": "sushi", coffee: "koffie", cocktails: "cocktails" },
+    fr: { japanese_food: "sushi", "japanese food": "sushi", coffee: "café", cocktails: "cocktails" },
+    de: { japanese_food: "Sushi", "japanese food": "Sushi", coffee: "Kaffee", cocktails: "Cocktails" },
+    en: { japanese_food: "sushi", "japanese food": "sushi", coffee: "coffee", cocktails: "cocktails" }
+  };
+  const language = context.language?.startsWith("nl")
+    ? "nl"
+    : context.language?.startsWith("fr")
+      ? "fr"
+      : context.language?.startsWith("de")
+        ? "de"
+        : "en";
+  return labels[language][focus.toLowerCase()] ?? labels[language][normalized] ?? normalized;
+}
+
+function buildNoNewMatchResponse(context: UserContext, previousPlaceName?: string): string {
+  const focus = recommendationFocusLabel(context);
+  const placeReference = previousPlaceName ? `: ${previousPlaceName}` : "";
   if (context.language?.startsWith("nl")) {
-    return "Ik vind momenteel geen tweede sterke plek die aan dezelfde voorkeuren voldoet zonder de vorige plek te herhalen. Als je wilt, kan ik het budget, de buurt of de sfeer iets verruimen.";
+    return focus
+      ? `Voor ${focus} heb ik momenteel maar één sterke TUUTI-pick in mijn data${placeReference}. Ik heb dus geen goede tweede optie zonder dezelfde plek opnieuw te noemen.`
+      : "Ik heb momenteel geen tweede sterke optie in mijn data zonder dezelfde plek opnieuw te noemen.";
   }
 
   if (context.language?.startsWith("fr")) {
-    return "Je ne trouve pas encore une deuxième adresse solide qui respecte les mêmes préférences sans répéter le lieu précédent. Si tu veux, je peux élargir un peu le budget, le quartier ou l’ambiance.";
+    return focus
+      ? `Pour ${focus}, je n’ai actuellement qu’une seule adresse TUUTI vraiment solide dans mes données${placeReference}. Je n’ai donc pas de bonne deuxième option sans répéter la même adresse.`
+      : "Je n’ai actuellement pas de deuxième option vraiment solide dans mes données sans répéter la même adresse.";
   }
 
   if (context.language?.startsWith("de")) {
-    return "Ich finde derzeit keinen zweiten starken Ort mit denselben Wünschen, ohne den vorherigen Tipp zu wiederholen. Wenn du möchtest, kann ich Budget, Viertel oder Stimmung etwas erweitern.";
+    return focus
+      ? `Für ${focus} habe ich derzeit nur einen wirklich starken TUUTI-Tipp in meinen Daten${placeReference}. Daher habe ich keine gute zweite Option, ohne denselben Ort zu wiederholen.`
+      : "Ich habe derzeit keine zweite wirklich starke Option in meinen Daten, ohne denselben Ort zu wiederholen.";
   }
 
-  return "I cannot currently find a second strong place with the same preferences without repeating the previous recommendation. If you like, I can broaden the budget, neighbourhood, or vibe slightly.";
+  return focus
+    ? `For ${focus}, I currently have only one strong TUUTI pick in my data${placeReference}. I therefore do not have a good second option without repeating the same place.`
+    : "I currently have no second strong option in my data without repeating the same place.";
 }
 
 function buildAlternativeLocationQuestion(language: string, neighbourhood: string): string {
@@ -809,7 +841,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const broadensExistingSearch = Boolean(
     previousContext?.intent &&
     previousContext.intent !== "unknown" &&
-    acceptsBroaderLocation(message)
+    (acceptsBroaderLocation(message) || acceptsAnyLocation(message))
   );
   const selectsRegionForExistingSearch = Boolean(
     previousContext?.intent &&
@@ -1162,7 +1194,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       return {
         type: "no_match",
         context,
-        message: buildNoNewMatchResponse(context)
+        message: buildNoNewMatchResponse(context, activeRecommendation?.placeName)
       };
     }
 
