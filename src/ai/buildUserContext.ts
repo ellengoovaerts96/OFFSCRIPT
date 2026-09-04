@@ -580,7 +580,7 @@ function inferEmojiVibe(message: string): string | undefined {
 }
 
 export function inferTextVibe(message: string): string | undefined {
-  const lower = message.toLowerCase();
+  const lower = normalizeContextText(message);
 
   if (/\b(rasta|reggae|rastabar)\b/.test(lower)) return "rasta_reggae";
   if (/\b(quick|casual|informal|snelle|snel|informeel|rapide|decontracte|décontracté|locker)\b/.test(lower)) return "quick_casual";
@@ -588,6 +588,7 @@ export function inferTextVibe(message: string): string | undefined {
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|chill|chilled|chillen|rustig|calme|tranquil|tranquille|ruhig)\b/.test(lower)) return "calm";
+  if (/\b(creative|artistic|creatief|creatieve|artistiek|artistieke|creatif|creative|artistique|kreativ|kunstlerisch)\b/.test(lower)) return "artistic";
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "scenic";
   return undefined;
 }

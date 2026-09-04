@@ -77,6 +77,11 @@ function hasMeaningfulSubcategory(context: UserContext): boolean {
 
   if (context.intent === "food" && context.requestedStyle) return true;
 
+  // For work, culture and similar experience-led requests, an explicit mood
+  // such as artistic already distinguishes the useful database candidates.
+  // Asking for a place type as well adds no value and tempts invented choices.
+  if (context.vibe) return true;
+
   return Boolean(context.requestedSubcategory);
 }
 
@@ -130,7 +135,9 @@ function mostInformativeCandidateField(
   candidates: Place[]
 ): MissingContextField | null {
   const options: Array<{ field: MissingContextField; score: number }> = [];
-  const hasSpecificFocus = Boolean(context.requestedSubcategory);
+  const hasSpecificFocus = Boolean(
+    context.requestedSubcategory || context.requestedStyle || context.vibe
+  );
   const childSuitabilityVaries = distinctCount(candidates.map((place) => place.childFriendly)) > 1;
 
   if (!hasSpecificLocation(context)) {

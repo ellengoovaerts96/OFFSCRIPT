@@ -52,6 +52,7 @@ const VIBE_PATTERNS: SignalPattern[] = [
   ["calm", /\b(calm|quiet|chill|chilled|relaxed|rustig|tranquil|tranquille|calme|ruhig)\b/],
   ["lively", /\b(lively|gezellig|levendig|anime|ambiance|lebendig)\b/],
   ["romantic", /\b(romantic|romantisch|romantique)\b/],
+  ["artistic", /\b(creative|artistic|creatief|creatieve|artistiek|artistieke|creatif|creative|artistique|kreativ|kunstlerisch)\b/],
   ["local", /\b(local|lokaal|lokale|authentic|authentiek|authentique)\b/],
   ["international", /\b(international|internationaal|cosmopolitan|cosmopolitain)\b/]
 ];

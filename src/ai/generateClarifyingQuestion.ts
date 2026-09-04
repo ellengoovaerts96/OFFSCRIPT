@@ -27,6 +27,8 @@ export async function generateClarifyingQuestion(input: {
   const subcategories = [...new Set(
     input.candidates.flatMap((place) => place.subcategories.map((subcategory) => subcategory.name))
   )].slice(0, 30);
+  const categories = [...new Set(input.candidates.flatMap((place) => place.categories))].slice(0, 20);
+  const vibes = [...new Set(input.candidates.flatMap((place) => place.vibeTags))].slice(0, 30);
 
   try {
     const response = await getOpenAIClient().responses.create({
@@ -35,7 +37,8 @@ export async function generateClarifyingQuestion(input: {
 The application has determined that ${input.missingField} is the one material detail still needed to choose between verified places.
 Ask only about that detail. Do not combine it with another question, recommend a place, mention budget unless missingField is budget, or list every available option.
 Never invent geographic choices such as city centre, markets, tourist areas, beaches or similar location types.
-Use the supplied database subcategories to offer a few meaningful contrasts in natural language.
+Any concrete option or place type named in the question MUST be supported by at least one supplied database category, subcategory or vibe. Never invent plausible-sounding options such as a library or coworking space when they are absent. If the supplied values do not support a useful contrast, ask an open question without examples.
+Use the supplied database values to offer at most a few meaningful contrasts in natural language.
 For coffee, ask only for the broad preference: local coffee such as Café Touba, or international-style coffee. Do not ask the user to choose between espresso, cappuccino, latte or other individual preparations.
 For food, distinguish local Senegalese food, international food or a specific cuisine and briefly allow dietary needs.
 For drinks, distinguish the relevant drink type or whether atmosphere matters most.
@@ -43,7 +46,11 @@ For culture, nightlife, activities and work, use only distinctions relevant to t
 Sound like a knowledgeable friend, not a form or scripted menu. Output the question only.`,
       input: JSON.stringify({
         travellerContext: input.context,
-        availableSubcategories: subcategories
+        verifiedDatabaseChoices: {
+          categories,
+          subcategories,
+          vibes
+        }
       })
     }, {
       timeout: CLARIFICATION_TIMEOUT_MS,

@@ -83,7 +83,8 @@ const STRUCTURED_ONLY_VIBES = new Set([
   "yoga",
   "running",
   "rasta_reggae",
-  "quick_casual"
+  "quick_casual",
+  "artistic"
 ]);
 
 function normalizeValue(value: string): string {

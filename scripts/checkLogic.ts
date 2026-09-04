@@ -49,6 +49,12 @@ if (acceptsBroaderLocation("Ik zou graag een andere plek ontdekken")) {
 if (!acceptsBroaderLocation("Ik zou graag een andere buurt ontdekken")) {
   throw new Error("An explicit request for another neighbourhood must broaden the search.");
 }
+if (inferTextVibe("ik zoek een creatieve plek om te werken") !== "artistic") {
+  throw new Error("A creative workplace request must retain its artistic preference.");
+}
+if (inferTextVibe("het mag artistiek zijn") !== "artistic") {
+  throw new Error("An artistic follow-up must be treated as a meaningful vibe.");
+}
 
 const directCoffeeContext = await buildUserContext({
   message: "waar kan ik de lekkerste koffie drinken?",

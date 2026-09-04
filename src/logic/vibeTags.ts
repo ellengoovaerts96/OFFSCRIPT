@@ -6,7 +6,10 @@ const VIBE_TAG_ALIASES: Record<string, string[]> = {
   lively: ["lively", "levendig", "animé", "anime", "vibrant"],
   sunset: ["sunset", "zonsondergang", "coucher du soleil", "sonnenuntergang"],
   authentic: ["authentic", "authentiek", "authentique"],
-  artistic: ["artistic", "artistiek", "artistique"],
+  artistic: [
+    "artistic", "creative", "artistiek", "artistieke", "creatief", "creatieve",
+    "artistique", "créatif", "créative", "kreativ", "künstlerisch"
+  ],
   local: ["local", "lokaal", "locale"],
   international: ["international", "internationaal", "cosmopolitan", "cosmopolitain"]
 };
