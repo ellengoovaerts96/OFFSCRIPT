@@ -1008,7 +1008,10 @@ Also extract searchProfileSignals independently from the legacy context:
           ...inferRequestedAmenities(input.message)
         ])
       ],
-      vibe: messageIsKnownRegionOnly
+      // A location answer changes the search radius, not the experience the
+      // user asked for. Preserve "artistic", "calm", etc. while moving from
+      // one neighbourhood to a Dakar-wide search.
+      vibe: messageIsKnownRegionOnly || acceptsBroadLocation
         ? input.previousContext?.vibe
         : mergeVibe(
             input.message,

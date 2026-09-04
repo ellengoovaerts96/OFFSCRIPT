@@ -8,7 +8,8 @@ const VIBE_TAG_ALIASES: Record<string, string[]> = {
   authentic: ["authentic", "authentiek", "authentique"],
   artistic: [
     "artistic", "creative", "artistiek", "artistieke", "creatief", "creatieve",
-    "artistique", "créatif", "créative", "kreativ", "künstlerisch"
+    "artistique", "créatif", "créative", "kreativ", "künstlerisch",
+    "art", "art gallery", "gallery", "galerie", "kunst"
   ],
   local: ["local", "lokaal", "locale"],
   international: ["international", "internationaal", "cosmopolitan", "cosmopolitain"]

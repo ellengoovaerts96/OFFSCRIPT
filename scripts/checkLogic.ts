@@ -26,6 +26,7 @@ import { recommendationReadiness } from "../src/logic/recommendationReadiness.js
 import { placePassesHardConstraints, selectBestPlace } from "../src/logic/selectBestPlace.js";
 import { placePassesSearchProfileHardConstraints } from "../src/logic/searchProfileMatching.js";
 import { scorePlace } from "../src/logic/scorePlace.js";
+import { vibeTagAliases } from "../src/logic/vibeTags.js";
 import type { Place } from "../src/types/place.js";
 import type { UserContext } from "../src/types/userContext.js";
 
@@ -54,6 +55,9 @@ if (inferTextVibe("ik zoek een creatieve plek om te werken") !== "artistic") {
 }
 if (inferTextVibe("het mag artistiek zijn") !== "artistic") {
   throw new Error("An artistic follow-up must be treated as a meaningful vibe.");
+}
+if (!vibeTagAliases("artistic").includes("art gallery")) {
+  throw new Error("Art-gallery place data must satisfy an artistic preference.");
 }
 
 const directCoffeeContext = await buildUserContext({
