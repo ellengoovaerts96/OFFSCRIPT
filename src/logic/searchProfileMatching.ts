@@ -157,17 +157,10 @@ export function searchTermMatchStrength(place: Place, term: string): number {
   );
   if (directMatch) return LOCAL_STAPLES.has(normalize(term)) ? 3 : 1;
 
-  // These national dishes are represented unevenly in older place rows. A
-  // curated "Senegalese food" classification is sufficient evidence for a
-  // local staple search; otherwise every neighbourhood incorrectly appears
-  // to have no thiéboudienne, yassa or mafé.
-  if (LOCAL_STAPLES.has(normalize(term))) {
-    const localCuisineMatch = aliases("senegalese_food").some((candidate) =>
-      values.some((value) => value.includes(candidate))
-    );
-    return localCuisineMatch ? 1 : 0;
-  }
-
+  // A broad Senegalese-food label does not prove that a particular dish is
+  // served. Specific dish requests must remain grounded in documented place
+  // data; otherwise a millet-focused or mixed restaurant can be presented as
+  // a yassa address merely because it also serves Senegalese food.
   return 0;
 }
 
