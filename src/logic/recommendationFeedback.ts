@@ -12,7 +12,16 @@ function normalize(value: string): string {
     .replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
 }
 
-export function parseRecommendationFeedbackRating(message: string): RecommendationFeedbackRating | undefined {
+export function parseRecommendationFeedbackRating(
+  message: string,
+  options: { allowShortOptions?: boolean } = {}
+): RecommendationFeedbackRating | undefined {
+  if (options.allowShortOptions) {
+    if (/🚫/.test(message)) return "did_not_go";
+    if (/👎/.test(message)) return "disliked";
+    if (/😐/.test(message)) return "okay";
+    if (/👍|❤️|❤/.test(message)) return "loved";
+  }
   const value = normalize(message);
   if (/\b(?:suggestion|recommendation|recommandation|tip|idee|idea|vorschlag)\b/.test(value)) {
     return undefined;
@@ -33,6 +42,24 @@ export function parseRecommendationFeedbackRating(message: string): Recommendati
   if (/^(?:ik ben geweest|we zijn geweest|ik heb het geprobeerd).*(?:niet voor mij|vond het niet leuk)$/.test(value)) return "disliked";
   if (/^(?:didn t go|did not go|i didn t go|je n y suis pas alle|pas alle|niet geweest|ik ben niet gegaan|nicht hingegangen)$/.test(value)) return "did_not_go";
   return undefined;
+}
+
+export function isRecommendationExperienceSignal(message: string): boolean {
+  const value = normalize(message);
+  return /\b(?:het was lekker|het eten was lekker|we zijn er geweest|ik ben er geweest|c etait bon|c etait delicieux|on y est alles|j y suis alle|it was delicious|the food was good|we went there|i went there|es war lecker|wir waren dort|ich war dort)\b/.test(value);
+}
+
+export function isFeedbackRatingQuestion(message: string | null | undefined): boolean {
+  if (!message) return false;
+  const value = normalize(message);
+  return /\b(?:echte top tip|vraie bonne recommandation|really good tip|wirklich guter tipp)\b/.test(value);
+}
+
+export function buildFeedbackRatingQuestion(language: string): string {
+  if (language.startsWith("nl")) return "Ah, fijn 😊 Was het voor jou een echte top-tip, gewoon oké, of toch niet helemaal? 👍 · 😐 · 👎";
+  if (language.startsWith("en")) return "Ah, nice 😊 Was it a really good tip, just okay, or not quite for you? 👍 · 😐 · 👎";
+  if (language.startsWith("de")) return "Ah, schön 😊 War es für dich ein wirklich guter Tipp, nur okay oder doch nicht ganz passend? 👍 · 😐 · 👎";
+  return "Ah, chouette 😊 C’était une vraie bonne recommandation pour toi, juste correct, ou pas vraiment ton truc ? 👍 · 😐 · 👎";
 }
 
 export function parseRecommendationFeedbackReason(message: string): RecommendationFeedbackReason | undefined {

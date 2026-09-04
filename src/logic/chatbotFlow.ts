@@ -53,9 +53,12 @@ import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
 import { acceptsAnyLocation } from "./locationReply.js";
 import { preferredSocialUrl } from "./preferredSocialUrl.js";
 import {
+  buildFeedbackRatingQuestion,
   buildFeedbackReasonQuestion,
   buildFeedbackThanks,
   buildFreeTextPrompt,
+  isFeedbackRatingQuestion,
+  isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating,
   parseRecommendationFeedbackReason
 } from "./recommendationFeedback.js";
@@ -858,7 +861,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     };
   }
 
-  const feedbackRating = parseRecommendationFeedbackRating(message);
+  const feedbackRating = parseRecommendationFeedbackRating(message, {
+    allowShortOptions: isFeedbackRatingQuestion(previousAssistantMessage)
+  });
   if (feedbackRating && activeRecommendation) {
     const context = previousContext ?? activeRecommendation.contextSnapshot ?? {
       language: "fr",
@@ -880,6 +885,19 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       message: feedbackRating === "okay" || feedbackRating === "disliked"
         ? buildFeedbackReasonQuestion(context.language)
         : buildFeedbackThanks(context.language, feedbackRating)
+    };
+  }
+
+  if (activeRecommendation && isRecommendationExperienceSignal(message)) {
+    const context: UserContext = {
+      ...(previousContext ?? activeRecommendation.contextSnapshot ?? { clarificationCount: 0 }),
+      language: resolveConversationLanguage(message, previousContext?.language, "fr")
+    };
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: buildFeedbackRatingQuestion(context.language)
     };
   }
 

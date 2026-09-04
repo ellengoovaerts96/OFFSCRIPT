@@ -1,5 +1,8 @@
 import {
   buildFeedbackPrompt,
+  buildFeedbackRatingQuestion,
+  isFeedbackRatingQuestion,
+  isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating,
   parseRecommendationFeedbackReason
 } from "../src/logic/recommendationFeedback.js";
@@ -36,6 +39,19 @@ for (const [message, expected] of reasons) {
 
 if (parseRecommendationFeedbackRating("Ik wil ergens eten") !== undefined) {
   throw new Error("A new search request must not be mistaken for place feedback.");
+}
+if (!isRecommendationExperienceSignal("Het was lekker")) {
+  throw new Error("A natural post-visit remark must start the lightweight feedback question.");
+}
+const ratingQuestion = buildFeedbackRatingQuestion("nl");
+if (!isFeedbackRatingQuestion(ratingQuestion)) {
+  throw new Error("The generated feedback question must be recognizable on the next turn.");
+}
+if (parseRecommendationFeedbackRating("👍") !== undefined) {
+  throw new Error("A bare emoji must not be feedback before TUUTI asks the feedback question.");
+}
+if (parseRecommendationFeedbackRating("👍", { allowShortOptions: true }) !== "loved") {
+  throw new Error("A bare emoji must resolve after TUUTI asks the feedback question.");
 }
 for (const prematureReaction of ["Top", "Parfait", "👍", "J’adore cette suggestion", "J’ai aimé la suggestion"]) {
   if (parseRecommendationFeedbackRating(prematureReaction) !== undefined) {
