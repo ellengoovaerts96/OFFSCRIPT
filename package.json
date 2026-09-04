@@ -20,6 +20,7 @@
     "search-profile:check": "tsx scripts/checkSearchProfile.ts",
     "activity-intent:check": "node --import tsx scripts/checkActivityIntent.ts",
     "social-link:check": "node --import tsx scripts/checkSocialLink.ts",
+    "recommendation-feedback:check": "node --import tsx scripts/checkRecommendationFeedback.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",
     "source-tracking:check": "node --import tsx scripts/checkSourceTracking.ts",
     "sources-admin:check": "node --import tsx scripts/checkSourcesAdmin.ts",

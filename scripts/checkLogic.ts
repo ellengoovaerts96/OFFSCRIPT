@@ -21,6 +21,7 @@ import {
 import { detectIntent } from "../src/ai/detectIntent.js";
 import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
 import { buildOffscriptWelcomeResponse, isOffscriptStartMessage } from "../src/logic/greeting.js";
+import { isRecommendationFeedbackOnly } from "../src/logic/chatbotFlow.js";
 import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
@@ -127,6 +128,9 @@ if (resolveConversationLanguage("Heb je nog een andere optie?", "nl") !== "nl") 
 }
 if (resolveConversationLanguage("Can you do my dishes?", "fr") !== "en") {
   throw new Error("A complete English off-topic request must override the French reset default.");
+}
+if (!isRecommendationFeedbackOnly("Parfait!")) {
+  throw new Error("Parfait after a recommendation must be recognized as positive feedback.");
 }
 
 const rastaBarContext: UserContext = {

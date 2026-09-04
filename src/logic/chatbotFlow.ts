@@ -23,6 +23,12 @@ import { listPlaceContactDetails, type PlaceContactDetail } from "../data/contac
 import { listRecommendationPlaces } from "../data/placesRepository.js";
 import { getWhatsAppUser } from "../data/whatsappUsersRepository.js";
 import {
+  createRecommendationFeedback,
+  getPendingRecommendationFeedback,
+  setRecommendationFeedbackFreeText,
+  setRecommendationFeedbackReason
+} from "../data/recommendationFeedbackRepository.js";
+import {
   deleteRecommendationHistoryForUser,
   getLastRecommendedPlace,
   listRecommendedPlaceIds,
@@ -46,6 +52,13 @@ import {
 import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
 import { acceptsAnyLocation } from "./locationReply.js";
 import { preferredSocialUrl } from "./preferredSocialUrl.js";
+import {
+  buildFeedbackReasonQuestion,
+  buildFeedbackThanks,
+  buildFreeTextPrompt,
+  parseRecommendationFeedbackRating,
+  parseRecommendationFeedbackReason
+} from "./recommendationFeedback.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import {
@@ -337,12 +350,12 @@ function buildRespectfulSocialResponse(context: UserContext): string {
     : "I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
 }
 
-function isRecommendationFeedbackOnly(message: string): boolean {
+export function isRecommendationFeedbackOnly(message: string): boolean {
   const normalized = normalizeSearchText(message).replace(/[^\p{L}\p{N}\s]/gu, "").trim();
 
   if (!normalized && /[\p{Emoji_Presentation}\uFE0F]/u.test(message)) return true;
 
-  return /^(?:i know|i know thanks|got it|great|nice|perfect|cool|thanks|thank you|ok|okay|yes|yes thanks|super|top|merci|d accord|ok merci|oui|oui merci|ja|ja dank je|dank je|bedankt|prima|mooi|leuk)$/i.test(
+  return /^(?:i know|i know thanks|got it|great|nice|perfect|cool|thanks|thank you|ok|okay|yes|yes thanks|super|top|parfait|merci|merci beaucoup|d accord|ok merci|oui|oui merci|ja|ja dank je|dank je|bedankt|prima|mooi|leuk)$/i.test(
     normalized
   );
 }
@@ -418,18 +431,18 @@ function buildContactInfoResponse(
 
 function buildRecommendationFeedbackReply(context: UserContext): string {
   if (context.language.startsWith("nl")) {
-    return "Helemaal.";
+    return "Graag gedaan 😊";
   }
 
   if (context.language.startsWith("fr")) {
-    return "Parfait.";
+    return "Avec plaisir 😊";
   }
 
   if (context.language.startsWith("de")) {
-    return "Alles klar.";
+    return "Sehr gern 😊";
   }
 
-  return "Got it.";
+  return "You’re welcome 😊";
 }
 
 async function isFeedbackAfterRecommendation(userPhone: string, message: string): Promise<boolean> {
@@ -858,6 +871,57 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       context,
       message: buildOffscriptWelcomeResponse()
     };
+  }
+
+  const feedbackRating = parseRecommendationFeedbackRating(message);
+  if (feedbackRating && activeRecommendation) {
+    const context = previousContext ?? activeRecommendation.contextSnapshot ?? {
+      language: "fr",
+      clarificationCount: 0
+    };
+    await createRecommendationFeedback({
+      userPhone,
+      placeId: activeRecommendation.placeId,
+      placeName: activeRecommendation.placeName,
+      rating: feedbackRating,
+      context,
+      acquisitionSourceId: whatsappUser?.acquisitionSourceId
+    });
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: feedbackRating === "okay" || feedbackRating === "disliked"
+        ? buildFeedbackReasonQuestion(context.language)
+        : buildFeedbackThanks(context.language, feedbackRating)
+    };
+  }
+
+  const pendingFeedback = await getPendingRecommendationFeedback(userPhone);
+  if (pendingFeedback) {
+    const context = previousContext ?? { language: "fr", clarificationCount: 0 };
+    if (pendingFeedback.reason === "something_else" && !startsNewSearch(message, previousContext)) {
+      await setRecommendationFeedbackFreeText(pendingFeedback.id, message.trim());
+      await upsertConversationContext(userPhone, context);
+      return {
+        type: "clarification",
+        context,
+        message: buildFeedbackThanks(context.language, pendingFeedback.rating)
+      };
+    }
+
+    const feedbackReason = parseRecommendationFeedbackReason(message);
+    if (feedbackReason) {
+      await setRecommendationFeedbackReason(pendingFeedback.id, feedbackReason);
+      await upsertConversationContext(userPhone, context);
+      return {
+        type: "clarification",
+        context,
+        message: feedbackReason === "something_else"
+          ? buildFreeTextPrompt(context.language)
+          : buildFeedbackThanks(context.language, pendingFeedback.rating)
+      };
+    }
   }
 
   const requestedLanguage = detectRequestedLanguage(message);
