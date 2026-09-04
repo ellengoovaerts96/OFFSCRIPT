@@ -1,6 +1,7 @@
 import {
   buildFeedbackPrompt,
   buildFeedbackRatingQuestion,
+  buildPositiveFeedbackQuestion,
   isFeedbackRatingQuestion,
   isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating,
@@ -60,6 +61,9 @@ for (const prematureReaction of ["Top", "Parfait", "👍", "J’adore cette sugg
 }
 if (!buildFeedbackPrompt("fr").includes("🚫")) {
   throw new Error("The feedback prompt must include a did-not-go option.");
+}
+if (!buildPositiveFeedbackQuestion("fr").includes("rapport qualité-prix")) {
+  throw new Error("Positive feedback must get one natural, useful follow-up question.");
 }
 
 console.log("Recommendation feedback checks passed.");

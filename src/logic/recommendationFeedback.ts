@@ -87,6 +87,13 @@ export function buildFeedbackReasonQuestion(language: string): string {
   return "Qu’est-ce qui n’allait pas ? Trop touristique · trop cher · mauvaise ambiance · trop loin · nourriture/boissons · autre chose";
 }
 
+export function buildPositiveFeedbackQuestion(language: string): string {
+  if (language.startsWith("nl")) return "Leuk 😊 Wat vond je vooral goed: de sfeer, het eten of drinken, de prijs-kwaliteit…?";
+  if (language.startsWith("en")) return "Nice 😊 What did you especially like: the atmosphere, the food or drinks, the value…?";
+  if (language.startsWith("de")) return "Schön 😊 Was hat dir besonders gefallen: die Stimmung, das Essen oder die Getränke, das Preis-Leistungs-Verhältnis…?";
+  return "Trop bien 😊 Qu’est-ce que tu as surtout aimé : l’ambiance, ce que tu as mangé ou bu, le rapport qualité-prix… ?";
+}
+
 export function buildFeedbackThanks(language: string, rating: RecommendationFeedbackRating): string {
   if (rating === "loved") {
     if (language.startsWith("nl")) return "Leuk om te horen 😌 Dat onthoud ik voor je volgende tip.";

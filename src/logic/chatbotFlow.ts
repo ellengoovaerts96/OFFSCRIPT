@@ -25,6 +25,7 @@ import { getWhatsAppUser } from "../data/whatsappUsersRepository.js";
 import {
   createRecommendationFeedback,
   getPendingRecommendationFeedback,
+  setPositiveRecommendationFeedbackDetail,
   setRecommendationFeedbackFreeText,
   setRecommendationFeedbackReason
 } from "../data/recommendationFeedbackRepository.js";
@@ -57,6 +58,7 @@ import {
   buildFeedbackReasonQuestion,
   buildFeedbackThanks,
   buildFreeTextPrompt,
+  buildPositiveFeedbackQuestion,
   isFeedbackRatingQuestion,
   isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating,
@@ -882,9 +884,11 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: feedbackRating === "okay" || feedbackRating === "disliked"
-        ? buildFeedbackReasonQuestion(context.language)
-        : buildFeedbackThanks(context.language, feedbackRating)
+      message: feedbackRating === "loved"
+        ? buildPositiveFeedbackQuestion(context.language)
+        : feedbackRating === "okay" || feedbackRating === "disliked"
+          ? buildFeedbackReasonQuestion(context.language)
+          : buildFeedbackThanks(context.language, feedbackRating)
     };
   }
 
@@ -904,6 +908,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const pendingFeedback = await getPendingRecommendationFeedback(userPhone);
   if (pendingFeedback) {
     const context = previousContext ?? { language: "fr", clarificationCount: 0 };
+    if (pendingFeedback.awaitingPositiveDetail && !startsNewSearch(message, previousContext)) {
+      await setPositiveRecommendationFeedbackDetail(pendingFeedback.id, message.trim());
+      await upsertConversationContext(userPhone, context);
+      return {
+        type: "clarification",
+        context,
+        message: buildFeedbackThanks(context.language, pendingFeedback.rating)
+      };
+    }
     if (pendingFeedback.reason === "something_else" && !startsNewSearch(message, previousContext)) {
       await setRecommendationFeedbackFreeText(pendingFeedback.id, message.trim());
       await upsertConversationContext(userPhone, context);
