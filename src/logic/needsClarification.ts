@@ -194,14 +194,11 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (places) {
     const candidates = findClarificationCandidates(places, context);
 
-    // Ask location only when it can change the result. Never fabricate area
-    // types: the eventual question is a neutral request for the current
-    // neighbourhood. A QR-provided accommodation neighbourhood already
-    // satisfies this requirement through currentLocation.
-    if (
-      !hasSpecificLocation(context) &&
-      distinctCount(candidates.map(candidateLocation)) > 1
-    ) return "location";
+    // Location is required before a concrete recommendation, including when
+    // filtering currently yields zero or one candidate. Otherwise an empty
+    // local result can incorrectly become a generic "no data" response.
+    // A QR-provided accommodation neighbourhood already satisfies this.
+    if (!hasSpecificLocation(context)) return "location";
 
     // Once mobility is known, ask only about a field that actually separates
     // the remaining database candidates.
