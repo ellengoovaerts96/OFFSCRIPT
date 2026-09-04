@@ -12,7 +12,7 @@ export function detectIntent(message: string): UserIntent | undefined {
   const activityIntent = normalizeActivityIntent(lower);
   if (activityIntent) return activityIntent.intent;
 
-  if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|thieboudienne|thiéboudienne|thiebou dienne|yassa|mafe|mafé|eten|ontbijt|restaurant|manger|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
+  if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|thieboudienne|thiéboudienne|thiebou dienne|yassa|mafe|mafé|eten|ontbijt|restaurant|manger|cuisine s[eé]n[eé]galaise|plats? s[eé]n[eé]galais|repas s[eé]n[eé]galais|senegalees eten|senegalese food|senegalese cuisine|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|senegalesische küche|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
   if (/\b(drink|bar|cocktail|bier|drinken|boire|verre|trinken|getränk)\b/.test(lower)) return "drink";
   if (/\b(culture|museum|market|art|artwork|artworks|artist|artists|craft|crafts|gallery|galerie|atelier|cultuur|kunst|kunstenaar|kunstenaars|markt|culture|marché|artiste|artistes|artisanat|artisanal|kultur|kunst|markt)\b/.test(lower)) return "culture";
   if (/\b(beach|strand|plage)\b/.test(lower)) return "beach";

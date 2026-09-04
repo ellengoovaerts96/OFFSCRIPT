@@ -305,7 +305,7 @@ export function acceptsBroaderLocation(message: string): boolean {
   );
 }
 
-function acceptsBroaderLocationInContext(
+export function acceptsBroaderLocationInContext(
   message: string,
   previousAssistantMessage?: string | null
 ): boolean {
@@ -314,7 +314,7 @@ function acceptsBroaderLocationInContext(
 
   const answer = normalizeContextText(message);
   const previousQuestion = normalizeContextText(previousAssistantMessage);
-  const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|yes|sure|absolutely|no problem|oui|bien sur|d accord|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
+  const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|ok|okay|yes|sure|absolutely|no problem|oui|bien sur|d accord|ca va|c est bon|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
   const askedToBroaden = /\b(?:andere buurt|andere wijk|another neighbourhood|another neighborhood|other area|autre quartier|autre zone|anderes viertel|andere gegend)\b/.test(previousQuestion);
 
   return affirmative && askedToBroaden;
@@ -416,6 +416,17 @@ export function isLocalSenegaleseDishRequest(message: string): boolean {
   return /\b(thieboudienne|thiebou dienne|yassa|mafe)\b/.test(lower);
 }
 
+export function isLocalSenegaleseFoodRequest(message: string): boolean {
+  const lower = normalizeContextText(message);
+  return (
+    isLocalSenegaleseDishRequest(message) ||
+    /\b(?:manger|cuisine|plats?|repas)\s+senegalais(?:e|es)?\b/.test(lower) ||
+    /\bsenegalese\s+(?:food|cuisine|dishes?|meal|restaurant)\b/.test(lower) ||
+    /\bsenegalees\s+(?:eten|gerecht|gerechten|restaurant)\b/.test(lower) ||
+    /\bsenegalesische\s+(?:kuche|gerichte?|restaurant)\b/.test(lower)
+  );
+}
+
 export function inferRequestedStyle(message: string): string | undefined {
   const lower = normalizeContextText(message);
   if (/\b(espresso|cappuccino|latte|flat white|americano)\b/.test(lower)) {
@@ -426,7 +437,7 @@ export function inferRequestedStyle(message: string): string | undefined {
   }
   if (
     /\b(local|lokaal|lokale|locale|locales|lokal|authentic|authentiek|authentique|cafe touba)\b/.test(lower) ||
-    isLocalSenegaleseDishRequest(message)
+    isLocalSenegaleseFoodRequest(message)
   ) {
     return "local";
   }
@@ -678,7 +689,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const routeMessage = normalizeContextText(input.message);
   const answersPreviousQuestion =
     Boolean(input.previousAssistantMessage?.includes("?")) &&
-    /^(?:ja|nee|zeker|graag|yes|no|sure|oui|non|d accord|ja gerne|nein)$/.test(routeMessage);
+    /^(?:ja|nee|zeker|graag|ok|okay|yes|no|sure|oui|non|d accord|ca va|c est bon|ja gerne|nein)$/.test(routeMessage);
   const clearDatabaseMessage = Boolean(
     inferredRegion ||
     acceptsBroadLocation ||
@@ -730,7 +741,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
         inferBudget(input.message) ??
         inferContextualBudget(input.message, previous?.requestedSubcategory) ??
         previous?.budget,
-      requestedSubcategory: isLocalSenegaleseDishRequest(input.message)
+      requestedSubcategory: isLocalSenegaleseFoodRequest(input.message)
         ? undefined
         : rejectsPreviousSubcategory
           ? inferRequestedSubcategory(input.message)

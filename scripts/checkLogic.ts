@@ -2,6 +2,7 @@ import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
 import {
   acceptsBroaderLocation,
+  acceptsBroaderLocationInContext,
   buildUserContext,
   inferContextualBudget,
   inferContextualFoodStyle,
@@ -10,6 +11,7 @@ import {
   inferRequestedSubcategory,
   inferTiming,
   isLocalSenegaleseDishRequest,
+  isLocalSenegaleseFoodRequest,
   inferRequestedAmenities,
   inferTextVibe,
   mergeIntent,
@@ -49,6 +51,15 @@ if (acceptsBroaderLocation("Ik zou graag een andere plek ontdekken")) {
 }
 if (!acceptsBroaderLocation("Ik zou graag een andere buurt ontdekken")) {
   throw new Error("An explicit request for another neighbourhood must broaden the search.");
+}
+if (!acceptsBroaderLocationInContext(
+  "Ça va",
+  "Est-ce que tu veux te déplacer dans un autre quartier de Dakar ? Je peux chercher plus largement."
+)) {
+  throw new Error("A French contextual acceptance must continue the proposed broader search.");
+}
+if (acceptsBroaderLocationInContext("Ça va", "Comment ça va ?")) {
+  throw new Error("Ça va must only broaden location after an explicit broader-location question.");
 }
 if (inferTextVibe("ik zoek een creatieve plek om te werken") !== "artistic") {
   throw new Error("A creative workplace request must retain its artistic preference.");
@@ -178,6 +189,19 @@ if (!/buurt/i.test(buildLocalDishLocationQuestion({ language: "nl", intent: "foo
 }
 if (detectIntent("Ik wil lokale gerechten eten") !== "food" || inferRequestedStyle("Ik wil lokale gerechten eten") !== "local") {
   throw new Error("A general request for local food must be recognized as local food.");
+}
+for (const request of [
+  "Je veux manger sénégalais",
+  "Je cherche de la cuisine sénégalaise",
+  "Ik wil Senegalees eten",
+  "I want Senegalese food"
+]) {
+  if (!isLocalSenegaleseFoodRequest(request) || inferRequestedStyle(request) !== "local") {
+    throw new Error(`${request} must be normalized as local food.`);
+  }
+}
+if (isLocalSenegaleseFoodRequest("Je veux rencontrer des Sénégalais")) {
+  throw new Error("The word Sénégalais without a food context must not become local food.");
 }
 if (detectIntent("Ik wil geen pizza, gewoon een chilled drink.") !== "drink") {
   throw new Error("A negated pizza must not override the positive drink intent.");

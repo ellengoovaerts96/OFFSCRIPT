@@ -21,7 +21,7 @@ const PRODUCT_PATTERNS: SignalPattern[] = [
   ["yassa", /\byassa\b/],
   ["mafé", /\bmafe\b/],
   ["japanese_food", /\b(japanese|japans|japonais|japanisch|sushi)\b/],
-  ["senegalese_food", /\b(senegalese food|senegalese dishes|senegalese cuisine|senegalees eten|lokale gerechten|plats senegalais|cuisine senegalaise)\b/],
+  ["senegalese_food", /\b(senegalese food|senegalese dishes|senegalese cuisine|senegalees eten|senegalese gerechten|lokale gerechten|manger senegalais|plats senegalais|cuisine senegalaise|repas senegalais|senegalesische kuche|senegalesische gerichte)\b/],
   ["seafood", /\b(seafood|fish|vis|poisson|fruits de mer)\b/],
   ["cocktails", /\b(cocktail|cocktails)\b/],
   ["coffee", /\b(coffee|koffie|cafe|kaffee)\b/],
