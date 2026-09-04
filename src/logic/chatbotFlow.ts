@@ -1,5 +1,6 @@
 import {
   buildUserContext,
+  acceptsBroaderLocation,
   inferRequestedStyle,
   isLocalSenegaleseDishRequest
 } from "../ai/buildUserContext.js";
@@ -142,6 +143,19 @@ function buildNoNewMatchResponse(context: UserContext): string {
   }
 
   return "I cannot currently find a second strong place with the same preferences without repeating the previous recommendation. If you like, I can broaden the budget, neighbourhood, or vibe slightly.";
+}
+
+function buildAlternativeLocationQuestion(language: string, neighbourhood: string): string {
+  if (language.startsWith("nl")) {
+    return `Wil je in ${neighbourhood} blijven, of wil je ook een andere buurt ontdekken?`;
+  }
+  if (language.startsWith("fr")) {
+    return `Tu préfères rester à ${neighbourhood}, ou découvrir aussi un autre quartier ?`;
+  }
+  if (language.startsWith("de")) {
+    return `Möchtest du in ${neighbourhood} bleiben oder auch ein anderes Viertel entdecken?`;
+  }
+  return `Would you like to stay in ${neighbourhood}, or explore another neighbourhood too?`;
 }
 
 function buildLanguagePreferenceResponse(context: UserContext): string {
@@ -828,6 +842,31 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       interpretation.previousQuestionAction === "continue_search" ||
       interpretation.route === "place_lookup"
     );
+
+  const activeNeighbourhood = activePlace?.neighbourhood ?? activePlace?.area;
+  const explicitlyChosenRegion = findKnownRegion(message);
+  if (
+    activeRecommendation &&
+    activeNeighbourhood &&
+    normalizeRegion(activeNeighbourhood) !== "Dakar" &&
+    interpretation.recommendationAction === "find_alternative" &&
+    !continuesProposedSearch &&
+    !explicitlyChosenRegion &&
+    !acceptsBroaderLocation(message)
+  ) {
+    const locationContext: UserContext = {
+      ...context,
+      currentLocation: context.currentLocation ?? activeNeighbourhood,
+      targetRegion: activeNeighbourhood,
+      language: storyLanguage
+    };
+    await upsertConversationContext(userPhone, locationContext);
+    return {
+      type: "clarification",
+      context: locationContext,
+      message: buildAlternativeLocationQuestion(storyLanguage, activeNeighbourhood)
+    };
+  }
 
   if (
     activeRecommendation &&

@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { pool } from "../src/integrations/postgres.js";
 import {
+  acceptsBroaderLocation,
+  buildUserContext,
   inferContextualBudget,
   inferContextualFoodStyle,
   inferBudget,
@@ -40,6 +42,13 @@ const incompleteContext: UserContext = {
   language: "en",
   targetRegion: "Mbour"
 };
+
+if (acceptsBroaderLocation("Ik zou graag een andere plek ontdekken")) {
+  throw new Error("A request for another place must not silently broaden the neighbourhood.");
+}
+if (!acceptsBroaderLocation("Ik zou graag een andere buurt ontdekken")) {
+  throw new Error("An explicit request for another neighbourhood must broaden the search.");
+}
 
 const directCoffeeContext = await buildUserContext({
   message: "waar kan ik de lekkerste koffie drinken?",
@@ -109,7 +118,7 @@ const dinnerContexts: UserContext[] = [
 ];
 
 const expectedDinnerQuestions = ["travellerType", "children", "location", null];
-const actualDinnerQuestions = dinnerContexts.map(needsClarification);
+const actualDinnerQuestions = dinnerContexts.map((dinnerContext) => needsClarification(dinnerContext));
 
 if (JSON.stringify(actualDinnerQuestions) !== JSON.stringify(expectedDinnerQuestions)) {
   throw new Error(`Dinner clarification flow mismatch: ${JSON.stringify(actualDinnerQuestions)}`);

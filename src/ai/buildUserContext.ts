@@ -289,13 +289,16 @@ export function inferTiming(message: string): string | undefined {
   return undefined;
 }
 
-function acceptsBroaderLocation(message: string): boolean {
+export function acceptsBroaderLocation(message: string): boolean {
   const lower = message
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|broader|wider|andere buurt|andere wijk|andere regio|andere plek|andere plaats|elders|breder|ruimer|autre quartier|autre zone|autre endroit|plus largement|elargir|anderes viertel|andere gegend|breiter)\b/.test(
+  // A different place is not necessarily a different neighbourhood. Keep
+  // generic alternative wording ("andere plek", "autre endroit", etc.) out
+  // of this location decision so the user can choose the travel radius first.
+  return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|broader|wider|andere buurt|andere wijk|andere regio|elders|breder|ruimer|autre quartier|autre zone|plus largement|elargir|anderes viertel|andere gegend|breiter)\b/.test(
     lower
   );
 }

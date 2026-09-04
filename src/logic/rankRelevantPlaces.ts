@@ -40,6 +40,23 @@ function budgetFitTier(place: Place, budget: UserContext["budget"]): number {
   return 1;
 }
 
+function primaryIntentFit(place: Place, context: UserContext): number {
+  if (context.intent !== "drink") return 1;
+
+  const primaryCategories = place.categories.map((category) => category.toLowerCase());
+  const directDrinkVenue = primaryCategories.some((category) =>
+    ["drink", "drinks", "bar", "nightlife", "cafe", "café", "restaurant", "food", "beach"]
+      .some((candidate) => category.includes(candidate))
+  );
+  if (directDrinkVenue) return 2;
+
+  // Hybrid cultural venues can still be valid when their structured data says
+  // they serve drinks, but should not outrank a venue whose primary purpose
+  // matches a straightforward aperitif request.
+  if (primaryCategories.some((category) => category.includes("culture"))) return 0;
+  return 1;
+}
+
 function compareRankedPlaces(
   left: RankedPlace,
   right: RankedPlace,
@@ -50,6 +67,12 @@ function compareRankedPlaces(
     const leftOccasionFit = countStructuredOccasionMatches(left.place, requestedOccasions);
     const rightOccasionFit = countStructuredOccasionMatches(right.place, requestedOccasions);
     if (rightOccasionFit !== leftOccasionFit) return rightOccasionFit - leftOccasionFit;
+  }
+
+  const leftPrimaryIntentFit = primaryIntentFit(left.place, context);
+  const rightPrimaryIntentFit = primaryIntentFit(right.place, context);
+  if (rightPrimaryIntentFit !== leftPrimaryIntentFit) {
+    return rightPrimaryIntentFit - leftPrimaryIntentFit;
   }
 
   const leftBudgetFit = budgetFitTier(left.place, context.budget);
