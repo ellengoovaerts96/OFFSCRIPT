@@ -7,6 +7,7 @@ import {
 const ratings = [
   ["I went and loved it", "loved"],
   ["J’y suis allé, j’ai adoré", "loved"],
+  ["J’ai aimé! Prix/qualité super", "loved"],
   ["Ik ben geweest en het was oké", "okay"],
   ["J’y suis allé, pas pour moi", "disliked"],
   ["🚫 Niet geweest", "did_not_go"]
@@ -36,7 +37,7 @@ for (const [message, expected] of reasons) {
 if (parseRecommendationFeedbackRating("Ik wil ergens eten") !== undefined) {
   throw new Error("A new search request must not be mistaken for place feedback.");
 }
-for (const prematureReaction of ["Top", "Parfait", "👍", "J’adore cette suggestion"]) {
+for (const prematureReaction of ["Top", "Parfait", "👍", "J’adore cette suggestion", "J’ai aimé la suggestion"]) {
   if (parseRecommendationFeedbackRating(prematureReaction) !== undefined) {
     throw new Error(`${prematureReaction} must not be treated as proof that the user visited the place.`);
   }

@@ -870,7 +870,8 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       placeName: activeRecommendation.placeName,
       rating: feedbackRating,
       context,
-      acquisitionSourceId: whatsappUser?.acquisitionSourceId
+      acquisitionSourceId: whatsappUser?.acquisitionSourceId,
+      freeText: message.trim()
     });
     await upsertConversationContext(userPhone, context);
     return {

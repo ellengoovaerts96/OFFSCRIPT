@@ -14,10 +14,17 @@ function normalize(value: string): string {
 
 export function parseRecommendationFeedbackRating(message: string): RecommendationFeedbackRating | undefined {
   const value = normalize(message);
+  if (/\b(?:suggestion|recommendation|recommandation|tip|idee|idea|vorschlag)\b/.test(value)) {
+    return undefined;
+  }
   if (/^(?:i went|we went|i tried it|we tried it).*(?:loved it|love it|great|amazing)$/.test(value)) return "loved";
   if (/^(?:j y suis alle|nous y sommes alles|j ai essaye).*(?:j ai adore|adore|genial|super)$/.test(value)) return "loved";
   if (/^(?:ik ben geweest|we zijn geweest|ik heb het geprobeerd).*(?:geweldig|heel goed|super|fantastisch)$/.test(value)) return "loved";
   if (/^(?:ich war dort|wir waren dort|ich habe es ausprobiert).*(?:sehr gefallen|toll|super)$/.test(value)) return "loved";
+  if (/^(?:j ai aime|j ai adore)(?:\s+ca)?(?:\s+.*)?$/.test(value)) return "loved";
+  if (/^(?:i liked it|i loved it|we liked it|we loved it)(?:\s+.*)?$/.test(value)) return "loved";
+  if (/^(?:ik vond het goed|ik vond het geweldig|we vonden het goed|we vonden het geweldig)(?:\s+.*)?$/.test(value)) return "loved";
+  if (/^(?:es hat mir gefallen|es hat uns gefallen)(?:\s+.*)?$/.test(value)) return "loved";
   if (/^(?:i went|we went|i tried it|we tried it).*(?:it was okay|it was ok|okay)$/.test(value)) return "okay";
   if (/^(?:j y suis alle|nous y sommes alles|j ai essaye).*(?:c etait correct|c etait bien|ca allait)$/.test(value)) return "okay";
   if (/^(?:ik ben geweest|we zijn geweest|ik heb het geprobeerd).*(?:het was oke?|het was wel goed|oke?)$/.test(value)) return "okay";

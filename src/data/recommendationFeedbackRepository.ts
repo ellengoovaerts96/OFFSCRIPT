@@ -15,15 +15,16 @@ export async function createRecommendationFeedback(input: {
   rating: RecommendationFeedbackRating;
   context: UserContext;
   acquisitionSourceId?: string;
+  freeText?: string;
 }): Promise<void> {
   await pool.query(
     `INSERT INTO public.recommendation_feedback (
        user_phone, place_id, place_name, rating, traveller_type, requested_vibe,
-       context_snapshot, acquisition_source_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)`,
+       context_snapshot, acquisition_source_id, free_text
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
     [input.userPhone, input.placeId, input.placeName, input.rating,
       input.context.travellerType ?? null, input.context.vibe ?? input.context.requestedStyle ?? null,
-      JSON.stringify(input.context), input.acquisitionSourceId ?? null]
+      JSON.stringify(input.context), input.acquisitionSourceId ?? null, input.freeText ?? null]
   );
 }
 
