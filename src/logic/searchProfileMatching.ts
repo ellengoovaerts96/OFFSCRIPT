@@ -149,9 +149,23 @@ function placeServesCoffee(place: Place): boolean {
 export function placeMatchesSearchTerm(place: Place, term: string): boolean {
   if (normalize(term) === "coffee") return placeServesCoffee(place);
   const terms = aliases(term);
-  return placeSearchValues(place).some((value) =>
+  const values = placeSearchValues(place);
+  const directMatch = values.some((value) =>
     terms.some((candidate) => value.includes(candidate))
   );
+  if (directMatch) return true;
+
+  // These national dishes are represented unevenly in older place rows. A
+  // curated "Senegalese food" classification is sufficient evidence for a
+  // local staple search; otherwise every neighbourhood incorrectly appears
+  // to have no thiéboudienne, yassa or mafé.
+  if (["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"].includes(normalize(term))) {
+    return aliases("senegalese_food").some((candidate) =>
+      values.some((value) => value.includes(candidate))
+    );
+  }
+
+  return false;
 }
 
 export function placeMatchesSearchActivity(
