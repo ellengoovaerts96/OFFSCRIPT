@@ -21,7 +21,7 @@ type ExperienceRow = {
   whatsapp_prefill_text: string | null;
 };
 
-const defaultSiteUrl = "https://go-offscript.app";
+const defaultSiteUrl = "https://tuuti.app";
 
 function createExperienceUrl(slug: string): string {
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || defaultSiteUrl).replace(/\/$/, "");

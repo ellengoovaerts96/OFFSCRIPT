@@ -19,7 +19,7 @@ type RelatedStoryRow = {
   url_path: string;
 };
 
-const defaultSiteUrl = "https://go-offscript.app";
+const defaultSiteUrl = "https://tuuti.app";
 
 function normaliseText(value: string): string {
   return value

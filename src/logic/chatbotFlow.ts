@@ -571,6 +571,24 @@ function normalizeReplyForComparison(value: string): string {
   return normalizeSearchText(value).replace(/\s+/g, " ").trim();
 }
 
+export function isWolofWellBeingReply(message: string): boolean {
+  const normalized = normalizeReplyForComparison(message);
+  return /^(?:maa\s+ngi|mangi)\s+fi+i?\s+rekk?[!.?\s]*$/.test(normalized);
+}
+
+function buildWolofWellBeingReply(language: string): string {
+  if (language.startsWith("nl")) {
+    return "Fijn om te horen 😊 Waar heb je vandaag zin in?";
+  }
+  if (language.startsWith("en")) {
+    return "Glad to hear it 😊 What are you in the mood for today?";
+  }
+  if (language.startsWith("de")) {
+    return "Schön zu hören 😊 Worauf hast du heute Lust?";
+  }
+  return "Ça fait plaisir 😊 Tu as envie de quoi aujourd’hui ?";
+}
+
 function isGreetingClarification(message: string): boolean {
   const normalized = normalizeReplyForComparison(message);
 
@@ -847,6 +865,20 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
+
+  if (isWolofWellBeingReply(message)) {
+    const context: UserContext = {
+      ...(previousContext ?? { clarificationCount: 0 }),
+      language: previousContext?.language ?? "fr"
+    };
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: buildWolofWellBeingReply(context.language)
+    };
+  }
+
   const knownRegion = findKnownRegion(message);
   const didStartNewSearch = !activeRecommendation && startsNewSearch(message, previousContext);
   if (didStartNewSearch) {
