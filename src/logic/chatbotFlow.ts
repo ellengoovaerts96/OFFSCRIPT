@@ -794,17 +794,42 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     activePlace.practicalInfo,
     activePlace.story
   ].filter((topic): topic is string => Boolean(topic)) : [];
-  const interpretation = await buildUserContext({
-    message,
-    previousContext,
-    previousAssistantMessage,
-    activeRecommendation: activeRecommendation ? {
-      placeName: activeRecommendation.placeName,
-      needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage },
-      mentionedTopics: activeMentionedTopics
-    } : null,
-    subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
-  });
+  const broadensExistingSearch = Boolean(
+    previousContext?.intent &&
+    previousContext.intent !== "unknown" &&
+    acceptsBroaderLocation(message)
+  );
+  const interpretation = broadensExistingSearch
+    ? {
+        context: {
+          ...previousContext,
+          language: storyLanguage,
+          targetRegion: "Dakar",
+          searchProfile: previousContext?.searchProfile
+            ? {
+                ...previousContext.searchProfile,
+                neighbourhood: undefined,
+                mobility: "dakar_wide" as const
+              }
+            : undefined
+        } as UserContext,
+        confidence: 1,
+        route: "place_lookup" as const,
+        recommendationAction: "find_alternative" as const,
+        previousQuestionAction: "continue_search" as const,
+        previousQuestionResolution: "accepted" as const
+      }
+    : await buildUserContext({
+        message,
+        previousContext,
+        previousAssistantMessage,
+        activeRecommendation: activeRecommendation ? {
+          placeName: activeRecommendation.placeName,
+          needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage },
+          mentionedTopics: activeMentionedTopics
+        } : null,
+        subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
+      });
   const context = interpretation.context;
   const recommendationNeeds = activeRecommendation?.contextSnapshot ?? previousContext ?? context;
   const isInformationalFollowUp = Boolean(
