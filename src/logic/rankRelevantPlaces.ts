@@ -7,6 +7,7 @@ import {
 } from "./scorePlace.js";
 import {
   countStructuredOccasionMatches,
+  searchTermMatchStrength,
   scoreSearchProfilePreferences
 } from "./searchProfileMatching.js";
 
@@ -57,6 +58,24 @@ function primaryIntentFit(place: Place, context: UserContext): number {
   return 1;
 }
 
+function strongestProductFit(place: Place, context: UserContext): number {
+  return Math.max(
+    0,
+    ...(context.searchProfile?.products ?? []).map((product) =>
+      searchTermMatchStrength(place, product)
+    )
+  );
+}
+
+function foodStyleFit(place: Place, context: UserContext): number {
+  if (context.intent !== "food" || context.requestedStyle !== "local") return 1;
+  if (place.foodOrientation === undefined) return 1;
+  if (place.foodOrientation <= -2) return 3;
+  if (place.foodOrientation === -1) return 2;
+  if (place.foodOrientation === 0) return 1;
+  return 0;
+}
+
 function compareRankedPlaces(
   left: RankedPlace,
   right: RankedPlace,
@@ -74,6 +93,14 @@ function compareRankedPlaces(
   if (rightPrimaryIntentFit !== leftPrimaryIntentFit) {
     return rightPrimaryIntentFit - leftPrimaryIntentFit;
   }
+
+  const leftProductFit = strongestProductFit(left.place, context);
+  const rightProductFit = strongestProductFit(right.place, context);
+  if (rightProductFit !== leftProductFit) return rightProductFit - leftProductFit;
+
+  const leftFoodStyleFit = foodStyleFit(left.place, context);
+  const rightFoodStyleFit = foodStyleFit(right.place, context);
+  if (rightFoodStyleFit !== leftFoodStyleFit) return rightFoodStyleFit - leftFoodStyleFit;
 
   const leftBudgetFit = budgetFitTier(left.place, context.budget);
   const rightBudgetFit = budgetFitTier(right.place, context.budget);

@@ -32,7 +32,7 @@ const TERM_ALIASES: Record<string, string[]> = {
     "mafe"
   ],
   seafood: ["seafood", "fish", "poisson", "vis", "fruits de mer"],
-  thiéboudienne: ["thiéboudienne", "thieboudienne", "thiebou dienne", "ceebu jen"],
+  thieboudienne: ["thiéboudienne", "thieboudienne", "thiebou dienne", "ceebu jen"],
   jewellery: ["jewellery", "jewelry", "bijoux", "juwelen", "sieraden"],
   beachfront: ["beach", "beachfront", "oceanfront", "ocean", "sea", "oceaan", "zee", "plage", "strand", "bord de mer"],
   ocean_view: [
@@ -146,26 +146,33 @@ function placeServesCoffee(place: Place): boolean {
   return isHospitalityPlace && Boolean(hasDocumentedCoffeeService);
 }
 
-export function placeMatchesSearchTerm(place: Place, term: string): boolean {
-  if (normalize(term) === "coffee") return placeServesCoffee(place);
+const LOCAL_STAPLES = new Set(["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"]);
+
+export function searchTermMatchStrength(place: Place, term: string): number {
+  if (normalize(term) === "coffee") return placeServesCoffee(place) ? 1 : 0;
   const terms = aliases(term);
   const values = placeSearchValues(place);
   const directMatch = values.some((value) =>
     terms.some((candidate) => value.includes(candidate))
   );
-  if (directMatch) return true;
+  if (directMatch) return LOCAL_STAPLES.has(normalize(term)) ? 3 : 1;
 
   // These national dishes are represented unevenly in older place rows. A
   // curated "Senegalese food" classification is sufficient evidence for a
   // local staple search; otherwise every neighbourhood incorrectly appears
   // to have no thiéboudienne, yassa or mafé.
-  if (["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"].includes(normalize(term))) {
-    return aliases("senegalese_food").some((candidate) =>
+  if (LOCAL_STAPLES.has(normalize(term))) {
+    const localCuisineMatch = aliases("senegalese_food").some((candidate) =>
       values.some((value) => value.includes(candidate))
     );
+    return localCuisineMatch ? 1 : 0;
   }
 
-  return false;
+  return 0;
+}
+
+export function placeMatchesSearchTerm(place: Place, term: string): boolean {
+  return searchTermMatchStrength(place, term) > 0;
 }
 
 export function placeMatchesSearchActivity(
@@ -257,6 +264,13 @@ function countMatches(place: Place, values: string[]): number {
   return values.filter((value) => placeMatchesSearchTerm(place, value)).length;
 }
 
+function sumProductMatchStrength(place: Place, products: string[]): number {
+  return products.reduce(
+    (total, product) => total + searchTermMatchStrength(place, product),
+    0
+  );
+}
+
 const OCCASION_MATCH_ALIASES: Record<string, string[]> = {
   drinks: ["drinks", "drink", "bar", "cocktail", "cocktails", "sunset drink", "after work drink"],
   sunset: ["sunset", "sunset drink", "sundowner"],
@@ -305,7 +319,7 @@ export function scoreSearchProfilePreferences(
   // A named product or dish is one of the clearest user signals. An exact
   // database match must be recommendation-ready even when older rows do not
   // yet have complete occasion, timing or editorial metadata.
-  score += Math.min(countMatches(place, profile.products) * 30, 60);
+  score += Math.min(sumProductMatchStrength(place, profile.products) * 30, 60);
   score += Math.min(countMatches(place, profile.locationFeatures) * 15, 30);
   score += Math.min(countMatches(place, profile.occasions) * 12, 24);
   score += Math.min(countMatches(place, profile.vibes) * 12, 24);
