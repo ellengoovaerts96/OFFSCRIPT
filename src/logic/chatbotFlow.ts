@@ -445,21 +445,6 @@ function buildRecommendationFeedbackReply(context: UserContext): string {
   return "You’re welcome 😊";
 }
 
-async function isFeedbackAfterRecommendation(userPhone: string, message: string): Promise<boolean> {
-  if (!isRecommendationFeedbackOnly(message)) return false;
-
-  const [lastOutgoingMessage, lastRecommendedPlace] = await Promise.all([
-    getLastOutgoingMessage(userPhone),
-    getLastRecommendedPlace(userPhone)
-  ]);
-
-  return Boolean(
-    lastOutgoingMessage &&
-      lastRecommendedPlace &&
-      normalizeSearchText(lastOutgoingMessage).includes(normalizeSearchText(lastRecommendedPlace.placeName))
-  );
-}
-
 function hasAnyEmoji(message: string, emojis: string[]): boolean {
   return emojis.some((emoji) => message.includes(emoji));
 }
@@ -927,6 +912,19 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const requestedLanguage = detectRequestedLanguage(message);
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
 
+  if (activeRecommendation && isRecommendationFeedbackOnly(message)) {
+    const context: UserContext = {
+      ...(previousContext ?? activeRecommendation.contextSnapshot ?? { clarificationCount: 0 }),
+      language: storyLanguage
+    };
+    await upsertConversationContext(userPhone, context);
+    return {
+      type: "clarification",
+      context,
+      message: buildRecommendationFeedbackReply(context)
+    };
+  }
+
   if (isWolofWellBeingReply(message)) {
     const context: UserContext = {
       ...(previousContext ?? { clarificationCount: 0 }),
@@ -1176,21 +1174,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
         message: buildContactInfoResponse(context, lastRecommendedPlace.placeName, details)
       };
     }
-  }
-
-  if (await isFeedbackAfterRecommendation(userPhone, message)) {
-    const context: UserContext = {
-      ...previousContext,
-      language: storyLanguage
-    };
-
-    await upsertConversationContext(userPhone, context);
-
-    return {
-      type: "clarification",
-      context,
-      message: buildRecommendationFeedbackReply(context)
-    };
   }
 
   if (isPlaceInformationFollowUp(message)) {
