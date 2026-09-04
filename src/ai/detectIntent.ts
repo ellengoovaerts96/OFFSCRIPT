@@ -1,4 +1,5 @@
 import type { UserIntent } from "../types/userContext.js";
+import { normalizeActivityIntent } from "../logic/activityIntent.js";
 
 export function detectIntent(message: string): UserIntent | undefined {
   // Never treat an explicitly rejected keyword as a positive intent. This is
@@ -8,6 +9,8 @@ export function detectIntent(message: string): UserIntent | undefined {
     /\b(?:geen|niet|zonder|no|not|without|pas de|pas|sans|ne veux pas|don'?t want)\b(?:\s+\w+){0,3}\s+\b(?:food|restaurant|pizza|pizzeria|breakfast|lunch|dinner|drink|bar|cocktail|shopping|shop|beach|sport|sports|nightlife)\b/gi,
     " "
   );
+  const activityIntent = normalizeActivityIntent(lower);
+  if (activityIntent) return activityIntent.intent;
 
   if (/\b(food|eat|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|thieboudienne|thiéboudienne|thiebou dienne|yassa|mafe|mafé|eten|ontbijt|restaurant|manger|petit déjeuner|petit dejeuner|déjeuner|dejeuner|dîner|diner|essen|frühstück|fruhstuck|mittagessen|abendessen)\b/.test(lower)) return "food";
   if (/\b(drink|bar|cocktail|bier|drinken|boire|verre|trinken|getränk)\b/.test(lower)) return "drink";

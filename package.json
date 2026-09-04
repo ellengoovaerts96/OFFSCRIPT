@@ -18,6 +18,7 @@
     "db:check": "tsx scripts/checkRepositories.ts",
     "logic:check": "tsx scripts/checkLogic.ts",
     "search-profile:check": "tsx scripts/checkSearchProfile.ts",
+    "activity-intent:check": "node --import tsx scripts/checkActivityIntent.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",
     "source-tracking:check": "node --import tsx scripts/checkSourceTracking.ts",
     "sources-admin:check": "node --import tsx scripts/checkSourcesAdmin.ts",

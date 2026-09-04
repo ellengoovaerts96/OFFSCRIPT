@@ -22,6 +22,7 @@ import {
   preventSoftSignalAsHardSubcategory
 } from "../logic/requestedSubcategory.js";
 import { PLACE_AMENITIES } from "../types/place.js";
+import { normalizeActivityIntent } from "../logic/activityIntent.js";
 
 const travellerTypeSchema = z.enum(["solo", "couple", "friends", "family", "group", "business", "unknown"]);
 const intentSchema = z.enum([
@@ -200,6 +201,7 @@ function withSearchProfile(
     deterministicMatch?.name ??
     taxonomyMatch?.name ??
     validatedCandidate?.name ??
+    normalizeActivityIntent(sanitizedCandidate)?.focus ??
     (subcategoryTaxonomy.length === 0 ? sanitizedCandidate : undefined);
   const taxonomyContext: UserContext = {
     ...result.context,
@@ -331,6 +333,8 @@ function isBeachLocationPreference(message: string): boolean {
 
 export function inferRequestedSubcategory(message: string): string | undefined {
   const lower = normalizeContextText(message);
+  const activity = normalizeActivityIntent(lower);
+  if (activity) return activity.focus;
   if (/\b(bar|pub)\b/.test(lower)) return "bar";
   if (/\b(work|working|remote work|cowork|coworking|laptop|werken|werkplek|thuiswerken|telewerken|travailler|travail|teletravail|arbeiten|arbeitsplatz)\b/.test(lower)) return "working";
   if (/\b(fitness|gym|workout|training|sportschool|salle de sport|fitnesstudio)\b/.test(lower)) return "fitness";
@@ -341,8 +345,6 @@ export function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(spa)\b/.test(lower)) return "spa";
   if (/\b(massage|massages)\b/.test(lower)) return "massage";
   if (/\b(nails|nail salon|manicure|pedicure|ongels|ongelstudio)\b/.test(lower)) return "nails";
-  if (/\b(running|run|jogging|lopen|hardlopen|courir|course a pied|rennen|laufen)\b/.test(lower)) return "running";
-  if (/\b(swim|swimming|zwemmen|natation|nager|schwimmen)\b/.test(lower)) return "swimming";
 
   if (/\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/.test(lower)) return "breakfast";
   if (/\b(coffee|cafe|koffie|kaffee)\b/.test(lower)) return "coffee";
@@ -363,7 +365,6 @@ export function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(karaoke)\b/.test(lower)) return "karaoke";
   if (/\b(bar|bars)\b/.test(lower)) return "bar";
   if (/\b(dance|dancing|dansen|danser|tanzen)\b/.test(lower)) return "dancing";
-  if (/\b(walk|walking|hike|hiking|wandelen|promenade|marcher|randonnee|wandern)\b/.test(lower)) return "walking";
   if (/\b(excursion|tour|uitstap|ausflug)\b/.test(lower)) return "excursion";
   if (/\b(fish|fish market|seafood market|vis|vismarkt|poisson|poissons|poissonnerie|marche aux poissons|fisch|fischmarkt)\b/.test(lower)) {
     return "fish market";
@@ -812,6 +813,7 @@ Routing rules:
 - When location is the useful next detail, ask where the user is or whether anywhere in Dakar is fine. Do not repeat the complete list of five neighbourhoods; it is already stated in the welcome message. Never ask for a city or neighbourhood elsewhere in Senegal.
 - If the user requests a place outside the current Dakar scope, explain the current scope naturally instead of pretending TUUTI can search there.
 - Never recommend or name a place yourself. The application queries verified places only after place_lookup.
+- Recommendations are not always conventional venues. Normalize clear movement intents such as jogging/running, walking, cycling and photography walks as route/area searches; normalize swimming and surfing as activities. Preserve that specific activity even when it is absent from the database taxonomy. Never ask which sport the user means after they already named it.
 
 Travel-context rules:
 Rules:

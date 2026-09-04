@@ -98,6 +98,41 @@ export type ChatbotFlowResult =
 function buildNoMatchResponse(context: UserContext): string {
   const location = context.targetRegion ?? context.currentLocation;
   const hasSpecificLocation = Boolean(location && normalizeRegion(location) !== "Dakar");
+  const focus = context.requestedSubcategory;
+  const recommendationType = context.searchProfile?.recommendationType;
+
+  if (focus && recommendationType && recommendationType !== "place") {
+    const labels: Record<string, Record<string, string>> = {
+      running: { nl: "hardlopen", fr: "courir", de: "Laufen", en: "running" },
+      walking: { nl: "wandelen", fr: "une promenade", de: "Spazierengehen", en: "walking" },
+      cycling: { nl: "fietsen", fr: "faire du vélo", de: "Radfahren", en: "cycling" },
+      "photography walk": { nl: "een fotowandeling", fr: "une balade photo", de: "einen Fotospaziergang", en: "a photography walk" },
+      swimming: { nl: "zwemmen", fr: "nager", de: "Schwimmen", en: "swimming" },
+      surfing: { nl: "surfen", fr: "surfer", de: "Surfen", en: "surfing" }
+    };
+    const language = context.language?.slice(0, 2) ?? "en";
+    const localizedFocus = labels[focus]?.[language] ?? focus;
+    const isRoute = recommendationType === "route";
+
+    if (context.language?.startsWith("nl")) {
+      return hasSpecificLocation
+        ? `Ik begrijp dat je wilt ${localizedFocus}. Ik heb daarvoor nog geen sterke ${isRoute ? "route" : "activiteit"} in ${location} in mijn huidige data. Wil je dat ik ook in een andere buurt kijk?`
+        : `Ik begrijp dat je wilt ${localizedFocus}, maar ik heb daarvoor nog geen sterke ${isRoute ? "route" : "activiteit"} in mijn huidige data.`;
+    }
+    if (context.language?.startsWith("fr")) {
+      return hasSpecificLocation
+        ? `J’ai bien compris que tu veux ${localizedFocus}. Je n’ai pas encore ${isRoute ? "d’itinéraire" : "d’activité"} suffisamment documenté à ${location}. Tu veux que je regarde aussi dans un autre quartier ?`
+        : `J’ai bien compris que tu veux ${localizedFocus}, mais je n’ai pas encore ${isRoute ? "d’itinéraire" : "d’activité"} suffisamment documenté dans mes données.`;
+    }
+    if (context.language?.startsWith("de")) {
+      return hasSpecificLocation
+        ? `Ich habe verstanden, dass du ${localizedFocus} möchtest. Für ${location} habe ich derzeit noch ${isRoute ? "keine passende Route" : "keine passende Aktivität"} in meinen Daten. Soll ich auch in einem anderen Viertel suchen?`
+        : `Ich habe verstanden, dass du ${localizedFocus} möchtest, habe dafür aber noch ${isRoute ? "keine passende Route" : "keine passende Aktivität"} in meinen Daten.`;
+    }
+    return hasSpecificLocation
+      ? `I understand that you want to go ${localizedFocus}. I do not yet have a strong ${isRoute ? "route" : "activity"} for ${location} in my current data. Would you like me to check another neighbourhood too?`
+      : `I understand that you want to go ${localizedFocus}, but I do not yet have a strong ${isRoute ? "route" : "activity"} in my current data.`;
+  }
 
   if (context.language?.startsWith("nl")) {
     if (hasSpecificLocation) {

@@ -2,6 +2,7 @@ import type { SearchActivity, SearchProfile } from "../types/searchProfile.js";
 import type { UserContext, UserIntent } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 import { hydrateSearchProfile } from "./searchProfileCompatibility.js";
+import { normalizeActivityIntent } from "./activityIntent.js";
 
 type SignalPattern = [value: string, pattern: RegExp];
 
@@ -226,7 +227,7 @@ export function recognizeProducts(message: string, context: UserContext): string
   const products = extractPositivePatterns(message, PRODUCT_PATTERNS);
   const subcategory = normalizeText(context.requestedSubcategory ?? "");
   const nonProducts = new Set([
-    "beach", "working", "surfing", "swimming", "running", "yoga",
+    "beach", "working", "surfing", "swimming", "running", "cycling", "photography walking", "yoga",
     "fitness", "walking", "dancing", "excursion"
   ]);
   if (subcategory && !nonProducts.has(subcategory)) products.push(subcategory.replaceAll(" ", "_"));
@@ -379,8 +380,15 @@ export function buildSearchProfile(
       : [])
   ]);
   const exclusions = dietaryOptionExclusions(rawExclusions, dietaryRequirements);
+  const normalizedActivity = normalizeActivityIntent(
+    context.requestedSubcategory ?? message
+  );
 
   return {
+    recommendationType:
+      normalizedActivity?.recommendationType ??
+      (changedActivity ? undefined : compatiblePreviousProfile.recommendationType) ??
+      "place",
     activity: signals.activity ?? compatiblePreviousProfile.activity,
     products: withoutExcluded(
       mergeUnique(baseProducts, signals.products),

@@ -14,8 +14,10 @@ export type SearchActivity =
   | "unknown";
 
 export type SearchMobility = "nearby" | "dakar_wide";
+export type SearchRecommendationType = "place" | "activity" | "route";
 
 export type SearchProfile = {
+  recommendationType?: SearchRecommendationType;
   activity?: SearchActivity;
   products: string[];
   locationFeatures: string[];

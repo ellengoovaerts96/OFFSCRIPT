@@ -1,6 +1,7 @@
 import type {
   SearchActivity,
   SearchMobility,
+  SearchRecommendationType,
   SearchProfile
 } from "../types/searchProfile.js";
 import type { UserContext, UserIntent } from "../types/userContext.js";
@@ -55,12 +56,19 @@ const NON_PRODUCT_SUBCATEGORIES = new Set([
   "surfing",
   "swimming",
   "running",
+  "cycling",
+  "photography walking",
   "yoga",
   "fitness",
   "walking",
   "dancing",
   "excursion"
 ]);
+
+function recommendationType(value: unknown): SearchRecommendationType | undefined {
+  if (value === "place" || value === "activity" || value === "route") return value;
+  return undefined;
+}
 
 function normalized(value: string): string {
   return value
@@ -154,6 +162,7 @@ export function hydrateSearchProfile(
   }
 
   return {
+    recommendationType: recommendationType(profile.recommendationType),
     activity: activity(profile.activity, context.intent),
     products,
     locationFeatures,
