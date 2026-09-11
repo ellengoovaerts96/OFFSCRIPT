@@ -89,6 +89,16 @@ npm run sync:places -- --dry-run
 npm run sync:places
 ```
 
+Import usable phone/WhatsApp contacts from Raw only after Places have been
+reconciled. The contact sync matches Places by immutable `source_row_id`, falls
+back to an unambiguous normalized name, and never overwrites populated contact
+fields. Its dry run performs reads only:
+
+```bash
+npm run sync:contacts -- --dry-run
+npm run sync:contacts
+```
+
 The Places sync matches by immutable `source_row_id`, falling back to a unique
 normalized name only for legacy rows. It inserts missing places, updates mapped
 Sheet-owned fields and normalized subcategories, never deletes Places rows, and
