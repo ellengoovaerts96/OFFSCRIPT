@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { createHash } from "node:crypto";
-import { google } from "googleapis";
+import { auth as googleAuth, sheets as createSheetsClient } from "googleapis/build/src/apis/sheets/index.js";
 import { zodTextFormat } from "openai/helpers/zod";
 import pg, { type PoolClient } from "pg";
 import { z } from "zod";
@@ -467,12 +467,12 @@ async function main(): Promise<void> {
 
   console.log(`Field-research sync starting in ${dryRun ? "read-only dry-run" : "write"} mode.`);
   const env = requireEnvironment();
-  const auth = new google.auth.JWT({
+  const auth = new googleAuth.JWT({
     email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key: env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
     scopes: [GOOGLE_SHEETS_READONLY_SCOPE]
   });
-  const sheets = google.sheets({ version: "v4", auth });
+  const sheets = createSheetsClient({ version: "v4", auth });
 
   console.log(`Reading Google Sheet metadata for "${SHEET_NAME}"...`);
   const spreadsheet = await sheets.spreadsheets.get({
