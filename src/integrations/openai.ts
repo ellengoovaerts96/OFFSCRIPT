@@ -7,10 +7,10 @@ export function hasOpenAIKey(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
-export function getOpenAIClient(): OpenAI {
+export function getOpenAIClient(options?: { timeoutMs?: number; maxRetries?: number }): OpenAI {
   return new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    timeout: OPENAI_REQUEST_TIMEOUT_MS,
-    maxRetries: 1
+    timeout: options?.timeoutMs ?? OPENAI_REQUEST_TIMEOUT_MS,
+    maxRetries: options?.maxRetries ?? 1
   });
 }

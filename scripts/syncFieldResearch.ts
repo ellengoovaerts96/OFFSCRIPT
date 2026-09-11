@@ -10,6 +10,7 @@ const SHEET_NAME = "Form responses 1";
 const GOOGLE_SHEETS_READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const GOOGLE_REQUEST_TIMEOUT_MS = 20_000;
 const DATABASE_CONNECTION_TIMEOUT_MS = 15_000;
+const TRANSLATION_REQUEST_TIMEOUT_MS = 120_000;
 
 const databaseColumns = [
   "timestamp",
@@ -326,7 +327,7 @@ async function translateChangedRows(
     throw new Error("OPENAI_API_KEY is required to generate missing or outdated French translations.");
   }
 
-  const openai = getOpenAIClient();
+  const openai = getOpenAIClient({ timeoutMs: TRANSLATION_REQUEST_TIMEOUT_MS, maxRetries: 2 });
   const translatedAt = new Date().toISOString();
 
   for (let offset = 0; offset < pending.length; offset += 10) {
