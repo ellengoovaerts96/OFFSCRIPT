@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "db:migrate": "tsx scripts/migrate.ts",
-    "sync:field-research": "tsx scripts/syncFieldResearch.ts",
+    "sync:field-research": "node --import tsx scripts/syncFieldResearch.ts",
     "sync:places": "tsx scripts/syncPlacesFromRaw.ts",
     "sync:place-images": "tsx scripts/syncPlaceImagesFromRaw.ts",
     "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
