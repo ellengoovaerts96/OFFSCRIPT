@@ -12,7 +12,7 @@
     "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
     "setup:field-notes-sheet": "tsx scripts/processFieldNotes.ts --headers-only",
     "process:field-notes": "tsx scripts/processFieldNotes.ts",
-    "sync:editorial-ranking": "tsx scripts/syncEditorialRanking.ts",
+    "sync:editorial-ranking": "node --import tsx scripts/syncEditorialRanking.ts",
     "translate:stories": "tsx scripts/translateStories.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:check": "tsx scripts/checkRepositories.ts",

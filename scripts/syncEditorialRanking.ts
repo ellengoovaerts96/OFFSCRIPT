@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { google } from "googleapis";
+import { auth as googleAuth, sheets as createSheetsClient } from "googleapis/build/src/apis/sheets/index.js";
 import { zodTextFormat } from "openai/helpers/zod";
 import pg from "pg";
 import { z } from "zod";
@@ -8,6 +8,8 @@ import { PLACE_AMENITIES } from "../src/types/place.js";
 
 const SHEET_NAME = "Editorial Ranking";
 const dryRun = process.argv.includes("--dry-run");
+const GOOGLE_REQUEST_TIMEOUT_MS = 20_000;
+const DATABASE_CONNECTION_TIMEOUT_MS = 15_000;
 const reasonTranslationSchema = z.object({
   translations: z.array(z.object({
     sheetRow: z.number().int(),
@@ -78,14 +80,24 @@ Rules:
 }
 
 async function main(): Promise<void> {
-  const auth = new google.auth.JWT({ email: required("GOOGLE_SERVICE_ACCOUNT_EMAIL"), key: required("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"), scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"] });
-  const sheets = google.sheets({ version: "v4", auth });
+  console.log(`Editorial-ranking sync starting in ${dryRun ? "read-only dry-run" : "write"} mode.`);
+  const auth = new googleAuth.JWT({ email: required("GOOGLE_SERVICE_ACCOUNT_EMAIL"), key: required("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"), scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"] });
+  const sheets = createSheetsClient({ version: "v4", auth });
   const spreadsheetId = required("GOOGLE_SHEETS_SPREADSHEET_ID");
-  const values = (await sheets.spreadsheets.values.get({ spreadsheetId, range: `'${SHEET_NAME}'!A:S` })).data.values ?? [];
+  console.log(`Reading Google Sheet tab "${SHEET_NAME}"...`);
+  const values = (await sheets.spreadsheets.values.get(
+    { spreadsheetId, range: `'${SHEET_NAME}'!A:S` },
+    { timeout: GOOGLE_REQUEST_TIMEOUT_MS }
+  )).data.values ?? [];
   const headers = (values[0] ?? []).map(normalized);
   const index = (name: string): number => { const found = headers.indexOf(name); if (found < 0) throw new Error(`Missing Sheet column: ${name}`); return found; };
   const optionalIndex = (name: string): number => headers.indexOf(name);
-  const pool = new pg.Pool({ connectionString: required("DATABASE_URL"), ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined });
+  console.log(`Google Sheet loaded: ${Math.max(values.length - 1, 0)} data rows. Connecting to PostgreSQL...`);
+  const pool = new pg.Pool({
+    connectionString: required("DATABASE_URL"),
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    connectionTimeoutMillis: DATABASE_CONNECTION_TIMEOUT_MS
+  });
   const client = await pool.connect();
   let approved = 0;
   try {
@@ -104,12 +116,12 @@ async function main(): Promise<void> {
       const hasFrench = Boolean(text(row[index("offscript_reason_fr")]) ?? existing?.offscript_reason_fr);
       return hasEnglish && hasFrench ? [] : [{ sheetRow: offset + 2, dutch: reasonNl }];
     });
-    if (dryRun && pendingTranslations.length) required("OPENAI_API_KEY");
     const reasonTranslations = dryRun
       ? new Map<number, ReasonTranslation>()
       : await translateReasons(pendingTranslations);
 
-    await client.query("BEGIN");
+    console.log(`PostgreSQL connected. Validating ${values.slice(1).filter((row) => normalized(row[index("review_status")]) === "approved").length} approved editorial rows...`);
+    if (!dryRun) await client.query("BEGIN");
     for (const [offset, row] of values.slice(1).entries()) {
       if (normalized(row[index("review_status")]) !== "approved") continue;
       const timestamp = String(row[index("timestamp")] ?? "").trim();
@@ -134,21 +146,27 @@ async function main(): Promise<void> {
           : null,
         row[index("verified_by")] || null, row[index("review_notes")] || null, sourceRowId, placeName
       ];
-      const result = await client.query(`UPDATE public.places SET offscript_pick_level=$1, offscript_priority=$2, price_level=$3,
-        offscript_reason_nl=$4, offscript_reason_fr=$5, offscript_reason_en=$6, authenticity=$7,
-        food_orientation=$8, audience_orientation=$9, audience_tags=$10, adventure_level=$11,
-        occasion_tags=$12, work_friendly=$13, amenities=COALESCE($14::text[], amenities),
-        editorial_review_status='approved', editorial_verified_by=$15,
-        editorial_review_notes=$16, editorial_verified_at=NOW(), updated_at=NOW()
-        WHERE source_row_id=$17 OR lower(btrim(name))=lower(btrim($18))`, params);
+      const result = dryRun
+        ? await client.query(
+          `SELECT id FROM public.places
+           WHERE source_row_id=$1 OR lower(btrim(name))=lower(btrim($2))`,
+          [sourceRowId, placeName]
+        )
+        : await client.query(`UPDATE public.places SET offscript_pick_level=$1, offscript_priority=$2, price_level=$3,
+          offscript_reason_nl=$4, offscript_reason_fr=$5, offscript_reason_en=$6, authenticity=$7,
+          food_orientation=$8, audience_orientation=$9, audience_tags=$10, adventure_level=$11,
+          occasion_tags=$12, work_friendly=$13, amenities=COALESCE($14::text[], amenities),
+          editorial_review_status='approved', editorial_verified_by=$15,
+          editorial_review_notes=$16, editorial_verified_at=NOW(), updated_at=NOW()
+          WHERE source_row_id=$17 OR lower(btrim(name))=lower(btrim($18))`, params);
       if (result.rowCount !== 1) throw new Error(`Sheet row ${offset + 2} (${placeName}) matched ${result.rowCount} places; expected exactly one.`);
       approved++;
     }
-    if (dryRun) await client.query("ROLLBACK"); else await client.query("COMMIT");
+    if (!dryRun) await client.query("COMMIT");
     const translationSummary = dryRun
       ? `${pendingTranslations.length} reasons require translation`
       : `${reasonTranslations.size} reasons translated`;
     console.log(`${dryRun ? "Dry run" : "Sync"} complete: ${approved} approved editorial rows ${dryRun ? "validated" : "updated"}; ${translationSummary}.`);
-  } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); await pool.end(); }
+  } catch (error) { if (!dryRun) await client.query("ROLLBACK"); throw error; } finally { client.release(); await pool.end(); }
 }
 main().catch((error) => { console.error("Editorial ranking sync failed", error); process.exitCode = 1; });
