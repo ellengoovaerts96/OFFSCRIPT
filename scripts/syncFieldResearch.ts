@@ -8,6 +8,8 @@ import { getOpenAIClient, openaiModel } from "../src/integrations/openai.js";
 
 const SHEET_NAME = "Form responses 1";
 const GOOGLE_SHEETS_READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const GOOGLE_REQUEST_TIMEOUT_MS = 20_000;
+const DATABASE_CONNECTION_TIMEOUT_MS = 15_000;
 
 const databaseColumns = [
   "timestamp",
@@ -250,7 +252,27 @@ function applyExistingTranslation(
   row.values.set("translation_updated_at", existing.translation_updated_at?.toISOString() ?? null);
 }
 
-async function translateChangedRows(client: PoolClient, rows: SourceRow[]): Promise<number> {
+async function validateFieldResearchSchema(client: PoolClient): Promise<void> {
+  const result = await client.query<{ column_name: string }>(`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'field_research_raw'
+  `);
+  const existingColumns = new Set(result.rows.map((row) => row.column_name));
+  const requiredColumns = ["id", "source_row_id", "processed", ...databaseColumns];
+  const missingColumns = requiredColumns.filter((column) => !existingColumns.has(column));
+
+  if (missingColumns.length > 0) {
+    throw new Error(`public.field_research_raw is missing required columns: ${missingColumns.join(", ")}`);
+  }
+}
+
+async function translateChangedRows(
+  client: PoolClient,
+  rows: SourceRow[],
+  generateTranslations: boolean
+): Promise<number> {
   if (rows.length === 0) return 0;
 
   const existingResult = await client.query<ExistingTranslation>(`
@@ -299,6 +321,7 @@ async function translateChangedRows(client: PoolClient, rows: SourceRow[]): Prom
   }
 
   if (pending.length === 0) return 0;
+  if (!generateTranslations) return pending.length;
   if (!process.env.OPENAI_API_KEY?.trim()) {
     throw new Error("OPENAI_API_KEY is required to generate missing or outdated French translations.");
   }
@@ -308,6 +331,7 @@ async function translateChangedRows(client: PoolClient, rows: SourceRow[]): Prom
 
   for (let offset = 0; offset < pending.length; offset += 10) {
     const batch = pending.slice(offset, offset + 10);
+    console.log(`Translating French content: batch ${Math.floor(offset / 10) + 1} of ${Math.ceil(pending.length / 10)}...`);
     const response = await openai.responses.parse({
       model: openaiModel,
       instructions: `Translate the supplied OFFSCRIPT field-research content from English to natural French for travellers in Senegal.
@@ -441,6 +465,7 @@ async function main(): Promise<void> {
     throw new Error(`Unknown arguments: ${unknownArguments.join(", ")}. Supported: --dry-run`);
   }
 
+  console.log(`Field-research sync starting in ${dryRun ? "read-only dry-run" : "write"} mode.`);
   const env = requireEnvironment();
   const auth = new google.auth.JWT({
     email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -449,18 +474,20 @@ async function main(): Promise<void> {
   });
   const sheets = google.sheets({ version: "v4", auth });
 
+  console.log(`Reading Google Sheet metadata for "${SHEET_NAME}"...`);
   const spreadsheet = await sheets.spreadsheets.get({
     spreadsheetId: env.GOOGLE_SHEETS_SPREADSHEET_ID,
     fields: "properties(locale,timeZone)"
-  });
+  }, { timeout: GOOGLE_REQUEST_TIMEOUT_MS });
   const spreadsheetLocale = spreadsheet.data.properties?.locale ?? "en_US";
   const spreadsheetTimeZone = spreadsheet.data.properties?.timeZone ?? "UTC";
+  console.log(`Reading rows from "${SHEET_NAME}"...`);
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: env.GOOGLE_SHEETS_SPREADSHEET_ID,
     range: `'${SHEET_NAME.replaceAll("'", "''")}'`,
     valueRenderOption: "FORMATTED_VALUE",
     dateTimeRenderOption: "FORMATTED_STRING"
-  });
+  }, { timeout: GOOGLE_REQUEST_TIMEOUT_MS });
 
   const sheetRows = response.data.values ?? [];
   if (sheetRows.length === 0) {
@@ -531,15 +558,21 @@ async function main(): Promise<void> {
     rowsBySourceId.set(sourceRowId, { sheetRowNumber, sourceRowId, values });
   }
 
+  console.log(`Google Sheet validated: ${rowsBySourceId.size} unique data rows ready for inspection.`);
+  console.log("Connecting to the configured PostgreSQL database...");
   const pool = new pg.Pool({
     connectionString: env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    connectionTimeoutMillis: DATABASE_CONNECTION_TIMEOUT_MS
   });
   const client = await pool.connect();
 
   try {
+    console.log("PostgreSQL connected. Validating field_research_raw schema...");
+    await validateFieldResearchSchema(client);
+    console.log("Database schema validated. Checking existing translation state...");
     const rows = [...rowsBySourceId.values()];
-    const translatedRows = await translateChangedRows(client, rows);
+    const translatedRows = await translateChangedRows(client, rows, !dryRun);
     const syncColumns = databaseColumns.filter((column) =>
       mappedColumns.includes(column)
       || [
@@ -552,6 +585,17 @@ async function main(): Promise<void> {
         ...translationMetadataColumns
       ].includes(column)
     );
+
+    if (dryRun) {
+      console.log(
+        `Read-only dry run complete: ${rowsBySourceId.size} unique rows checked; ` +
+        `${translatedRows} rows would require French translation; ${syncColumns.length} mapped database columns validated. ` +
+        "No OpenAI requests or database writes were made."
+      );
+      return;
+    }
+
+    console.log(`${translatedRows} French translations generated. Writing synchronized rows...`);
     const { changedRows, removedLegacyDuplicates } = await syncRows(
       client,
       rows,
@@ -559,15 +603,10 @@ async function main(): Promise<void> {
       spreadsheetTimeZone
     );
 
-    if (dryRun) {
-      await client.query("ROLLBACK");
-      console.log(`Dry run complete: ${rowsBySourceId.size} unique rows checked; ${translatedRows} French translations generated; ${changedRows} rows would be inserted or updated; ${removedLegacyDuplicates} legacy duplicates would be removed.`);
-    } else {
-      await client.query("COMMIT");
-      console.log(`Sync complete: ${rowsBySourceId.size} unique rows checked; ${translatedRows} French translations generated; ${changedRows} rows inserted or updated; ${removedLegacyDuplicates} legacy duplicates removed.`);
-    }
+    await client.query("COMMIT");
+    console.log(`Sync complete: ${rowsBySourceId.size} unique rows checked; ${translatedRows} French translations generated; ${changedRows} rows inserted or updated; ${removedLegacyDuplicates} legacy duplicates removed.`);
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined);
+    if (!dryRun) await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {
     client.release();

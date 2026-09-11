@@ -64,6 +64,10 @@ npm run db:migrate
 npm run sync:field-research -- --dry-run
 ```
 
+The dry run is a read-only preflight: it reads the Sheet and database schema,
+reports pending translations, and makes no OpenAI requests or database writes.
+The configured `DATABASE_URL` always determines which database is inspected.
+
 Run the production sync with:
 
 ```bash
