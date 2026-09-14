@@ -10,6 +10,7 @@
     "sync:places": "tsx scripts/syncPlacesFromRaw.ts",
     "sync:contacts": "node --import tsx scripts/syncContactsFromRaw.ts",
     "sync:place-images": "tsx scripts/syncPlaceImagesFromRaw.ts",
+    "sync:place-coordinates": "node --import tsx scripts/syncPlaceCoordinates.ts",
     "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
     "setup:field-notes-sheet": "tsx scripts/processFieldNotes.ts --headers-only",
     "process:field-notes": "tsx scripts/processFieldNotes.ts",

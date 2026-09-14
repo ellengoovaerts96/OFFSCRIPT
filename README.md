@@ -120,6 +120,18 @@ Raw; new URLs are inserted, removed URLs are deleted, and `sort_order` is reset 
 Always inspect the dry-run before running the write command. The write phase uses
 one PostgreSQL transaction and rolls back every image change if any operation fails.
 
+Fill missing `places.latitude` and `places.longitude` values from the existing
+Google Maps links in a separate step:
+
+```bash
+npm run sync:place-coordinates -- --dry-run
+npm run sync:place-coordinates
+```
+
+Short Maps links are resolved before their coordinates are parsed. The sync only
+updates rows with a missing coordinate, never overwrites a complete coordinate
+pair, and reports links that cannot be resolved instead of guessing a location.
+
 ### Editorial curation
 
 OFFSCRIPT's editorial judgement lives directly on `places`, separately from the
