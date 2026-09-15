@@ -13,10 +13,9 @@ const headersOnly = process.argv.includes("--headers-only");
 const headers = [
   "source_note_id", "source_timestamp", "visit_date", "researcher", "place_name", "entry_type",
   "country", "region", "neighbourhood", "area", "categories", "subcategories",
-  "short_description_en", "short_description_fr", "practical_info_en", "practical_info_fr",
-  "personal_tip_en", "personal_tip_fr", "story_en", "story_fr", "vibe",
+  "short_description_en", "practical_info_en", "personal_tip_en", "story_en", "vibe",
   "audience_tags", "occasion_tags", "dietary_tags", "offscript_pick_level",
-  "offscript_priority", "offscript_reason_nl", "offscript_reason_fr", "offscript_reason_en",
+  "offscript_priority", "offscript_reason_en",
   "authenticity", "food_orientation", "audience_orientation", "adventure_level", "price_level",
   "traveller_types", "child_friendly", "work_friendly", "amenities", "best_timing", "opening_hours",
   "contact_person", "phone", "facebook_url", "instagram_url", "tiktok_url", "google_maps_url",
@@ -35,15 +34,13 @@ const structuredNoteSchema = z.object({
   area: nullableText.describe("OFFSCRIPT database field for the precise neighbourhood or micro-location, for example Almadies plage"),
   categories: z.array(z.string()), subcategories: z.array(z.string()),
   short_description_en: nullableText.describe("Concise, warm English recommendation written like a trusted local friend suggesting the place"),
-  short_description_fr: nullableText.describe("Concise, warm French recommendation written like a trusted local friend suggesting the place"),
   practical_info_en: nullableText.describe("Scannable English bullet list; one supported practical fact per line, formatted as '- emoji Fact'"),
-  practical_info_fr: nullableText.describe("Scannable French bullet list; one supported practical fact per line, formatted as '- emoji Fait'"),
-  personal_tip_en: nullableText, personal_tip_fr: nullableText,
-  story_en: nullableText, story_fr: nullableText, vibe: nullableText,
+  personal_tip_en: nullableText,
+  story_en: nullableText, vibe: nullableText,
   audience_tags: z.array(z.string()), occasion_tags: z.array(z.string()), dietary_tags: z.array(z.string()),
   offscript_pick_level: z.number().int().min(0).max(3).nullable(),
   offscript_priority: z.number().int().min(0).max(100).nullable(),
-  offscript_reason_nl: nullableText, offscript_reason_fr: nullableText, offscript_reason_en: nullableText,
+  offscript_reason_en: nullableText,
   authenticity: z.number().int().min(0).max(4).nullable(),
   food_orientation: z.number().int().min(-2).max(2).nullable(),
   audience_orientation: z.number().int().min(-2).max(2).nullable(),
@@ -121,12 +118,11 @@ function structuredRow(sourceId: string, timestamp: string, visitDate: string, r
     source_note_id: sourceId, source_timestamp: timestamp, visit_date: visitDate, researcher,
     place_name: cell(note.place_name), entry_type: note.entry_type, country: cell(note.country), region: cell(note.region),
     neighbourhood: cell(note.neighbourhood), area: cell(note.area), categories: list(note.categories), subcategories: list(note.subcategories),
-    short_description_en: cell(note.short_description_en), short_description_fr: cell(note.short_description_fr),
-    practical_info_en: cell(note.practical_info_en), practical_info_fr: cell(note.practical_info_fr),
-    personal_tip_en: cell(note.personal_tip_en), personal_tip_fr: cell(note.personal_tip_fr), story_en: cell(note.story_en), story_fr: cell(note.story_fr),
+    short_description_en: cell(note.short_description_en), practical_info_en: cell(note.practical_info_en),
+    personal_tip_en: cell(note.personal_tip_en), story_en: cell(note.story_en),
     vibe: cell(note.vibe), audience_tags: list(note.audience_tags), occasion_tags: list(note.occasion_tags), dietary_tags: list(note.dietary_tags),
     offscript_pick_level: cell(note.offscript_pick_level), offscript_priority: cell(note.offscript_priority),
-    offscript_reason_nl: cell(note.offscript_reason_nl), offscript_reason_fr: cell(note.offscript_reason_fr), offscript_reason_en: cell(note.offscript_reason_en),
+    offscript_reason_en: cell(note.offscript_reason_en),
     authenticity: cell(note.authenticity), food_orientation: cell(note.food_orientation), audience_orientation: cell(note.audience_orientation),
     adventure_level: cell(note.adventure_level), price_level: cell(note.price_level), traveller_types: list(note.traveller_types),
     child_friendly: cell(note.child_friendly), work_friendly: cell(note.work_friendly), amenities: list(note.amenities),
@@ -147,8 +143,8 @@ Rules:
 - Never invent a fact. Use null or [] when the note does not support a field.
 - Put explicitly supported facilities in amenities using only: ${PLACE_AMENITIES.join(", ")}.
 - Preserve names, phone numbers, URLs, opening hours and practical facts exactly.
-- Produce concise editorial copy in both French and English only when the underlying fact is supported.
-- Write short_description_en and short_description_fr in OFFSCRIPT's local-friend voice, not as a travel guide or database summary.
+- Produce concise editorial copy in English only when the underlying fact is supported. English is the editable source language; translations are created later during database import.
+- Write short_description_en in OFFSCRIPT's local-friend voice, not as a travel guide or database summary.
 - Pick one or two memorable, concrete reasons to recommend the place instead of compressing every category, audience and facility into the description.
 - Address the reader directly. Use short, conversational sentences, natural contractions and specific advice such as what to order, who makes the place welcoming, or when it is worth staying longer.
 - Good tone: "Don’t skip breakfast here. The Mexican chef knows exactly what he’s doing. You can even order ahead, so your food is ready when you arrive."
@@ -156,7 +152,7 @@ Rules:
 - Avoid phrases such as "offering a varied menu", "serves residents and expats", "perfect for", "sport fans and remote workers alike", "considered among the best", and other brochure-style claims.
 - Do not mention audience tags merely to summarize database fields. Use them only when they create genuinely useful advice.
 - The OFFSCRIPT editorial voice may say "we’d send you here" or "one reason we like this place" when the source supports a clear recommendation. Never invent a visit, person, chef, event or personal experience.
-- Format practical_info_en and practical_info_fr as compact multiline bullet lists, never as prose paragraphs.
+- Format practical_info_en as a compact multiline bullet list, never as a prose paragraph.
 - Every practical-info line must use the exact pattern "- emoji Fact", with one relevant emoji and one fact per line.
 - Practical info may cover food, facilities, setting, suitability, recurring events and verified opening hours.
 - Keep related opening hours on one bullet. Do not add bullets for facts that are not present in the source note.

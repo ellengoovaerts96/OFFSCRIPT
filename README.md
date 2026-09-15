@@ -252,4 +252,8 @@ The processor creates the complete `Structured Import` header, sends the draft
 and the optional human observations to OpenAI using a strict schema, appends a
 `needs_review` proposal, and changes the source status to `ai_processed`. It never
 overwrites an existing structured note. Unmentioned facts remain blank and must
-not be invented. Human approval remains required before database import.
+not be invented. Editorial text in `Structured Import` uses English as its single
+editable source language, so a manual correction only has to be made once.
+French and any other derived language must be generated from that approved English
+source during the future database-import step. Human approval remains required
+before database import.
