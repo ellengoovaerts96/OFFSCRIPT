@@ -30,8 +30,7 @@ export function renderDashboard(config: DashboardConfig): string {
     .header-inner, main { width: min(1180px, calc(100% - 48px)); margin: 0 auto; }
     .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 112px; }
     .identity { display: flex; align-items: baseline; gap: 22px; }
-    .wordmark { font-size: 25px; font-weight: 760; letter-spacing: .3em; }
-    .wordmark i { color: var(--rouge); font-style: normal; }
+    .logo { display: block; width: 158px; height: auto; }
     .product-area { color: #d8d2c0; font-family: Georgia, "Times New Roman", serif; font-size: 20px; }
     .environment, .badge, .eyebrow { font-size: 11px; font-weight: 760; letter-spacing: .11em; text-transform: uppercase; }
     .environment { padding: 7px 10px; border: 1px solid rgba(242,235,217,.3); border-radius: 999px; color: var(--cream); }
@@ -67,12 +66,12 @@ export function renderDashboard(config: DashboardConfig): string {
     .quick { display: flex; gap: 8px; flex-wrap: wrap; }
     .quick a { padding: 10px 12px; border-bottom: 1px solid rgba(242,235,217,.3); color: var(--cream); text-decoration: none; font-size: 13px; }
     .quick a:hover { border-color: var(--rouge); color: #ef9776; }
-    @media (max-width: 800px) { .workspace, .lower { grid-template-columns: 1fr; } .header-inner { min-height: 92px; } .identity { gap: 12px; } .product-area { font-size: 17px; } }
+    @media (max-width: 800px) { .workspace, .lower { grid-template-columns: 1fr; } .header-inner { min-height: 92px; } .identity { gap: 12px; } .logo { width: 138px; } .product-area { font-size: 17px; } }
     @media (max-width: 540px) { .header-inner, main { width: min(100% - 28px, 1180px); } .header-inner { align-items: flex-start; flex-direction: column; justify-content: center; gap: 10px; } main { padding-top: 38px; } .card { min-height: 240px; padding: 23px; } .action { width: 100%; } }
   </style>
 </head>
 <body>
-  <header><div class="header-inner"><div class="identity"><strong class="wordmark">TU<i>U</i>TI</strong><span class="product-area">Operations</span></div><span class="environment">${escapeHtml(config.environment)}</span></div></header>
+  <header><div class="header-inner"><div class="identity"><img class="logo" src="https://tuuti.app/images/tuuti_logo_night_version_transparent.png" alt="TUUTI"><span class="product-area">Operations</span></div><span class="environment">${escapeHtml(config.environment)}</span></div></header>
   <main>
     <section class="intro"><p class="eyebrow">Your operational home</p><h1>What do you want<br>to work on?</h1><p>Research, conversations and local partners—one calm place to find the work that moves TUUTI forward.</p></section>
     <section class="workspace" aria-label="TUUTI workspace">

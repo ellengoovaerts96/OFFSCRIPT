@@ -10,6 +10,8 @@ const html = renderDashboard({
 });
 
 assert.match(html, /TUUTI/);
+assert.match(html, /tuuti_logo_night_version_transparent\.png/);
+assert.match(html, /alt="TUUTI"/);
 assert.match(html, /Operations/);
 assert.match(html, /STAGING/);
 assert.match(html, /href="\/inbox"/);
