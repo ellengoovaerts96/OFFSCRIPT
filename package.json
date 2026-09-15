@@ -27,6 +27,7 @@
     "source-tracking:check": "node --import tsx scripts/checkSourceTracking.ts",
     "sources-admin:check": "node --import tsx scripts/checkSourcesAdmin.ts",
     "dashboard:check": "node --import tsx scripts/checkDashboard.ts",
+    "field-notes-assessment:check": "node --import tsx scripts/checkFieldNotesAssessment.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/migrate.js && node dist/server.js"

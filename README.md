@@ -277,3 +277,21 @@ editable source language, so a manual correction only has to be made once.
 French and any other derived language must be generated from that approved English
 source during the future database-import step. Human approval remains required
 before database import.
+
+The Field Notes Form interface is French, but researchers may write free text in
+any language. `Field Notes` preserves those original answers. AI produces the
+canonical English copy in `Structured Import`; explicit scores and selections are
+normalized deterministically. Rich research audience tags such as `locals`,
+`african_expats`, and `international_expats` remain distinct at this stage. A
+future database importer must map them to the current Places matching convention:
+`locals` → `residents`, and both expat groups → `expats`.
+
+The active Google Form is not automatically recreated from
+`scripts/createFieldNotesForm.gs`. To manage it through the Forms API, enable the
+Google Forms API, share the Form with the service account as an editor, and set a
+future `GOOGLE_FIELD_NOTES_FORM_ID` to the ID from its edit URL.
+
+`npm run process:field-notes -- --dry-run` validates the inbox structure and all
+explicit assessment selections without calling OpenAI or writing to Google
+Sheets. The command without `--dry-run` performs AI structuring and updates the
+source status.

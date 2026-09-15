@@ -4,6 +4,14 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, openaiModel } from "../src/integrations/openai.js";
 import { PLACE_AMENITIES } from "../src/types/place.js";
+import {
+  assessmentAudienceTags,
+  assessmentAudienceIsExplicitlyMixed,
+  assessmentInteger,
+  assessmentOccasionTags,
+  assessmentWorkFriendly,
+  hasAssessmentAnswer
+} from "../src/logic/fieldNotesAssessment.js";
 
 const FIELD_NOTES_SHEET = "Field Notes";
 const STRUCTURED_SHEET = "Structured Import";
@@ -82,15 +90,6 @@ function findColumn(sourceHeaders: string[], aliases: string[]): number {
 }
 function cell(value: unknown): Cell { return value === null || value === undefined ? "" : value as Cell; }
 function list(value: string[]): string { return value.join(", "); }
-function normalizeAudienceTags(values: string[]): string[] {
-  const aliases: Record<string, string> = {
-    local: "residents", locals: "residents", resident: "residents", residents: "residents", habitants_locaux: "residents",
-    african_expat: "expats", african_expats: "expats",
-    international_expat: "expats", international_expats: "expats", expat: "expats", expats: "expats",
-    expatrie: "expats", expatries: "expats", expatries_africains: "expats", expatries_internationaux: "expats"
-  };
-  return [...new Set(values.map((value) => aliases[normalize(value).replace(/\s+/g, "_")] ?? normalize(value).replace(/\s+/g, "_")).filter(Boolean))];
-}
 function normalizeFoodTaxonomy(note: StructuredNote): void {
   const categoryAliases = new Set(["restaurant", "restaurants", "cafe", "cafes", "food_and_drink"]);
   const normalizedCategories = note.categories.map((value) => normalize(value).replace(/\s+/g, "_"));
@@ -106,11 +105,38 @@ function normalizeFoodTaxonomy(note: StructuredNote): void {
     .map((value) => value === "diner" ? "dinner" : value)
     .filter(Boolean))];
 }
-function leadingInteger(value: unknown, min: number, max: number): number | null {
-  const match = String(value ?? "").trim().match(/^(\d+)/);
-  if (!match) return null;
-  const parsed = Number(match[1]);
-  return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : null;
+function sourceValue(source: Record<string, unknown>, aliases: string[]): unknown {
+  for (const alias of aliases) {
+    const value = source[normalize(alias)];
+    if (value !== undefined) return value;
+  }
+  return null;
+}
+
+function explicitAssessment(source: Record<string, unknown>): Partial<StructuredNote> {
+  const assessment: Partial<StructuredNote> = {};
+  const pickLevel = sourceValue(source, ["À quel point ce lieu est-il un choix TUUTI ?", "Ton impression OFFSCRIPT"]);
+  const authenticity = sourceValue(source, ["À quel point ce lieu te semble-t-il authentique ?", "Authenticité"]);
+  const foodOrientation = sourceValue(source, ["Quelle est l’orientation de la cuisine ?"]);
+  const audienceOrientation = sourceValue(source, ["Quel type de public fréquente principalement ce lieu ?"]);
+  const audienceTags = sourceValue(source, ["Quels publics correspondent à ce lieu ?", "Public observé"]);
+  const adventureLevel = sourceValue(source, ["Quel niveau d’ouverture ou d’aventure ce lieu demande-t-il au voyageur ?"]);
+  const occasionTags = sourceValue(source, ["Pour quelles occasions ce lieu convient-il particulièrement ?"]);
+  const workFriendly = sourceValue(source, ["Est-ce un endroit adapté pour travailler avec un ordinateur ?"]);
+  const priceLevel = sourceValue(source, ["Quel est le niveau de prix ?", "Niveau de prix"]);
+  const priority = sourceValue(source, ["Quelle priorité TUUTI doit-il donner à ce lieu ?"]);
+  if (hasAssessmentAnswer(pickLevel)) assessment.offscript_pick_level = assessmentInteger(pickLevel, 0, 3, "offscript_pick_level");
+  if (hasAssessmentAnswer(authenticity)) assessment.authenticity = assessmentInteger(authenticity, 0, 4, "authenticity");
+  if (hasAssessmentAnswer(foodOrientation)) assessment.food_orientation = assessmentInteger(foodOrientation, -2, 2, "food_orientation");
+  if (hasAssessmentAnswer(audienceOrientation)) assessment.audience_orientation = assessmentInteger(audienceOrientation, -2, 2, "audience_orientation");
+  else if (assessmentAudienceIsExplicitlyMixed(audienceTags)) assessment.audience_orientation = 0;
+  if (hasAssessmentAnswer(audienceTags)) assessment.audience_tags = assessmentAudienceTags(audienceTags);
+  if (hasAssessmentAnswer(adventureLevel)) assessment.adventure_level = assessmentInteger(adventureLevel, 0, 3, "adventure_level");
+  if (hasAssessmentAnswer(occasionTags)) assessment.occasion_tags = assessmentOccasionTags(occasionTags);
+  if (hasAssessmentAnswer(workFriendly)) assessment.work_friendly = assessmentWorkFriendly(workFriendly);
+  if (hasAssessmentAnswer(priceLevel)) assessment.price_level = assessmentInteger(priceLevel, 1, 5, "price_level");
+  if (hasAssessmentAnswer(priority)) assessment.offscript_priority = assessmentInteger(priority, 0, 100, "offscript_priority");
+  return assessment;
 }
 
 function structuredRow(sourceId: string, timestamp: string, visitDate: string, researcher: string, note: StructuredNote): Cell[] {
@@ -143,7 +169,8 @@ Rules:
 - Never invent a fact. Use null or [] when the note does not support a field.
 - Put explicitly supported facilities in amenities using only: ${PLACE_AMENITIES.join(", ")}.
 - Preserve names, phone numbers, URLs, opening hours and practical facts exactly.
-- Produce concise editorial copy in English only when the underlying fact is supported. English is the editable source language; translations are created later during database import.
+- The source note and free-text form answers may be in French, English, Dutch, Wolof, or another language. Understand the source language and produce faithful canonical English content.
+- Produce concise editorial copy in English only when the underlying fact is supported. English is the editable source language; traveller-facing translations are created later during database import.
 - Write short_description_en in OFFSCRIPT's local-friend voice, not as a travel guide or database summary.
 - Pick one or two memorable, concrete reasons to recommend the place instead of compressing every category, audience and facility into the description.
 - Address the reader directly. Use short, conversational sentences, natural contractions and specific advice such as what to order, who makes the place welcoming, or when it is worth staying longer.
@@ -164,7 +191,7 @@ Rules:
 - area is the most precise named neighbourhood or micro-location in the OFFSCRIPT database (for example Almadies plage).
 - Example: Dakar must be region, Ngor must be neighbourhood and Almadies plage must be area.
 - Normalize tags to lowercase snake_case English.
-- For audience_tags, always use "residents" instead of "locals" and use "expats" for all expats; never distinguish African from international expats.
+- For audience_tags at this Structured Import stage, preserve these richer canonical values when supported: locals, african_expats, international_expats, tourists, adventurous_travellers, families, young_crowd, business_crowd. Do not collapse expat groups here.
 - audience_orientation is only the numeric resident-to-visitor orientation from -2 to 2; it never contains tags.
 - audience_tags describes the people commonly observed at the place, such as residents, expats or tourists.
 - traveller_types describes who the recommendation is suitable for and may contain only solo, couple, friends or family. Never put residents, expats or tourists in traveller_types.
@@ -175,6 +202,7 @@ Rules:
 - Daytime-only service supports "lunch"; evening-only service supports "dinner". Do not infer a meal when hours are absent or ambiguous.
 - Meal availability belongs in subcategories. A particularly recommended moment belongs in best_timing, for example "lunch" when the place is notably better by day.
 - offscript_priority is null unless explicitly supplied; do not manufacture editorial priority.
+- offscript_reason_en must be a faithful English rendering of the researcher's reason, regardless of the answer language. Do not turn it into marketing copy or add claims.
 - Add every uncertainty or missing safety-critical fact to review_notes.
 - confidence measures extraction confidence, not place quality.`,
     input: JSON.stringify(input),
@@ -183,7 +211,6 @@ Rules:
   if (!response.output_parsed) throw new Error("OpenAI returned no structured field note.");
   const note = response.output_parsed;
   normalizeFoodTaxonomy(note);
-  note.audience_tags = normalizeAudienceTags(note.audience_tags);
   return note;
 }
 
@@ -212,7 +239,7 @@ async function main(): Promise<void> {
   const timestampIndex = findColumn(fieldHeaders, ["timestamp", "horodateur"]);
   const draftIndex = findColumn(fieldHeaders, ["note de terrain", "draft"]);
   const researcherIndex = findColumn(fieldHeaders, ["nom de la personne qui fait la recherche", "researcher"]);
-  const visitDateIndex = findColumn(fieldHeaders, ["date de la visite", "visit_date", "visit date", "date visited"]);
+  const visitDateIndex = findColumn(fieldHeaders, ["date de la visite", "date de visite", "visit_date", "visit date", "date visited"]);
   const statusIndex = findColumn(fieldHeaders, ["status", "statut"]);
   if ([timestampIndex, draftIndex, statusIndex].some((index) => index < 0)) throw new Error("Field Notes must contain timestamp, Note de terrain, and status.");
 
@@ -262,7 +289,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  required("OPENAI_API_KEY");
+  if (!dryRun) required("OPENAI_API_KEY");
 
   let processed = 0;
   for (const [offset, row] of fieldValues.slice(1).entries()) {
@@ -274,11 +301,15 @@ async function main(): Promise<void> {
     const sourceId = `field-note:${timestamp}`;
     if (existingIds.has(sourceId)) { console.warn(`Skipping Field Notes row ${sheetRow}: already structured.`); continue; }
     const source = Object.fromEntries(normalizedHeaders.map((header, index) => [header, row[index] ?? null]));
+    const assessment = explicitAssessment(source);
+    if (dryRun) {
+      console.log(`Would process ${sourceId}; explicit assessment selections validated.`);
+      processed++;
+      continue;
+    }
     const note = await structureDraft({ source_note_id: sourceId, timestamp, draft, form_observations: source });
     // Explicit human form selections always override AI inference.
-    note.offscript_pick_level = leadingInteger(source["ton impression offscript"], 0, 3) ?? note.offscript_pick_level;
-    note.authenticity = leadingInteger(source.authenticite, 0, 4) ?? note.authenticity;
-    note.price_level = leadingInteger(source["niveau de prix"], 1, 5) ?? note.price_level;
+    Object.assign(note, assessment);
     console.log(`${dryRun ? "Would process" : "Processing"} ${sourceId}: ${note.place_name ?? "unnamed note"} (${note.confidence})`);
     if (!dryRun) {
       await sheets.spreadsheets.values.append({ spreadsheetId, range: range(STRUCTURED_SHEET, `A:${columnName(headers.length)}`), valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [structuredRow(sourceId, timestamp, visitDateIndex >= 0 ? String(row[visitDateIndex] ?? "") : "", String(row[researcherIndex] ?? ""), note)] } });
