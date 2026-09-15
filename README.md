@@ -1,5 +1,20 @@
 # OFFSCRIPT
 
+## TUUTI Operations dashboard
+
+The authenticated internal dashboard is available at `/admin`. It links to Field
+Research, the current environment's `/inbox` and `/admin/sources`, and keeps LIVE
+production destinations visually separate from staging. It uses the existing
+`INBOX_USERNAME` and `INBOX_PASSWORD` HTTP Basic Auth credentials.
+
+Set `TUUTI_ENVIRONMENT=STAGING` to label the current environment explicitly.
+`RAILWAY_ENVIRONMENT_NAME` is used when available. The optional
+`TUUTI_PRODUCTION_BASE_URL` overrides the known production origin; staging links
+remain relative when the current environment is explicitly `STAGING`. Set
+`TUUTI_STAGING_BASE_URL` in another environment if it should link back to staging.
+When neither condition is met, staging destinations remain visibly unconfigured
+instead of silently pointing to the current database.
+
 ## TUUTI accommodation source foundation
 
 Pilot accommodations and other acquisition partners are stored in `sources`.

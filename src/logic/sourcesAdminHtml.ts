@@ -80,7 +80,7 @@ function page(title: string, content: string): string {
   </style>
 </head>
 <body>
-  <header><a class="brand" href="/admin/sources"><strong class="wordmark">TU<i>U</i>TI</strong><span class="brand-note">TRAVEL. A BIT DIFFERENT. · SOURCES ADMIN</span></a></header>
+  <header><a class="brand" href="/admin"><strong class="wordmark">TU<i>U</i>TI</strong><span class="brand-note">TRAVEL. A BIT DIFFERENT. · SOURCES ADMIN</span></a></header>
   <main>${content}</main>
   <script>
     document.addEventListener("click", async (event) => {

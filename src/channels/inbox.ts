@@ -27,7 +27,7 @@ const INBOX_HTML = `<!doctype html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>OFFSCRIPT Inbox</title>
+    <title>TUUTI Inbox</title>
     <style>
       :root {
         color-scheme: light;
@@ -101,7 +101,7 @@ const INBOX_HTML = `<!doctype html>
   </head>
   <body>
     <header>
-      <h1>OFFSCRIPT Inbox</h1>
+      <h1>TUUTI Inbox</h1>
       <p class="status" id="status">Berichten laden...</p>
     </header>
     <main>
@@ -115,7 +115,7 @@ const INBOX_HTML = `<!doctype html>
             <tr>
               <th class="phone">Telefoonnummer</th>
               <th class="message">Laatste bericht</th>
-              <th class="message">Antwoord van OFFSCRIPT</th>
+              <th class="message">Antwoord van TUUTI</th>
               <th class="time">Tijdstip</th>
             </tr>
           </thead>
