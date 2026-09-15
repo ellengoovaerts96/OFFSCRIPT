@@ -12,10 +12,9 @@ function environmentAction(input: { url: string; title: string; note: string; en
 
 export function renderDashboard(config: DashboardConfig): string {
   const productionInbox = `${config.productionOrigin}/inbox`;
-  const productionAdmin = `${config.productionOrigin}/admin`;
   const stagingInbox = config.stagingOrigin === null ? null : `${config.stagingOrigin}/inbox`;
   const stagingAdmin = config.stagingOrigin === null ? null : `${config.stagingOrigin}/admin`;
-  const stagingHealth = config.stagingOrigin === null ? null : `${config.stagingOrigin}/health`;
+  const stagingTest = config.stagingOrigin === null ? null : `${config.stagingOrigin}/admin/test`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -83,10 +82,22 @@ export function renderDashboard(config: DashboardConfig): string {
       <article class="card"><h2>Places &amp; Content</h2><p class="purpose">Manage TUUTI’s curated recommendations and editorial content.</p><span class="coming">Coming soon</span></article>
     </section>
     <section class="lower">
-      <article class="card secondary"><h2>Quick Actions</h2><p class="purpose">The shortcuts you’ll use most often.</p><nav class="quick">${externalAction(config.fieldResearchFormUrl, "Add field research", "")} ${externalAction(config.fieldResearchInboxUrl, "Research inbox", "")} ${stagingInbox ? `<a href="${escapeHtml(stagingInbox)}">TUUTI inbox</a>` : ""}${stagingHealth ? `<a href="${escapeHtml(stagingHealth)}" target="_blank" rel="noreferrer">Test staging</a>` : ""}<a href="/admin/sources">Manage entry points</a></nav></article>
-      <article class="card secondary"><h2>System</h2><p class="purpose">Move deliberately between TUUTI environments.</p><div class="environment-links">${environmentAction({ url: productionAdmin, title: "Production", note: "Live environment", environment: "live", external: true })}${stagingAdmin ? environmentAction({ url: stagingAdmin, title: "Staging", note: "Test environment", environment: "staging", external: Boolean(config.stagingOrigin) }) : `<span class="environment-link"><span class="label"><strong>Staging</strong><small>URL not configured</small></span><span class="badge staging">STAGING</span></span>`}</div></article>
+      <article class="card secondary"><h2>Quick Actions</h2><p class="purpose">The shortcuts you’ll use most often.</p><nav class="quick">${externalAction(config.fieldResearchFormUrl, "Add field research", "")} ${externalAction(config.fieldResearchInboxUrl, "Research inbox", "")} ${stagingInbox ? `<a href="${escapeHtml(stagingInbox)}">TUUTI inbox</a>` : ""}${stagingTest ? `<a href="${escapeHtml(stagingTest)}">Test staging</a>` : ""}<a href="/admin/sources">Manage entry points</a></nav></article>
+      <article class="card secondary"><h2>System</h2><p class="purpose">Open the right TUUTI workspace. These links never switch the database behind your current page.</p><div class="environment-links">${environmentAction({ url: productionInbox, title: "Production inbox", note: "TUUTI users · live data", environment: "live", external: true })}${stagingAdmin ? environmentAction({ url: stagingAdmin, title: "Staging dashboard", note: "Tests · staging data", environment: "staging", external: Boolean(config.stagingOrigin) }) : `<span class="environment-link"><span class="label"><strong>Staging dashboard</strong><small>URL not configured</small></span><span class="badge staging">STAGING</span></span>`}</div></article>
     </section>
   </main>
 </body>
 </html>`;
+}
+
+export function renderStagingTest(): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Test TUUTI · Staging</title><style>
+  :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #f2ebd9; background: #17201d; --cream:#f2ebd9; --paper:#fffaf0; --deep:#102a24; --rouge:#d95b32; }
+  *{box-sizing:border-box} body{margin:0;min-width:320px} header{padding:22px max(18px,calc((100% - 780px)/2));border-bottom:1px solid rgba(242,235,217,.16)} header a{color:var(--cream);text-decoration:none}.badge{float:right;padding:6px 9px;border:1px solid #9fa581;border-radius:999px;font-size:11px;font-weight:750;letter-spacing:.1em} main{width:min(780px,calc(100% - 28px));margin:42px auto} h1{margin:0;font:500 clamp(36px,7vw,56px)/1 Canela,Georgia,serif}.intro{color:#bbb5a5;line-height:1.55}.chat{margin:28px 0;padding:20px;border-radius:14px;background:var(--paper);color:var(--deep)}#messages{display:grid;gap:10px;min-height:180px;margin-bottom:18px}.message{max-width:85%;padding:11px 13px;border-radius:10px;line-height:1.45;white-space:pre-wrap}.tuuti{background:#eee5d0}.user{justify-self:end;color:white;background:var(--rouge)}form{display:flex;gap:9px}input{min-width:0;flex:1;padding:12px 13px;border:1px solid #c9c0ac;border-radius:7px;font:inherit}button{padding:11px 18px;border:0;border-radius:7px;color:white;background:var(--deep);font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.55}@media(max-width:520px){form{flex-direction:column}button{min-height:44px}}
+  </style></head><body><header><a href="/admin">← TUUTI Operations</a><span class="badge">STAGING</span></header><main><h1>Test TUUTI</h1><p class="intro">Send a message through the staging chatbot. Nothing here reaches production, but test messages will appear in the staging inbox.</p><section class="chat"><div id="messages"><div class="message tuuti">What would you like to discover in Dakar?</div></div><form id="form"><input id="message" autocomplete="off" placeholder="Type a test message…" required><button type="submit">Send</button></form></section></main><script>
+  const form=document.querySelector('#form'),input=document.querySelector('#message'),messages=document.querySelector('#messages'),button=form.querySelector('button');
+  const storageKey='tuuti-staging-test-id';let userPhone=localStorage.getItem(storageKey);if(!userPhone){userPhone='dashboard:test:'+crypto.randomUUID();localStorage.setItem(storageKey,userPhone)}
+  function add(text,kind){const item=document.createElement('div');item.className='message '+kind;item.textContent=text;messages.append(item);item.scrollIntoView({behavior:'smooth'})}
+  form.addEventListener('submit',async(event)=>{event.preventDefault();const message=input.value.trim();if(!message)return;add(message,'user');input.value='';button.disabled=true;try{const response=await fetch('/chat/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,userPhone})});if(!response.ok)throw new Error();const data=await response.json();add(data.reply||data.message||'TUUTI returned no text.','tuuti')}catch{add('The staging test could not be completed. Try again in a moment.','tuuti')}finally{button.disabled=false;input.focus()}});
+  </script></body></html>`;
 }

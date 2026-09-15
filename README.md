@@ -15,6 +15,11 @@ remain relative when the current environment is explicitly `STAGING`. Set
 When neither condition is met, staging destinations remain visibly unconfigured
 instead of silently pointing to the current database.
 
+The staging dashboard's `Test staging` action opens the authenticated
+`/admin/test` chat. It calls the existing staging chat handler and labels itself
+clearly; test messages are stored only in the database configured for that
+deployment and consequently appear in the staging inbox.
+
 ## TUUTI accommodation source foundation
 
 Pilot accommodations and other acquisition partners are stored in `sources`.

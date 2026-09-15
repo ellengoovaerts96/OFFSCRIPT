@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { renderDashboard } from "../src/logic/dashboardHtml.js";
+import { renderDashboard, renderStagingTest } from "../src/logic/dashboardHtml.js";
 
 const html = renderDashboard({
   environment: "STAGING",
@@ -17,6 +17,7 @@ assert.match(html, /href="\/admin\/sources"/);
 assert.match(html, /https:\/\/production\.example\/inbox/);
 assert.match(html, /https:\/\/forms\.example\/research/);
 assert.match(html, /Coming soon/);
+assert.match(html, /href="\/admin\/test"/);
 assert.doesNotMatch(html, /DATABASE_URL|TWILIO_AUTH_TOKEN|INBOX_PASSWORD/);
 
 const unconfiguredHtml = renderDashboard({
@@ -28,5 +29,11 @@ const unconfiguredHtml = renderDashboard({
 });
 assert.match(unconfiguredHtml, /Set TUUTI_STAGING_BASE_URL/);
 assert.doesNotMatch(unconfiguredHtml, /href="\/inbox"/);
+
+const testHtml = renderStagingTest();
+assert.match(testHtml, /Test TUUTI/);
+assert.match(testHtml, /STAGING/);
+assert.match(testHtml, /fetch\('\/chat\/test'/);
+assert.match(testHtml, /Nothing here reaches production/);
 
 console.log("TUUTI dashboard rendering checks passed.");
