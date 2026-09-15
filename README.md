@@ -289,7 +289,10 @@ future database importer must map them to the current Places matching convention
 The active Google Form is not automatically recreated from
 `scripts/createFieldNotesForm.gs`. To manage it through the Forms API, enable the
 Google Forms API, share the Form with the service account as an editor, and set a
-future `GOOGLE_FIELD_NOTES_FORM_ID` to the ID from its edit URL.
+`GOOGLE_FIELD_NOTES_FORM_ID` to the ID from its edit URL. The guarded
+`npm run setup:field-notes-form` command updates that existing Form in place,
+preserves the four existing assessment item IDs, and refuses to proceed if the
+linked response Sheet differs from `GOOGLE_FIELD_NOTES_SPREADSHEET_ID`.
 
 `npm run process:field-notes -- --dry-run` validates the inbox structure and all
 explicit assessment selections without calling OpenAI or writing to Google

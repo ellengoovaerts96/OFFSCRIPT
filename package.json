@@ -13,6 +13,7 @@
     "sync:place-coordinates": "node --import tsx scripts/syncPlaceCoordinates.ts",
     "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
     "setup:field-notes-sheet": "tsx scripts/processFieldNotes.ts --headers-only",
+    "setup:field-notes-form": "node --import tsx scripts/updateFieldNotesForm.ts",
     "process:field-notes": "tsx scripts/processFieldNotes.ts",
     "sync:editorial-ranking": "node --import tsx scripts/syncEditorialRanking.ts",
     "translate:stories": "tsx scripts/translateStories.ts",

@@ -119,7 +119,7 @@ function explicitAssessment(source: Record<string, unknown>): Partial<Structured
   const authenticity = sourceValue(source, ["À quel point ce lieu te semble-t-il authentique ?", "Authenticité"]);
   const foodOrientation = sourceValue(source, ["Quelle est l’orientation de la cuisine ?"]);
   const audienceOrientation = sourceValue(source, ["Quel type de public fréquente principalement ce lieu ?"]);
-  const audienceTags = sourceValue(source, ["Quels publics correspondent à ce lieu ?", "Public observé"]);
+  const audienceTags = sourceValue(source, ["Quels publics observes-tu dans ce lieu ?", "Quels publics correspondent à ce lieu ?", "Public observé"]);
   const adventureLevel = sourceValue(source, ["Quel niveau d’ouverture ou d’aventure ce lieu demande-t-il au voyageur ?"]);
   const occasionTags = sourceValue(source, ["Pour quelles occasions ce lieu convient-il particulièrement ?"]);
   const workFriendly = sourceValue(source, ["Est-ce un endroit adapté pour travailler avec un ordinateur ?"]);

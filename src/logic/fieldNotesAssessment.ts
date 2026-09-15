@@ -9,6 +9,7 @@ function normalized(value: unknown): string {
 
 const UNKNOWN_VALUES = new Set([
   "inconnu",
+  "inconnu / non evalue",
   "non applicable / inconnu",
   "non evalue",
   "je ne sais pas encore",
