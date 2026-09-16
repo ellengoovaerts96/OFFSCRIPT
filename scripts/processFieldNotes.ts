@@ -191,7 +191,7 @@ Rules:
 - area is the most precise named neighbourhood or micro-location in the OFFSCRIPT database (for example Almadies plage).
 - Example: Dakar must be region, Ngor must be neighbourhood and Almadies plage must be area.
 - Normalize tags to lowercase snake_case English.
-- For audience_tags at this Structured Import stage, preserve these richer canonical values when supported: locals, african_expats, international_expats, tourists, adventurous_travellers, families, young_crowd, business_crowd. Do not collapse expat groups here.
+- For audience_tags, use these canonical values when supported: locals, expats, tourists, adventurous_travellers, families, young_crowd, business_crowd. Treat all expatriates as one expats audience; do not distinguish African and international expatriates.
 - audience_orientation is only the numeric resident-to-visitor orientation from -2 to 2; it never contains tags.
 - audience_tags describes the people commonly observed at the place, such as residents, expats or tourists.
 - traveller_types describes who the recommendation is suitable for and may contain only solo, couple, friends or family. Never put residents, expats or tourists in traveller_types.

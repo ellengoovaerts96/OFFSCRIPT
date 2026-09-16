@@ -13,7 +13,7 @@ assert.equal(assessmentInteger("Non applicable / inconnu", -2, 2, "food_orientat
 assert.equal(assessmentInteger("95", 0, 100, "offscript_priority"), 95);
 assert.throws(() => assessmentInteger("105", 0, 100, "offscript_priority"));
 assert.throws(() => assessmentInteger("très élevé", 0, 100, "offscript_priority"));
-assert.deepEqual(assessmentAudienceTags("Habitants / locaux, Expatriés africains, Expatriés internationaux"), ["locals", "african_expats", "international_expats"]);
+assert.deepEqual(assessmentAudienceTags("Habitants / locaux, Expatriés africains, Expatriés internationaux"), ["locals", "expats"]);
 assert.deepEqual(assessmentAudienceTags("Expatriés, Public mixte"), ["expats"]);
 assert.equal(assessmentAudienceIsExplicitlyMixed("Expatriés, Public mixte"), true);
 assert.deepEqual(assessmentOccasionTags("En couple, Musique live, Petit budget"), ["couple", "live_music", "budget_friendly"]);

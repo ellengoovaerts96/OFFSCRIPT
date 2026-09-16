@@ -66,7 +66,7 @@ function createTuutiFieldNotesForm() {
 
   form.addCheckboxItem()
     .setTitle('Quels publics correspondent à ce lieu ?').setHelpText('Plusieurs réponses sont possibles.')
-    .setChoiceValues(['Habitants / locaux', 'Expatriés africains', 'Expatriés internationaux', 'Touristes', 'Voyageurs aventureux', 'Familles', 'Public jeune', 'Public professionnel'])
+    .setChoiceValues(['Habitants / locaux', 'Expatriés', 'Touristes', 'Voyageurs aventureux', 'Familles', 'Public jeune', 'Public professionnel'])
     .setRequired(false);
 
   form.addMultipleChoiceItem().setTitle('Quel niveau d’ouverture ou d’aventure ce lieu demande-t-il au voyageur ?')

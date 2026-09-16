@@ -281,10 +281,10 @@ before database import.
 The Field Notes Form interface is French, but researchers may write free text in
 any language. `Field Notes` preserves those original answers. AI produces the
 canonical English copy in `Structured Import`; explicit scores and selections are
-normalized deterministically. Rich research audience tags such as `locals`,
-`african_expats`, and `international_expats` remain distinct at this stage. A
-future database importer must map them to the current Places matching convention:
-`locals` → `residents`, and both expat groups → `expats`.
+normalized deterministically. Research audience tags use one `expats` value; old
+responses containing `african_expats` or `international_expats` are normalized
+to that same value. A future database importer must map `locals` to the current
+Places matching convention `residents`.
 
 The active Google Form is not automatically recreated from
 `scripts/createFieldNotesForm.gs`. To manage it through the Forms API, enable the

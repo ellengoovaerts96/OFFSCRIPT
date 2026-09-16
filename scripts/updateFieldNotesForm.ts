@@ -46,7 +46,7 @@ const specs: ItemSpec[] = [
   {
     key: "audienceTags", kind: "checkbox", existingItemId: EXISTING_ITEM_IDS.audienceTags,
     title: "Quels publics observes-tu dans ce lieu ?", description: "Plusieurs réponses sont possibles.",
-    options: ["Locaux", "Expatriés africains", "Expatriés internationaux", "Touristes", "Voyageurs aventureux", "Familles", "Public jeune", "Public professionnel"]
+    options: ["Locaux", "Expatriés", "Touristes", "Voyageurs aventureux", "Familles", "Public jeune", "Public professionnel"]
   },
   {
     key: "adventureLevel", kind: "radio", title: "Quel niveau d’ouverture ou d’aventure ce lieu demande-t-il au voyageur ?",
