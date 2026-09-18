@@ -12,8 +12,8 @@ const html = renderDashboard({
 
 assert.match(html, /TUUTI/);
 assert.match(html, /tuuti_logo_night_version_transparent\.png/);
-assert.match(html, /rel="manifest" href="\/admin-assets\/manifest\.webmanifest\?v=3"/);
-assert.match(html, /rel="apple-touch-icon" sizes="180x180" href="\/apple-touch-icon\.png\?v=3"/);
+assert.match(html, /rel="manifest" href="\/admin-assets\/manifest\.webmanifest\?v=4"/);
+assert.match(html, /rel="apple-touch-icon" sizes="180x180" href="\/apple-touch-icon\.png\?v=4"/);
 assert.match(html, /rel="icon" type="image\/png" href="\/admin-assets\/tuuti_dashboard_flavicon\.png"/);
 assert.match(html, /alt="TUUTI"/);
 assert.match(html, /Operations/);
@@ -49,7 +49,7 @@ assert.equal(manifest.start_url, "/admin");
 assert.equal(manifest.scope, "/admin");
 assert.equal(manifest.display, "standalone");
 assert.deepEqual(manifest.icons.map((icon: { sizes: string }) => icon.sizes), ["192x192", "512x512"]);
-for (const file of ["../apple-touch-icon.png", "tuuti_dashboard_gsm_icon.png", "tuuti-dashboard-gsm-v2-180.png", "tuuti-dashboard-gsm-v2-192.png", "tuuti-dashboard-gsm-v2-512.png", "tuuti_dashboard_flavicon.png"]) {
+for (const file of ["../apple-touch-icon.png", "tuuti_dashboard_app_icon.jpg", "tuuti-dashboard-app-v3-180.png", "tuuti-dashboard-app-v3-192.png", "tuuti-dashboard-app-v3-512.png", "tuuti_dashboard_flavicon.png"]) {
   assert.ok((await stat(new URL(`../public/admin-assets/${file}`, import.meta.url))).size > 0);
 }
 
