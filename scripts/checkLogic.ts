@@ -288,7 +288,7 @@ const japaneseContext: UserContext = {
 };
 const japanesePlace = {
   ...semanticTestPlace,
-  name: "Tokyo Yo",
+  name: "Tokyo Jo",
   region: "Dakar",
   neighbourhood: "Almadies",
   subcategories: [{ id: "japanese", name: "Japanese", displayOrder: 1, images: [] }],
