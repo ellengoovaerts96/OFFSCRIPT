@@ -5,6 +5,7 @@ import { webchatRouter } from "./channels/webchat.js";
 import { sourceRedirectRouter } from "./channels/sourceRedirect.js";
 import { sourcesAdminRouter } from "./channels/sourcesAdmin.js";
 import { dashboardRouter } from "./channels/dashboard.js";
+import { placesAdminRouter } from "./channels/placesAdmin.js";
 import { handleChatMessage } from "./logic/chatbotFlow.js";
 
 export const app = express();
@@ -25,6 +26,7 @@ app.use("/webhooks/twilio/whatsapp", whatsappRouter);
 app.use("/webchat", webchatRouter);
 app.use("/go", sourceRedirectRouter);
 app.use("/admin/sources", sourcesAdminRouter);
+app.use("/admin/places", placesAdminRouter);
 app.use("/admin", dashboardRouter);
 app.use(inboxRouter);
 

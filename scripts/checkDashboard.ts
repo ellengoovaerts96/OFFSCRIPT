@@ -18,7 +18,8 @@ assert.match(html, /href="\/inbox"/);
 assert.match(html, /href="\/admin\/sources"/);
 assert.match(html, /https:\/\/production\.example\/inbox/);
 assert.match(html, /https:\/\/forms\.example\/research/);
-assert.match(html, /Coming soon/);
+assert.match(html, /href="\/admin\/places"/);
+assert.match(html, /Manage places/);
 assert.match(html, /href="\/admin\/test"/);
 assert.doesNotMatch(html, /DATABASE_URL|TWILIO_AUTH_TOKEN|INBOX_PASSWORD/);
 
