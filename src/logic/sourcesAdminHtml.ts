@@ -20,8 +20,8 @@ function page(title: string, content: string): string {
   <meta name="theme-color" content="#17201d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="TUUTI">
-  <link rel="manifest" href="/admin-assets/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/admin-assets/tuuti-dashboard-180.png">
+  <link rel="manifest" href="/admin-assets/manifest.webmanifest?v=2">
+  <link rel="apple-touch-icon" href="/admin-assets/tuuti-dashboard-gsm-180.png">
   <link rel="icon" type="image/png" href="/admin-assets/tuuti_dashboard_flavicon.png">
   <title>${escapeHtml(title)} · TUUTI Admin</title>
   <style>
