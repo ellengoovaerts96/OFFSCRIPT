@@ -20,6 +20,7 @@ type ImageRow = {
   url: string;
   sort_order: number;
   is_hero_image: boolean;
+  source: "field_research" | "dashboard" | null;
 };
 
 type ImagePlan = {
@@ -69,7 +70,9 @@ function arraysEqual(left: string[], right: string[]): boolean {
 
 async function applyPlan(client: PoolClient, plan: ImagePlan): Promise<void> {
   const desired = new Set(plan.desiredUrls);
-  const deleteIds = plan.current.filter((image) => !desired.has(image.url)).map((image) => image.id);
+  const deleteIds = plan.current
+    .filter((image) => image.source === "field_research" && !desired.has(image.url))
+    .map((image) => image.id);
 
   if (deleteIds.length > 0) {
     await client.query(
@@ -78,29 +81,44 @@ async function applyPlan(client: PoolClient, plan: ImagePlan): Promise<void> {
     );
   }
 
-  // Move retained rows out of the final 0..2 range before assigning the new
-  // order, avoiding temporary conflicts with the unique sort-order index.
-  await client.query(
-    `UPDATE public.place_images SET sort_order = sort_order - 1000 WHERE place_id = $1`,
-    [plan.place.id]
-  );
-
-  for (const [sortOrder, url] of plan.desiredUrls.entries()) {
-    const existing = plan.current.find((image) => image.url === url);
-    if (existing) {
-      await client.query(
-        `UPDATE public.place_images SET sort_order = $1 WHERE id = $2 AND place_id = $3`,
-        [sortOrder, existing.id, plan.place.id]
-      );
-    } else {
+  for (const url of plan.desiredUrls) {
+    const existing = plan.current.find((image) => image.url === url && !deleteIds.includes(image.id));
+    if (!existing) {
+      const nextOrder = await client.query<{ next_order: number }>(`
+        SELECT COALESCE(MAX(sort_order), -1)::int + 1 AS next_order
+        FROM public.place_images WHERE place_id = $1
+      `, [plan.place.id]);
       await client.query(
         `
-          INSERT INTO public.place_images (place_id, url, sort_order, is_hero_image)
-          VALUES ($1, $2, $3, false)
+          INSERT INTO public.place_images (place_id, url, sort_order, is_hero_image, source)
+          VALUES ($1, $2, $3, false, 'field_research')
         `,
-        [plan.place.id, url, sortOrder]
+        [plan.place.id, url, nextOrder.rows[0]?.next_order ?? 0]
       );
     }
+  }
+
+  // Reorder only records explicitly owned by this sync. Dashboard and legacy
+  // records keep their position and are never deleted, replaced or rewritten.
+  const owned = await client.query<ImageRow>(`
+    SELECT id, place_id, url, sort_order, is_hero_image, source
+    FROM public.place_images
+    WHERE place_id = $1 AND source = 'field_research' AND url = ANY($2::text[])
+    ORDER BY array_position($2::text[], url)
+    FOR UPDATE
+  `, [plan.place.id, plan.desiredUrls]);
+  const occupied = await client.query<{ sort_order: number }>(`
+    SELECT sort_order FROM public.place_images
+    WHERE place_id = $1 AND source IS DISTINCT FROM 'field_research'
+  `, [plan.place.id]);
+  const occupiedOrders = new Set(occupied.rows.map((row) => row.sort_order));
+  const available: number[] = [];
+  for (let order = 0; available.length < owned.rows.length; order += 1) {
+    if (!occupiedOrders.has(order)) available.push(order);
+  }
+  await client.query("UPDATE public.place_images SET sort_order = sort_order - 1000000 WHERE place_id = $1 AND source = 'field_research'", [plan.place.id]);
+  for (const [index, image] of owned.rows.entries()) {
+    await client.query("UPDATE public.place_images SET sort_order = $1 WHERE id = $2", [available[index], image.id]);
   }
 
   if (plan.desiredUrls.length > 0) {
@@ -140,7 +158,7 @@ async function main(): Promise<void> {
       `SELECT id, name FROM public.places ORDER BY name`
     );
     const imagesResult = await client.query<ImageRow>(`
-      SELECT id, place_id, url, sort_order, is_hero_image
+      SELECT id, place_id, url, sort_order, is_hero_image, source
       FROM public.place_images
       ORDER BY place_id, sort_order
     `);
@@ -178,18 +196,23 @@ async function main(): Promise<void> {
       const place = matchingPlaces[0]!;
       const desiredUrls = uniqueUrls(rawRows[0]!);
       const current = imagesByPlace.get(place.id) ?? [];
-      const currentUrls = current.map((image) => image.url);
-      if (arraysEqual(desiredUrls, currentUrls)) continue;
-
       const desiredSet = new Set(desiredUrls);
+      const currentUrls = current.map((image) => image.url);
       const currentSet = new Set(currentUrls);
+      const ownedCurrent = current.filter((image) => image.source === "field_research");
+      const add = desiredUrls.filter((url) => !currentSet.has(url));
+      const remove = ownedCurrent.filter((image) => !desiredSet.has(image.url));
+      const desiredOwnedOrder = desiredUrls.filter((url) => ownedCurrent.some((image) => image.url === url));
+      const currentOwnedOrder = ownedCurrent.filter((image) => desiredSet.has(image.url)).map((image) => image.url);
+      const reorder = !arraysEqual(desiredOwnedOrder, currentOwnedOrder);
+      if (add.length === 0 && remove.length === 0 && !reorder) continue;
       plans.push({
         place,
         desiredUrls,
         current,
-        add: desiredUrls.filter((url) => !currentSet.has(url)),
-        remove: current.filter((image) => !desiredSet.has(image.url)),
-        reorder: desiredUrls.some((url, index) => currentUrls[index] !== url)
+        add,
+        remove,
+        reorder
       });
     }
 

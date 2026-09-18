@@ -133,12 +133,20 @@ npm run sync:place-images -- --dry-run
 npm run sync:place-images
 ```
 
-The Sheet/Raw image order is authoritative for existing, uniquely matched place
-names. Existing image rows and metadata are preserved when their URL remains in
-Raw; new URLs are inserted, removed URLs are deleted, and `sort_order` is reset to
-0..2. Raw rows without an existing unique Places match are skipped with a warning.
-Always inspect the dry-run before running the write command. The write phase uses
-one PostgreSQL transaction and rolls back every image change if any operation fails.
+The sync owns only rows marked `source = 'field_research'`. Dashboard uploads and
+legacy rows with a null source are never removed or rewritten by this command.
+Existing URLs from any source prevent duplicate inserts; genuinely new Raw URLs
+are inserted as Field Research images. Raw rows without an existing unique Places
+match are skipped with a warning. Always inspect the dry-run before running the
+write command. The write phase uses one PostgreSQL transaction and rolls back every
+image change if any operation fails.
+
+The staging Places admin uploads JPEG files to Cloudinary on the server and stores
+only the secure URL and asset metadata in `place_images`. Configure
+`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in the
+server environment. The secret is never sent to the browser. Removing a photo in
+the admin only removes its database relationship; it does not delete the Cloudinary
+asset.
 
 Fill missing `places.latitude` and `places.longitude` values from the existing
 Google Maps links in a separate step:

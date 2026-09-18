@@ -66,8 +66,30 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   longitude: number | null;
   lastVerifiedAt: string | null;
   source: string | null;
-  images: Array<{ id: string; url: string; altText: string | null; caption: string | null; isHeroImage: boolean }>;
+  images: PlaceAdminImage[];
   createdAt: string;
+};
+
+export type PlaceAdminImage = {
+  id: string;
+  url: string;
+  altText: string | null;
+  caption: string | null;
+  isHeroImage: boolean;
+  sortOrder: number;
+  source: "field_research" | "dashboard" | null;
+  cloudinaryPublicId: string | null;
+  originalFilename: string | null;
+  width: number | null;
+  height: number | null;
+};
+
+export type NewDashboardImage = {
+  url: string;
+  cloudinaryPublicId: string;
+  originalFilename: string;
+  width: number;
+  height: number;
 };
 
 function stringArray(value: unknown): string[] {
@@ -130,7 +152,7 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
   if (!result.rows[0]) return null;
 
   const full = await pool.query(`SELECT p.*, image_data.images FROM public.places p,
-    LATERAL (SELECT COALESCE(json_agg(json_build_object('id', pi.id, 'url', pi.url, 'altText', pi.alt_text, 'caption', pi.caption, 'isHeroImage', pi.is_hero_image) ORDER BY pi.is_hero_image DESC, pi.sort_order, pi.created_at), '[]') AS images FROM public.place_images pi WHERE pi.place_id = p.id) image_data
+    LATERAL (SELECT COALESCE(json_agg(json_build_object('id', pi.id, 'url', pi.url, 'altText', pi.alt_text, 'caption', pi.caption, 'isHeroImage', pi.is_hero_image, 'sortOrder', pi.sort_order, 'source', pi.source, 'cloudinaryPublicId', pi.cloudinary_public_id, 'originalFilename', pi.original_filename, 'width', pi.width, 'height', pi.height) ORDER BY pi.sort_order, pi.created_at), '[]') AS images FROM public.place_images pi WHERE pi.place_id = p.id) image_data
     WHERE p.id = $1`, [id]);
   const row = full.rows[0];
   const base = summary(result.rows[0]);
@@ -176,4 +198,73 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     images: Array.isArray(row.images) ? row.images : [],
     createdAt: new Date(row.created_at).toISOString()
   };
+}
+
+export async function addDashboardPlaceImage(placeId: string, image: NewDashboardImage): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT id FROM public.places WHERE id = $1 FOR UPDATE", [placeId]);
+    const order = await client.query<{ next: number }>("SELECT COALESCE(MAX(sort_order), -1)::int + 1 AS next FROM public.place_images WHERE place_id = $1", [placeId]);
+    const hasHero = await client.query<{ exists: boolean }>("SELECT EXISTS(SELECT 1 FROM public.place_images WHERE place_id = $1 AND is_hero_image) AS exists", [placeId]);
+    await client.query(`INSERT INTO public.place_images
+      (place_id, url, sort_order, is_hero_image, cloudinary_public_id, original_filename, width, height, source)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'dashboard')`,
+      [placeId, image.url, order.rows[0]?.next ?? 0, !hasHero.rows[0]?.exists, image.cloudinaryPublicId, image.originalFilename, image.width, image.height]);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}
+
+export async function setPlaceCoverImage(placeId: string, imageId: string): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const image = await client.query("SELECT id FROM public.place_images WHERE id = $1 AND place_id = $2 FOR UPDATE", [imageId, placeId]);
+    if (!image.rowCount) { await client.query("ROLLBACK"); return false; }
+    await client.query("UPDATE public.place_images SET is_hero_image = false WHERE place_id = $1 AND is_hero_image", [placeId]);
+    await client.query("UPDATE public.place_images SET is_hero_image = true WHERE id = $1 AND place_id = $2", [imageId, placeId]);
+    await client.query("COMMIT");
+    return true;
+  } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+}
+
+export async function reorderPlaceImages(placeId: string, imageIds: string[]): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const current = await client.query<{ id: string }>("SELECT id FROM public.place_images WHERE place_id = $1 ORDER BY sort_order FOR UPDATE", [placeId]);
+    const currentIds = current.rows.map((row) => row.id);
+    if (currentIds.length !== imageIds.length || new Set(imageIds).size !== imageIds.length || currentIds.some((id) => !imageIds.includes(id))) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+    await client.query("UPDATE public.place_images SET sort_order = sort_order - 1000000 WHERE place_id = $1", [placeId]);
+    for (const [index, id] of imageIds.entries()) {
+      await client.query("UPDATE public.place_images SET sort_order = $1 WHERE id = $2 AND place_id = $3", [index, id, placeId]);
+    }
+    await client.query("COMMIT");
+    return true;
+  } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+}
+
+export async function removePlaceImageRelationship(placeId: string, imageId: string): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const removed = await client.query<{ is_hero_image: boolean }>("DELETE FROM public.place_images WHERE id = $1 AND place_id = $2 RETURNING is_hero_image", [imageId, placeId]);
+    if (!removed.rowCount) { await client.query("ROLLBACK"); return false; }
+    if (removed.rows[0]?.is_hero_image) {
+      await client.query("UPDATE public.place_images SET is_hero_image = true WHERE id = (SELECT id FROM public.place_images WHERE place_id = $1 ORDER BY sort_order, created_at LIMIT 1)", [placeId]);
+    }
+    const remaining = await client.query<{ id: string }>("SELECT id FROM public.place_images WHERE place_id = $1 ORDER BY sort_order, created_at", [placeId]);
+    await client.query("UPDATE public.place_images SET sort_order = sort_order - 1000000 WHERE place_id = $1", [placeId]);
+    for (const [index, row] of remaining.rows.entries()) {
+      await client.query("UPDATE public.place_images SET sort_order = $1 WHERE id = $2", [index, row.id]);
+    }
+    await client.query("COMMIT");
+    return true;
+  } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
 }

@@ -31,7 +31,7 @@ assert.match(list, /name="status"/);
 assert.match(list, /Events · later/);
 assert.doesNotMatch(list, /DATABASE_URL|INBOX_PASSWORD/);
 
-const detail = renderPlaceAdminDetail({
+const detail = renderPlaceAdminDetail({ place: {
   ...summary,
   country: "Senegal",
   shortDescription: "A warm local bar.", shortDescriptionEn: null, shortDescriptionFr: null,
@@ -43,19 +43,23 @@ const detail = renderPlaceAdminDetail({
   priceLevel: 2, vibe: "lively", vibeTags: ["local"], bestFor: ["drinks"], notIdealFor: [], travellerTypes: ["friends"],
   bestTiming: ["evening"], openingHours: "18:00–02:00", googleMapsUrl: "https://maps.example/a", instagramUrl: null,
   facebookUrl: null, tiktokUrl: null, latitude: 14.7, longitude: -17.4, lastVerifiedAt: null, source: "field research",
-  images: [{ id: "image-1", url: "https://images.example/a.jpg", altText: "Terrace", caption: null, isHeroImage: true }],
+  images: [{ id: "22222222-2222-4222-8222-222222222222", url: "https://images.example/a.jpg", altText: "Terrace", caption: null, isHeroImage: true, sortOrder: 0, source: "dashboard", cloudinaryPublicId: "tuuti/a", originalFilename: "a.jpg", width: 1200, height: 1500 }],
   createdAt: "2026-01-01T00:00:00.000Z"
-});
+}, csrfToken: "csrf-test", cloudinaryReady: true });
 assert.match(detail, /Overview/);
 assert.match(detail, /TUUTI editorial/);
 assert.match(detail, /Photos/);
 assert.match(detail, /future Events tab/);
 assert.match(detail, /target="_blank" rel="noreferrer"/);
+assert.match(detail, /multiple required/);
+assert.match(detail, /Remove link/);
+assert.match(detail, /Cloudinary asset will not be deleted/);
 
 const app = await readFile(new URL("../src/app.ts", import.meta.url), "utf8");
 const router = await readFile(new URL("../src/channels/placesAdmin.ts", import.meta.url), "utf8");
 assert.match(app, /app\.use\("\/admin\/places", placesAdminRouter\)/);
 assert.match(router, /placesAdminRouter\.use\(requireAdminBasicAuth\)/);
-assert.doesNotMatch(router, /\.post\(|\.delete\(|UPDATE |DELETE FROM/i);
+assert.match(router, /upload\.array\("photos", 20\)/);
+assert.match(router, /requireAdminCsrf/);
 
 console.log("Places admin rendering and route checks passed.");

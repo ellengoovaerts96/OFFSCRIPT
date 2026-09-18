@@ -29,6 +29,7 @@
     "sources-admin:check": "node --import tsx scripts/checkSourcesAdmin.ts",
     "dashboard:check": "node --import tsx scripts/checkDashboard.ts",
     "places-admin:check": "node --import tsx scripts/checkPlacesAdmin.ts",
+    "place-photo-admin:check": "node --import tsx scripts/checkPlacePhotoAdmin.ts",
     "field-notes-assessment:check": "node --import tsx scripts/checkFieldNotesAssessment.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
@@ -39,9 +40,11 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "cloudinary": "^2.11.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "googleapis": "^173.0.0",
+    "multer": "^2.4.0",
     "openai": "^6.38.0",
     "pg": "^8.20.0",
     "qrcode": "^1.5.4",
@@ -50,6 +53,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
     "@types/node": "^25.8.0",
     "@types/pg": "^8.20.0",
     "@types/qrcode": "^1.5.6",
