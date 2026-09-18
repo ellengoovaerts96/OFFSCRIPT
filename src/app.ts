@@ -12,7 +12,7 @@ export const app = express();
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use("/admin-assets", express.static("public/admin-assets", { maxAge: "7d", immutable: true }));
+app.use(express.static("public", { maxAge: "7d", immutable: true }));
 
 app.get("/health", (_req, res) => {
   res.json({
