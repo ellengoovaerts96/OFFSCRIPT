@@ -22,7 +22,7 @@ function page(title: string, content: string): string {
   <meta name="apple-mobile-web-app-title" content="TUUTI">
   <link rel="manifest" href="/admin-assets/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/admin-assets/tuuti-dashboard-180.png">
-  <link rel="icon" href="/admin-assets/tuuti-dashboard-192.png">
+  <link rel="icon" type="image/png" href="/admin-assets/tuuti_dashboard_flavicon.png">
   <title>${escapeHtml(title)} · TUUTI Admin</title>
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #102a24; background: #f2ebd9; --forest: #102a24; --rouge: #d95b32; --sand: #f2ebd9; --olive: #6f7650; --paper: #fffaf0; }
