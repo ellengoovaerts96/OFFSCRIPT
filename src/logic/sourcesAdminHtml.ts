@@ -30,7 +30,9 @@ function page(title: string, content: string): string {
     body { margin: 0; min-width: 320px; background: radial-gradient(circle at 90% 0, rgba(217,91,50,.08), transparent 26rem), var(--sand); }
     header { padding: 18px max(18px, calc((100% - 1120px) / 2)); color: var(--sand); background: var(--forest); border-bottom: 3px solid var(--rouge); }
     header a { color: inherit; text-decoration: none; }
-    .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+    .admin-header { display: flex; align-items: center; gap: 12px; }
+    .brand { display: flex; flex: 1; align-items: baseline; justify-content: space-between; gap: 20px; }
+    .mobile-back { display: none; min-height: 38px; padding: 6px 11px; border-color: rgba(242,235,217,.45); color: var(--sand); background: transparent; font-size: 22px; line-height: 1; }
     .wordmark { font-size: 24px; font-weight: 760; letter-spacing: .3em; }
     .wordmark i { color: var(--rouge); font-style: normal; }
     .brand-note { color: #d9d2bd; font-size: 12px; letter-spacing: .06em; }
@@ -77,6 +79,7 @@ function page(title: string, content: string): string {
     @media (max-width: 760px) {
       main { width: min(100% - 24px, 1120px); margin-top: 26px; }
       .brand-note { display: none; }
+      .mobile-back { display: inline-flex; width: 42px; flex: 0 0 42px; }
       .filters, .form-grid, .identity-grid { grid-template-columns: 1fr; }
       .button, button { width: 100%; }
       .actions > * { flex: 1 1 145px; }
@@ -86,7 +89,7 @@ function page(title: string, content: string): string {
   </style>
 </head>
 <body>
-  <header><a class="brand" href="/admin"><strong class="wordmark">TU<i>U</i>TI</strong><span class="brand-note">TRAVEL. A BIT DIFFERENT. · SOURCES ADMIN</span></a></header>
+  <header><div class="admin-header"><button class="mobile-back" type="button" aria-label="Go back" onclick="if(history.length>1){history.back()}else{location.href='/admin'}">←</button><a class="brand" href="/admin"><strong class="wordmark">TU<i>U</i>TI</strong><span class="brand-note">TRAVEL. A BIT DIFFERENT. · SOURCES ADMIN</span></a></div></header>
   <main>${content}</main>
   <script>
     document.addEventListener("click", async (event) => {

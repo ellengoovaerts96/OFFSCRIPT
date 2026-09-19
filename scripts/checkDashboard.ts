@@ -40,6 +40,8 @@ assert.doesNotMatch(unconfiguredHtml, /href="\/inbox"/);
 const testHtml = renderStagingTest();
 assert.match(testHtml, /Test TUUTI/);
 assert.match(testHtml, /STAGING/);
+assert.match(testHtml, /class="mobile-back"/);
+assert.match(testHtml, /history\.back\(\)/);
 assert.match(testHtml, /fetch\('\/chat\/test'/);
 assert.match(testHtml, /Nothing here reaches production/);
 

@@ -29,6 +29,8 @@ assert.match(list, /name="neighbourhood"/);
 assert.match(list, /name="category"/);
 assert.match(list, /name="status"/);
 assert.match(list, /Events · later/);
+assert.match(list, /class="mobile-back"/);
+assert.match(list, /history\.back\(\)/);
 assert.doesNotMatch(list, /DATABASE_URL|INBOX_PASSWORD/);
 
 const detail = renderPlaceAdminDetail({ place: {

@@ -116,6 +116,8 @@ const listHtml = renderSourcesList({ sources: [summary], filters: {} });
 assert.match(listHtml, /Inactive/);
 assert.match(listHtml, /31 acquired/);
 assert.match(listHtml, /Pointe des Almadies/);
+assert.match(listHtml, /class="mobile-back"/);
+assert.match(listHtml, /history\.back\(\)/);
 const url = publicSourceUrl(summary.slug, "https://tuuti.example/");
 assert.equal(url, "https://tuuti.example/go/villa-ile-de-ngor");
 const detailHtml = renderSourceDetail({ source: summary, publicUrl: url });
