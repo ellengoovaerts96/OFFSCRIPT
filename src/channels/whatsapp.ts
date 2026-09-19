@@ -72,18 +72,14 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       void logChatMessage(from, "outgoing", outgoingMessage);
     }
 
-    // Put the complete recommendation text in the webhook response first.
-    // Media is queued afterwards, one item at a time, so WhatsApp consistently
-    // shows text -> photos -> video instead of interleaving the messages.
-    sendTwilioMessages(res, buildFallbackMessages(reply, followUpMessages));
-    void sendOrderedRecommendationMedia(
-      from,
-      twilioTo,
-      locationActions,
+    // Keep every text message below WhatsApp's size limit and include all
+    // content in one ordered TwiML response: text -> photos -> video.
+    sendTwilioMessages(
+      res,
+      buildRecommendationTextMessages(reply, followUpMessages),
       imageUrls,
       videoUrls,
-      afterMediaMessages,
-      true
+      afterMediaMessages
     );
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
@@ -133,9 +129,11 @@ async function sendCompletedResult(
   result: ChatbotMessageResult
 ): Promise<void> {
   try {
-    const text = buildFallbackMessages(result.reply, result.followUpMessages)[0] ?? result.reply;
-    await sendWhatsAppMessage(to, text, undefined, fromOverride);
-    await logChatMessage(to, "outgoing", text);
+    const textMessages = buildRecommendationTextMessages(result.reply, result.followUpMessages);
+    for (const text of textMessages) {
+      await sendWhatsAppMessage(to, text, undefined, fromOverride);
+      await logChatMessage(to, "outgoing", text);
+    }
     await sendRecommendationFollowUps(
       to,
       fromOverride,
@@ -201,23 +199,44 @@ function sendTwilioMessages(
   res: { type: (value: string) => { send: (body: string) => void } },
   messages: string[],
   imageUrls: string[] = [],
+  videoUrls: string[] = [],
   afterMediaMessages: string[] = []
 ): void {
   const textMessages = messages.map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`).join("");
   const mediaMessages = imageUrls
     .map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`)
     .join("");
+  const videoMessages = videoUrls
+    .map((url) => `<Message><Media>${escapeXml(url)}</Media></Message>`)
+    .join("");
   const afterMediaTextMessages = afterMediaMessages
     .map((message) => `<Message><Body>${escapeXml(message)}</Body></Message>`)
     .join("");
 
-  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}${afterMediaTextMessages}</Response>`);
+  res.type("text/xml").send(`<Response>${textMessages}${mediaMessages}${videoMessages}${afterMediaTextMessages}</Response>`);
 }
 
-function buildFallbackMessages(reply: string, followUpMessages: string[]): string[] {
-  if (!followUpMessages.length) return [reply];
+function buildRecommendationTextMessages(reply: string, followUpMessages: string[]): string[] {
+  const sections = [reply, ...followUpMessages].filter(Boolean);
+  const messages: string[] = [];
+  const maximumLength = 1400;
 
-  return [`${reply}\n\n${followUpMessages.join("\n\n")}`];
+  for (const section of sections) {
+    const previous = messages.at(-1);
+    const combined = previous ? `${previous}\n\n${section}` : section;
+
+    if (previous && combined.length <= maximumLength) {
+      messages[messages.length - 1] = combined;
+    } else if (section.length <= maximumLength) {
+      messages.push(section);
+    } else {
+      for (let start = 0; start < section.length; start += maximumLength) {
+        messages.push(section.slice(start, start + maximumLength));
+      }
+    }
+  }
+
+  return messages;
 }
 
 async function sendRecommendationFollowUps(
@@ -287,32 +306,6 @@ async function sendWhatsAppMediaWithRetry(
       console.error(`Could not send delayed WhatsApp ${mediaKind} (attempt ${attempt})`, error);
       if (attempt < 3) await wait(2500);
     }
-  }
-}
-
-async function sendOrderedRecommendationMedia(
-  to: string,
-  fromOverride: string,
-  locationActions: string[],
-  imageUrls: string[],
-  videoUrls: string[],
-  afterMediaMessages: string[],
-  waitForWebhookText = false
-): Promise<void> {
-  try {
-    // Give Twilio time to accept the TwiML text before queuing REST media.
-    if (waitForWebhookText) await wait(1200);
-    await sendRecommendationFollowUps(
-      to,
-      fromOverride,
-      [],
-      locationActions,
-      imageUrls,
-      videoUrls,
-      afterMediaMessages
-    );
-  } catch (error) {
-    console.error("Could not deliver ordered WhatsApp recommendation media", error);
   }
 }
 

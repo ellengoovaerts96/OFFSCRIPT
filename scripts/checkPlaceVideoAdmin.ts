@@ -25,7 +25,8 @@ assert.match(recommendationRepository, /FROM place_videos pv/);
 assert.match(recommendationRepository, /videoUrl: row\.video_url/);
 
 const whatsapp = await readFile(new URL("../src/channels/whatsapp.ts", import.meta.url), "utf8");
-assert.match(whatsapp, /sendTwilioMessages\(res, buildFallbackMessages\(reply, followUpMessages\)\)/);
+assert.match(whatsapp, /buildRecommendationTextMessages\(reply, followUpMessages\)/);
+assert.match(whatsapp, /maximumLength = 1400/);
 const photoPosition = whatsapp.indexOf("for (const imageUrl of imageUrls)");
 const videoPosition = whatsapp.indexOf("for (const videoUrl of videoUrls)");
 assert.ok(photoPosition >= 0 && videoPosition > photoPosition, "Photos must be sent before video.");
