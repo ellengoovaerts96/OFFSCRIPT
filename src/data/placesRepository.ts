@@ -78,6 +78,7 @@ type PlaceRow = {
   guide_languages: string[] | null;
   status: Place["status"];
   images: PlaceImage[] | null;
+  video_url: string | null;
 };
 
 function mergeSubcategories(row: PlaceRow): PlaceSubcategory[] {
@@ -197,6 +198,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     guidePhone: row.guide_phone ?? undefined,
     guideLanguages: row.guide_languages ?? [],
     images: row.images ?? [],
+    videoUrl: row.video_url ?? undefined,
     status: row.status
   };
 }
@@ -222,6 +224,13 @@ const placeSelect = `
       ),
       '[]'
     ) AS images,
+    (
+      SELECT pv.url
+      FROM place_videos pv
+      WHERE pv.place_id = p.id
+      ORDER BY pv.updated_at DESC
+      LIMIT 1
+    ) AS video_url,
     COALESCE(
       (
         SELECT json_agg(

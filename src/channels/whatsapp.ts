@@ -64,7 +64,7 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       return;
     }
 
-    const { reply, followUpMessages, locationActions, imageUrls, afterMediaMessages } = result;
+    const { reply, followUpMessages, locationActions, imageUrls, videoUrls, afterMediaMessages } = result;
 
     void logChatMessage(from, "outgoing", reply);
 
@@ -72,12 +72,19 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       void logChatMessage(from, "outgoing", outgoingMessage);
     }
 
-    // When processing finishes within Twilio's webhook deadline, return the
-    // complete recommendation in the TwiML response. Previously only the
-    // title was returned immediately while all information and photos relied
-    // on best-effort REST calls after the response. A REST delivery failure
-    // therefore left the traveller with a place name and nothing else.
-    sendTwilioMessages(res, buildFallbackMessages(reply, followUpMessages), imageUrls, afterMediaMessages);
+    // Put the complete recommendation text in the webhook response first.
+    // Media is queued afterwards, one item at a time, so WhatsApp consistently
+    // shows text -> photos -> video instead of interleaving the messages.
+    sendTwilioMessages(res, buildFallbackMessages(reply, followUpMessages));
+    void sendOrderedRecommendationMedia(
+      from,
+      twilioTo,
+      locationActions,
+      imageUrls,
+      videoUrls,
+      afterMediaMessages,
+      true
+    );
   } catch (error) {
     console.error("WhatsApp webhook failed", error);
     sendTwilioMessages(res, ["OFFSCRIPT had a small hiccup. Try again in a moment."]);
@@ -126,14 +133,16 @@ async function sendCompletedResult(
   result: ChatbotMessageResult
 ): Promise<void> {
   try {
-    await sendWhatsAppMessage(to, result.reply, undefined, fromOverride);
-    await logChatMessage(to, "outgoing", result.reply);
+    const text = buildFallbackMessages(result.reply, result.followUpMessages)[0] ?? result.reply;
+    await sendWhatsAppMessage(to, text, undefined, fromOverride);
+    await logChatMessage(to, "outgoing", text);
     await sendRecommendationFollowUps(
       to,
       fromOverride,
-      result.followUpMessages,
+      [],
       result.locationActions,
       result.imageUrls,
+      result.videoUrls,
       result.afterMediaMessages
     );
   } catch (error) {
@@ -217,6 +226,7 @@ async function sendRecommendationFollowUps(
   followUpMessages: string[],
   locationActions: string[],
   imageUrls: string[],
+  videoUrls: string[],
   afterMediaMessages: string[]
 ): Promise<void> {
   for (const message of followUpMessages) {
@@ -228,15 +238,6 @@ async function sendRecommendationFollowUps(
     }
   }
 
-  for (const locationAction of locationActions) {
-    try {
-      await sendWhatsAppMessage(to, undefined, undefined, fromOverride, [locationAction]);
-      await wait(800);
-    } catch (error) {
-      console.error("Could not send delayed WhatsApp location", error);
-    }
-  }
-
   for (const imageUrl of imageUrls) {
     await sendWhatsAppMediaWithRetry(to, fromOverride, imageUrl);
     // WhatsApp media messages are sent separately. A larger interval prevents
@@ -244,8 +245,22 @@ async function sendRecommendationFollowUps(
     await wait(2000);
   }
 
-  if (imageUrls.length) {
+  if (imageUrls.length || videoUrls.length) {
     await wait(1500);
+  }
+
+  for (const videoUrl of videoUrls) {
+    await sendWhatsAppMediaWithRetry(to, fromOverride, videoUrl, "video");
+    await wait(2000);
+  }
+
+  for (const locationAction of locationActions) {
+    try {
+      await sendWhatsAppMessage(to, undefined, undefined, fromOverride, [locationAction]);
+      await wait(800);
+    } catch (error) {
+      console.error("Could not send delayed WhatsApp location", error);
+    }
   }
 
   for (const message of afterMediaMessages) {
@@ -261,16 +276,43 @@ async function sendRecommendationFollowUps(
 async function sendWhatsAppMediaWithRetry(
   to: string,
   fromOverride: string,
-  imageUrl: string
+  mediaUrl: string,
+  mediaKind: "photo" | "video" = "photo"
 ): Promise<void> {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      await sendWhatsAppMessage(to, undefined, [imageUrl], fromOverride);
+      await sendWhatsAppMessage(to, undefined, [mediaUrl], fromOverride);
       return;
     } catch (error) {
-      console.error(`Could not send delayed WhatsApp media (attempt ${attempt})`, error);
+      console.error(`Could not send delayed WhatsApp ${mediaKind} (attempt ${attempt})`, error);
       if (attempt < 3) await wait(2500);
     }
+  }
+}
+
+async function sendOrderedRecommendationMedia(
+  to: string,
+  fromOverride: string,
+  locationActions: string[],
+  imageUrls: string[],
+  videoUrls: string[],
+  afterMediaMessages: string[],
+  waitForWebhookText = false
+): Promise<void> {
+  try {
+    // Give Twilio time to accept the TwiML text before queuing REST media.
+    if (waitForWebhookText) await wait(1200);
+    await sendRecommendationFollowUps(
+      to,
+      fromOverride,
+      [],
+      locationActions,
+      imageUrls,
+      videoUrls,
+      afterMediaMessages
+    );
+  } catch (error) {
+    console.error("Could not deliver ordered WhatsApp recommendation media", error);
   }
 }
 

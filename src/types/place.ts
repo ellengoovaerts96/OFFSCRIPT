@@ -107,5 +107,6 @@ export type Place = {
   guidePhone?: string;
   guideLanguages: string[];
   images: PlaceImage[];
+  videoUrl?: string;
   status: "draft" | "ready" | "premium" | "archived";
 };

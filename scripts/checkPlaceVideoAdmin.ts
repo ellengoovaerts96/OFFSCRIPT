@@ -20,6 +20,16 @@ const repository = await readFile(new URL("../src/data/placesAdminRepository.ts"
 assert.match(repository, /ON CONFLICT \(place_id\) DO UPDATE SET/);
 assert.match(repository, /DELETE FROM public\.place_videos WHERE id = \$1 AND place_id = \$2/);
 
+const recommendationRepository = await readFile(new URL("../src/data/placesRepository.ts", import.meta.url), "utf8");
+assert.match(recommendationRepository, /FROM place_videos pv/);
+assert.match(recommendationRepository, /videoUrl: row\.video_url/);
+
+const whatsapp = await readFile(new URL("../src/channels/whatsapp.ts", import.meta.url), "utf8");
+assert.match(whatsapp, /sendTwilioMessages\(res, buildFallbackMessages\(reply, followUpMessages\)\)/);
+const photoPosition = whatsapp.indexOf("for (const imageUrl of imageUrls)");
+const videoPosition = whatsapp.indexOf("for (const videoUrl of videoUrls)");
+assert.ok(photoPosition >= 0 && videoPosition > photoPosition, "Photos must be sent before video.");
+
 const router = await readFile(new URL("../src/channels/placesAdmin.ts", import.meta.url), "utf8");
 assert.match(router, /videoUpload\.single\("video"\)/);
 assert.match(router, /fileSize: 100 \* 1024 \* 1024/);

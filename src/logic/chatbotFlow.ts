@@ -96,6 +96,7 @@ export type ChatbotFlowResult =
       score: number;
       message: string;
       imageUrls: string[];
+      videoUrl?: string;
     }
   | {
       type: "no_match";
@@ -815,7 +816,8 @@ function recommendationResult(
     offscriptPickLevel: place.offscriptPickLevel,
     score,
     message: recommendationTitle(place),
-    imageUrls: selectRecommendationImages(place, message)
+    imageUrls: selectRecommendationImages(place, message),
+    videoUrl: place.videoUrl
   };
 }
 
@@ -1359,6 +1361,7 @@ export async function handleChatMessage(input: {
   followUpMessages: string[];
   locationActions: string[];
   imageUrls: string[];
+  videoUrls: string[];
   afterMediaMessages: string[];
 }> {
   if (isCurrentEventRequest(input.message)) {
@@ -1385,6 +1388,7 @@ export async function handleChatMessage(input: {
       followUpMessages: [],
       locationActions: [],
       imageUrls: [],
+      videoUrls: [],
       afterMediaMessages: []
     };
   }
@@ -1449,6 +1453,7 @@ export async function handleChatMessage(input: {
     followUpMessages,
     locationActions,
     imageUrls: result.type === "recommendation" ? result.imageUrls : [],
+    videoUrls: result.type === "recommendation" && result.videoUrl ? [result.videoUrl] : [],
     afterMediaMessages
   };
 }
