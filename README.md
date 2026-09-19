@@ -125,21 +125,21 @@ Sheet-owned fields and normalized subcategories, never deletes Places rows, and
 runs all writes in one transaction. Existing status values are preserved; new
 places start as `draft`.
 
-The field-research sync only updates `field_research_raw`. Reconcile its `image_1`,
-`image_2`, and `image_3` values with `place_images` in a separate, reviewable step:
+The field-research sync stores `image_1`, `image_2`, and `image_3` in
+`field_research_raw` as source/reference material. Published place photos are
+curated exclusively in **TUUTI Dashboard → Places & Content → Photos**.
+
+The historical command is retained as a safe no-op. It never adds, removes, or
+reorders `place_images`:
 
 ```bash
 npm run sync:place-images -- --dry-run
 npm run sync:place-images
 ```
 
-The sync owns only rows marked `source = 'field_research'`. Dashboard uploads and
-legacy rows with a null source are never removed or rewritten by this command.
-Existing URLs from any source prevent duplicate inserts; genuinely new Raw URLs
-are inserted as Field Research images. Raw rows without an existing unique Places
-match are skipped with a warning. Always inspect the dry-run before running the
-write command. The write phase uses one PostgreSQL transaction and rolls back every
-image change if any operation fails.
+Existing legacy and `source = 'field_research'` image rows remain unchanged and
+available for manual curation in the dashboard. New dashboard uploads are stored
+with `source = 'dashboard'`.
 
 The staging Places admin uploads JPEG files to Cloudinary on the server and stores
 only the secure URL and asset metadata in `place_images`. Configure

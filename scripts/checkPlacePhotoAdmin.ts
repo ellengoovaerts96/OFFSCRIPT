@@ -10,13 +10,14 @@ assert.doesNotMatch(migration, /UPDATE public\.place_images/);
 assert.doesNotMatch(migration, /DELETE FROM public\.place_images/);
 
 const sync = await readFile(new URL("./syncPlaceImagesFromRaw.ts", import.meta.url), "utf8");
-assert.match(sync, /image\.source === "field_research" && !desired\.has/);
-assert.match(sync, /source IS DISTINCT FROM 'field_research'/);
-assert.match(sync, /source\)\s*\n\s*VALUES \(\$1, \$2, \$3, false, 'field_research'\)/);
-assert.doesNotMatch(sync, /DELETE FROM public\.place_images WHERE place_id = \$1(?! AND id)/);
+assert.match(sync, /Published place photos are managed only through the TUUTI dashboard/);
+assert.doesNotMatch(sync, /INSERT INTO public\.place_images/i);
+assert.doesNotMatch(sync, /UPDATE public\.place_images/i);
+assert.doesNotMatch(sync, /DELETE FROM public\.place_images/i);
+assert.doesNotMatch(sync, /new Pool|pool\.connect|client\.query/);
 
 const cloudinary = await readFile(new URL("../src/integrations/cloudinary.ts", import.meta.url), "utf8");
 assert.match(cloudinary, /CLOUDINARY_API_SECRET/);
 assert.doesNotMatch(cloudinary, /process\.env\.CLOUDINARY_API_SECRET[^\n]*return/);
 
-console.log("Place photo migration, sync ownership and Cloudinary safety checks passed.");
+console.log("Place photo migration, dashboard-only publishing and Cloudinary safety checks passed.");
