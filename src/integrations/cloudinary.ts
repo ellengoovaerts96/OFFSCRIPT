@@ -81,7 +81,18 @@ export async function uploadPlaceVideo(input: { buffer: Buffer; filename: string
       folder: `tuuti/places/${input.placeId}/videos`,
       use_filename: true,
       unique_filename: true,
-      filename_override: input.filename
+      filename_override: input.filename,
+      // Prepare the WhatsApp-safe delivery variant during upload. Twilio does
+      // not transcode MOV files and rejects WhatsApp videos above 16 MB.
+      eager: [{
+        format: "mp4",
+        video_codec: "h264",
+        audio_codec: "aac",
+        width: 720,
+        crop: "limit",
+        quality: "auto:good"
+      }],
+      eager_async: false
     }, (error, result) => {
       if (error || !result) reject(error ?? new Error("Cloudinary returned no video upload result."));
       else resolve(result);

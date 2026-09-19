@@ -65,6 +65,7 @@ import {
   parseRecommendationFeedbackReason
 } from "./recommendationFeedback.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
+import { buildWhatsAppVideoUrl } from "./whatsappMedia.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import {
   buildFrustrationRecovery,
@@ -817,7 +818,7 @@ function recommendationResult(
     score,
     message: recommendationTitle(place),
     imageUrls: selectRecommendationImages(place, message),
-    videoUrl: place.videoUrl
+    videoUrl: place.videoUrl ? buildWhatsAppVideoUrl(place.videoUrl) : undefined
   };
 }
 
