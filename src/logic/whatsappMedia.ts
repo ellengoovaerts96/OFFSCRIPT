@@ -1,4 +1,4 @@
-const WHATSAPP_VIDEO_TRANSFORMATION = "f_mp4,vc_h264,ac_aac,w_720,c_limit,q_auto:good";
+const WHATSAPP_VIDEO_TRANSFORMATION = "f_mp4,vc_h264,ac_aac,w_720,c_limit,br_1100k";
 
 export function buildWhatsAppVideoUrl(sourceUrl: string): string {
   try {

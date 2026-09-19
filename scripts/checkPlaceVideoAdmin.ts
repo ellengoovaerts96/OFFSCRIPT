@@ -17,7 +17,8 @@ assert.match(cloudinary, /posterUrl: cloudinary\.url/);
 assert.match(cloudinary, /start_offset: "0"/);
 assert.match(cloudinary, /video_codec: "h264"/);
 assert.match(cloudinary, /audio_codec: "aac"/);
-assert.match(cloudinary, /eager_async: false/);
+assert.match(cloudinary, /format: "mp4"/);
+assert.match(cloudinary, /bit_rate: "1100k"/);
 
 const whatsappMedia = await import("../src/logic/whatsappMedia.js");
 const whatsappUrl = whatsappMedia.buildWhatsAppVideoUrl(
@@ -25,7 +26,7 @@ const whatsappUrl = whatsappMedia.buildWhatsAppVideoUrl(
 );
 assert.equal(
   whatsappUrl,
-  "https://res.cloudinary.com/demo/video/upload/f_mp4,vc_h264,ac_aac,w_720,c_limit,q_auto:good/v1/tuuti/place.mp4"
+  "https://res.cloudinary.com/demo/video/upload/f_mp4,vc_h264,ac_aac,w_720,c_limit,br_1100k/v1/tuuti/place.mp4"
 );
 
 const repository = await readFile(new URL("../src/data/placesAdminRepository.ts", import.meta.url), "utf8");

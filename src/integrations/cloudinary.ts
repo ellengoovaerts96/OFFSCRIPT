@@ -82,17 +82,16 @@ export async function uploadPlaceVideo(input: { buffer: Buffer; filename: string
       use_filename: true,
       unique_filename: true,
       filename_override: input.filename,
-      // Prepare the WhatsApp-safe delivery variant during upload. Twilio does
-      // not transcode MOV files and rejects WhatsApp videos above 16 MB.
-      eager: [{
-        format: "mp4",
+      // Normalize the stored dashboard asset itself. At the recommended
+      // maximum duration of 30 seconds, 1100 kbit/s targets roughly 4-5 MB.
+      format: "mp4",
+      transformation: [{
         video_codec: "h264",
         audio_codec: "aac",
         width: 720,
         crop: "limit",
-        quality: "auto:good"
-      }],
-      eager_async: false
+        bit_rate: "1100k"
+      }]
     }, (error, result) => {
       if (error || !result) reject(error ?? new Error("Cloudinary returned no video upload result."));
       else resolve(result);
