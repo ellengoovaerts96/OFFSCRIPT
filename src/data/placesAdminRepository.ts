@@ -67,6 +67,7 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   lastVerifiedAt: string | null;
   source: string | null;
   images: PlaceAdminImage[];
+  video: PlaceAdminVideo | null;
   createdAt: string;
 };
 
@@ -91,6 +92,24 @@ export type NewDashboardImage = {
   width: number;
   height: number;
 };
+
+export type PlaceAdminVideo = {
+  id: string;
+  url: string;
+  cloudinaryPublicId: string;
+  posterUrl: string;
+  originalFilename: string;
+  width: number;
+  height: number;
+  durationSeconds: number;
+  format: string;
+  fileSizeBytes: number;
+  source: "dashboard";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NewDashboardVideo = Omit<PlaceAdminVideo, "id" | "source" | "createdAt" | "updatedAt">;
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -151,7 +170,16 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
   const result = await pool.query(`${summarySelect} WHERE p.id = $1`, [id]);
   if (!result.rows[0]) return null;
 
-  const full = await pool.query(`SELECT p.*, image_data.images FROM public.places p,
+  const full = await pool.query(`SELECT p.*, image_data.images,
+    (SELECT row_to_json(video_row) FROM (
+      SELECT id, url, cloudinary_public_id AS "cloudinaryPublicId", poster_url AS "posterUrl",
+        original_filename AS "originalFilename", width, height,
+        duration_seconds::float8 AS "durationSeconds", format,
+        file_size_bytes::float8 AS "fileSizeBytes", source,
+        created_at AS "createdAt", updated_at AS "updatedAt"
+      FROM public.place_videos WHERE place_id = p.id LIMIT 1
+    ) video_row) AS video
+    FROM public.places p,
     LATERAL (SELECT COALESCE(json_agg(json_build_object('id', pi.id, 'url', pi.url, 'altText', pi.alt_text, 'caption', pi.caption, 'isHeroImage', pi.is_hero_image, 'sortOrder', pi.sort_order, 'source', pi.source, 'cloudinaryPublicId', pi.cloudinary_public_id, 'originalFilename', pi.original_filename, 'width', pi.width, 'height', pi.height) ORDER BY pi.sort_order, pi.created_at), '[]') AS images FROM public.place_images pi WHERE pi.place_id = p.id) image_data
     WHERE p.id = $1`, [id]);
   const row = full.rows[0];
@@ -196,6 +224,7 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     lastVerifiedAt: row.last_verified_at ? new Date(row.last_verified_at).toISOString() : null,
     source: row.source,
     images: Array.isArray(row.images) ? row.images : [],
+    video: row.video ?? null,
     createdAt: new Date(row.created_at).toISOString()
   };
 }
@@ -267,4 +296,50 @@ export async function removePlaceImageRelationship(placeId: string, imageId: str
     await client.query("COMMIT");
     return true;
   } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+}
+
+export async function replaceDashboardPlaceVideo(placeId: string, video: NewDashboardVideo): Promise<{ replacedPublicId: string | null }> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const place = await client.query("SELECT id FROM public.places WHERE id = $1 FOR UPDATE", [placeId]);
+    if (!place.rowCount) throw new Error("Place not found.");
+    const existing = await client.query<{ cloudinary_public_id: string }>(
+      "SELECT cloudinary_public_id FROM public.place_videos WHERE place_id = $1 FOR UPDATE",
+      [placeId]
+    );
+    await client.query(`
+      INSERT INTO public.place_videos
+        (place_id, url, cloudinary_public_id, poster_url, original_filename, width, height,
+         duration_seconds, format, file_size_bytes, source)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'dashboard')
+      ON CONFLICT (place_id) DO UPDATE SET
+        url = EXCLUDED.url,
+        cloudinary_public_id = EXCLUDED.cloudinary_public_id,
+        poster_url = EXCLUDED.poster_url,
+        original_filename = EXCLUDED.original_filename,
+        width = EXCLUDED.width,
+        height = EXCLUDED.height,
+        duration_seconds = EXCLUDED.duration_seconds,
+        format = EXCLUDED.format,
+        file_size_bytes = EXCLUDED.file_size_bytes,
+        source = 'dashboard',
+        created_at = NOW(),
+        updated_at = NOW()
+    `, [placeId, video.url, video.cloudinaryPublicId, video.posterUrl, video.originalFilename,
+      video.width, video.height, video.durationSeconds, video.format, video.fileSizeBytes]);
+    await client.query("COMMIT");
+    return { replacedPublicId: existing.rows[0]?.cloudinary_public_id ?? null };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}
+
+export async function removePlaceVideoRelationship(placeId: string, videoId: string): Promise<boolean> {
+  const result = await pool.query(
+    "DELETE FROM public.place_videos WHERE id = $1 AND place_id = $2",
+    [videoId, placeId]
+  );
+  return result.rowCount === 1;
 }

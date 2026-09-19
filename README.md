@@ -149,6 +149,13 @@ server environment. The secret is never sent to the browser. Removing a photo in
 the admin only removes its database relationship; it does not delete the Cloudinary
 asset.
 
+Each place can also have one active dashboard video. Video uploads use the same
+server-side Cloudinary credentials with `resource_type: video`; no additional
+environment variables are required. The dashboard prefers vertical 9:16 clips
+and recommends a maximum of 30 seconds, but warns instead of rejecting other
+dimensions or longer clips. Cloudinary provides the playback URL and generated
+poster frame. Replacing or unlinking a video keeps the old Cloudinary asset.
+
 Fill missing `places.latitude` and `places.longitude` values from the existing
 Google Maps links in a separate step:
 

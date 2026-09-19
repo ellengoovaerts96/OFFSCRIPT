@@ -46,6 +46,7 @@ const detail = renderPlaceAdminDetail({ place: {
   bestTiming: ["evening"], openingHours: "18:00–02:00", googleMapsUrl: "https://maps.example/a", instagramUrl: null,
   facebookUrl: null, tiktokUrl: null, latitude: 14.7, longitude: -17.4, lastVerifiedAt: null, source: "field research",
   images: [{ id: "22222222-2222-4222-8222-222222222222", url: "https://images.example/a.jpg", altText: "Terrace", caption: null, isHeroImage: true, sortOrder: 0, source: "dashboard", cloudinaryPublicId: "tuuti/a", originalFilename: "a.jpg", width: 1200, height: 1500 }],
+  video: { id: "33333333-3333-4333-8333-333333333333", url: "https://videos.example/a.mp4", cloudinaryPublicId: "tuuti/a-video", posterUrl: "https://images.example/a-video.jpg", originalFilename: "a.mp4", width: 1080, height: 1920, durationSeconds: 12.5, format: "mp4", fileSizeBytes: 5000000, source: "dashboard", createdAt: "2026-09-19T00:00:00.000Z", updatedAt: "2026-09-19T00:00:00.000Z" },
   createdAt: "2026-01-01T00:00:00.000Z"
 }, csrfToken: "csrf-test", cloudinaryReady: true });
 assert.match(detail, /Overview/);
@@ -55,6 +56,9 @@ assert.match(detail, /future Events tab/);
 assert.match(detail, /target="_blank" rel="noreferrer"/);
 assert.match(detail, /multiple required/);
 assert.match(detail, /1200 × 1500 px/);
+assert.match(detail, /One active video per place/);
+assert.match(detail, /12\.5 seconds/);
+assert.match(detail, /poster="https:\/\/images\.example\/a-video\.jpg"/);
 assert.match(detail, /Remove link/);
 assert.match(detail, /Cloudinary asset will not be deleted/);
 
@@ -62,7 +66,7 @@ const app = await readFile(new URL("../src/app.ts", import.meta.url), "utf8");
 const router = await readFile(new URL("../src/channels/placesAdmin.ts", import.meta.url), "utf8");
 assert.match(app, /app\.use\("\/admin\/places", placesAdminRouter\)/);
 assert.match(router, /placesAdminRouter\.use\(requireAdminBasicAuth\)/);
-assert.match(router, /upload\.array\("photos", 20\)/);
+assert.match(router, /photoUpload\.array\("photos", 20\)/);
 assert.match(router, /requireAdminCsrf/);
 
 console.log("Places admin rendering and route checks passed.");
