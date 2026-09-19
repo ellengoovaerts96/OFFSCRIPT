@@ -848,6 +848,7 @@ Rules:
 - Store local/international as requestedStyle, not as vibe.
 - For coffee, store Café Touba or a local coffee preference as requestedStyle local. Store espresso, cappuccino, latte, flat white or americano as requestedStyle international; these are examples of the broader style, not separate required subcategories.
 - Treat Thiéboudienne, Yassa and Mafé as local Senegalese food: set intent to food and requestedStyle to local. Do not store the dish name as requestedSubcategory.
+- Treat a request to hear live music primarily as nightlife/social food-and-drink discovery, not as a culture-only request. Set requestedSubcategory to the canonical live-music value when available; suitable matches may be restaurants, bars, lounges or nightlife venues with verified live music.
 - Store explicitly requested facilities in requestedAmenities using only: ${PLACE_AMENITIES.join(", ")}.
 - Normalize price preference to affordable, mid-range, upscale or luxury in budget.
 - Vibe describes atmosphere such as calm, lively or romantic.

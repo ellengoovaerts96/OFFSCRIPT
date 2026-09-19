@@ -7,7 +7,7 @@ const ACTIVITY_INTENTS: Partial<Record<SearchActivity, string[]>> = {
   shop: ["shopping", "shop", "market"],
   surf: ["surfing", "surf", "sports"],
   work: ["working", "work", "coworking"],
-  dance: ["nightlife", "dancing", "dance"],
+  dance: ["nightlife", "dancing", "dance", "live music", "music"],
   visit: ["culture", "nature", "visit"],
   relax: ["beach", "relax", "swimming", "beauty", "wellness", "spa", "massage", "nails"],
   sports: ["sports"],
@@ -186,6 +186,9 @@ export function placePassesSearchProfileHardConstraints(
 ): boolean {
   if (!profile) return true;
 
+  const hasConcreteProductMatch = profile.products.length > 0 &&
+    profile.products.every((product) => placeMatchesSearchTerm(place, product));
+
   const hasDocumentedPlantBasedOption = profile.dietaryRequirements.some(
     (requirement) =>
       ["vegetarian", "vegan"].includes(normalize(requirement)) &&
@@ -195,7 +198,10 @@ export function placePassesSearchProfileHardConstraints(
     !hasDocumentedPlantBasedOption ||
     !["meat", "fish", "seafood"].includes(normalize(term));
 
-  if (!placeMatchesSearchActivity(place, profile.activity)) return false;
+  // A concrete, verified request is more precise than a broad activity label.
+  // For example, a restaurant or nightlife venue with live_music must remain
+  // eligible even if semantic parsing broadly labelled the request as culture.
+  if (!placeMatchesSearchActivity(place, profile.activity) && !hasConcreteProductMatch) return false;
   // Concrete requested products are promises, not soft ranking hints. If the
   // traveller asks for coffee, sushi or cocktails, never fall back to a place
   // that merely matches the broad activity (for example any place to drink).
