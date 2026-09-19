@@ -317,7 +317,13 @@ export function acceptsBroaderLocationInContext(
   const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|ok|okay|yes|sure|absolutely|no problem|oui|bien sur|d accord|ca va|c est bon|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
   const askedToBroaden = /\b(?:andere buurt|andere wijk|another neighbourhood|another neighborhood|other area|autre quartier|autre zone|anderes viertel|andere gegend)\b/.test(previousQuestion);
 
-  return affirmative && askedToBroaden;
+  return askedToBroaden && (affirmative || acceptsAnyLocation(message));
+}
+
+function previousQuestionOffersBroaderLocation(previousAssistantMessage?: string | null): boolean {
+  if (!previousAssistantMessage) return false;
+  const previousQuestion = normalizeContextText(previousAssistantMessage);
+  return /\b(?:andere buurt|andere wijk|breder zoeken|another neighbourhood|another neighborhood|other area|broaden|wider search|autre quartier|autre zone|plus largement|anderes viertel|andere gegend|breiter suchen)\b/.test(previousQuestion);
 }
 
 function isBeachLocationPreference(message: string): boolean {
@@ -920,9 +926,18 @@ Also extract searchProfileSignals independently from the legacy context:
     inferBudget(input.message)
   );
 
+  // Trust a semantic acceptance of the immediately preceding broadening
+  // question even when the model omits the redundant locationScope field.
+  // Deterministic wording remains a fast path, not the only way to understand
+  // a natural short answer.
   const acceptedDakarWideSearch =
     parsed.previousQuestionResolution === "accepted" &&
-    parsed.locationScope === "dakar_wide";
+    previousQuestionOffersBroaderLocation(input.previousAssistantMessage) &&
+    (
+      parsed.locationScope === "dakar_wide" ||
+      parsed.previousQuestionAction === "continue_search" ||
+      parsed.recommendationAction === "find_alternative"
+    );
   const continuesDakarWideSearch = Boolean(
     acceptsBroadLocation &&
     input.previousContext?.intent &&

@@ -26,6 +26,7 @@ import { listRecommendationPlaces } from "../src/data/placesRepository.js";
 import { buildClarifyingQuestion, buildLocalDishLocationQuestion } from "../src/logic/buildClarifyingQuestion.js";
 import { needsClarification } from "../src/logic/needsClarification.js";
 import { recommendationReadiness } from "../src/logic/recommendationReadiness.js";
+import { acceptsAnyLocation } from "../src/logic/locationReply.js";
 import { placePassesHardConstraints, selectBestPlace } from "../src/logic/selectBestPlace.js";
 import { placePassesSearchProfileHardConstraints } from "../src/logic/searchProfileMatching.js";
 import { scorePlace } from "../src/logic/scorePlace.js";
@@ -61,6 +62,23 @@ if (!acceptsBroaderLocationInContext(
 }
 if (acceptsBroaderLocationInContext("Ça va", "Comment ça va ?")) {
   throw new Error("Ça va must only broaden location after an explicit broader-location question.");
+}
+for (const answer of [
+  "eender welke buurt",
+  "om het even welke wijk",
+  "alle buurten zijn goed",
+  "any neighbourhood is fine",
+  "n’importe quel quartier"
+]) {
+  if (!acceptsAnyLocation(answer)) {
+    throw new Error(`A natural location-flexibility answer must enable Dakar-wide search: ${answer}`);
+  }
+}
+if (!acceptsBroaderLocationInContext(
+  "eender welke buurt",
+  "Wil je naar een andere buurt in Dakar gaan? Dan kan ik breder zoeken."
+)) {
+  throw new Error("A natural free-location answer must accept the preceding broader-search proposal.");
 }
 if (inferTextVibe("ik zoek een creatieve plek om te werken") !== "artistic") {
   throw new Error("A creative workplace request must retain its artistic preference.");
