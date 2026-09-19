@@ -67,6 +67,7 @@ export type Place = {
   audienceTags: string[];
   adventureLevel?: number;
   occasionTags: string[];
+  dietaryTags: string[];
   amenities: PlaceAmenity[];
   workFriendly?: boolean;
   categories: PlaceCategory[];

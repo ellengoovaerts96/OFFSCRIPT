@@ -41,7 +41,7 @@ const detail = renderPlaceAdminDetail({ place: {
   personalTip: null, personalTipEn: null, personalTipFr: null,
   offscriptReasonNl: null, offscriptReasonEn: "A TUUTI favourite.", offscriptReasonFr: null,
   authenticity: 3, foodOrientation: 0, audienceOrientation: 0, audienceTags: ["residents", "expats"],
-  adventureLevel: 1, occasionTags: ["friends"], amenities: ["outdoor_seating"], workFriendly: false,
+  adventureLevel: 1, occasionTags: ["friends"], dietaryTags: ["vegetarian_options"], amenities: ["outdoor_seating"], workFriendly: false,
   priceLevel: 2, vibe: "lively", vibeTags: ["local"], bestFor: ["drinks"], notIdealFor: [], travellerTypes: ["friends"],
   bestTiming: ["evening"], openingHours: "18:00–02:00", googleMapsUrl: "https://maps.example/a", instagramUrl: null,
   facebookUrl: null, tiktokUrl: null, latitude: 14.7, longitude: -17.4, lastVerifiedAt: null, source: "field research",
@@ -51,6 +51,7 @@ const detail = renderPlaceAdminDetail({ place: {
 }, csrfToken: "csrf-test", cloudinaryReady: true });
 assert.match(detail, /Overview/);
 assert.match(detail, /TUUTI editorial/);
+assert.match(detail, /vegetarian_options/);
 assert.match(detail, /Photos/);
 assert.match(detail, /future Events tab/);
 assert.match(detail, /target="_blank" rel="noreferrer"/);

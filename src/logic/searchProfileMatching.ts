@@ -90,6 +90,7 @@ function placeSearchValues(place: Place): string[] {
     ...place.vibeTags,
     ...place.audienceTags,
     ...place.occasionTags,
+    ...(place.dietaryTags ?? []),
     ...place.amenities,
     ...place.bestFor,
     ...place.notIdealFor,

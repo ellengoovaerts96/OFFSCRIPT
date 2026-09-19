@@ -125,9 +125,13 @@ Sheet-owned fields and normalized subcategories, never deletes Places rows, and
 runs all writes in one transaction. Existing status values are preserved; new
 places start as `draft`.
 
-The field-research sync stores `image_1`, `image_2`, and `image_3` in
-`field_research_raw` as source/reference material. Published place photos are
-curated exclusively in **TUUTI Dashboard → Places & Content → Photos**.
+The legacy field-research sync stores `image_1`, `image_2`, and `image_3` in
+`field_research_raw` as source/reference material. Its historical image command
+remains a no-op. The approved **Field Notes → Structured Import** workflow does
+temporarily add its `image_1`–`image_3` URLs to `place_images` with
+`source = 'field_research'`. It is additive and never removes or reorders legacy
+or dashboard photos. Further curation remains available in
+**TUUTI Dashboard → Places & Content → Photos**.
 
 The historical command is retained as a safe no-op. It never adds, removes, or
 reorders `place_images`:
@@ -304,8 +308,9 @@ and performs no write. The write command translates changed English content to
 French before applying every database change in one transaction. New places start
 as `draft`, while their editorial review status is `approved`. Existing places are
 matched by stable Field Note source ID and then unique normalized name, so repeated
-runs are idempotent. Structured Import image references are deliberately not
-published; place photos remain managed in the TUUTI Dashboard.
+runs are idempotent. Confirmed `dietary_tags` are stored on the place. Structured
+Import image URLs are added as Field Research photos without deleting existing
+place photos.
 
 The Field Notes Form interface is French, but researchers may write free text in
 any language. `Field Notes` preserves those original answers. AI produces the

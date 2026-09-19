@@ -48,6 +48,7 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   audienceTags: string[];
   adventureLevel: number | null;
   occasionTags: string[];
+  dietaryTags: string[];
   amenities: string[];
   workFriendly: boolean | null;
   priceLevel: number | null;
@@ -205,6 +206,7 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     audienceTags: stringArray(row.audience_tags),
     adventureLevel: row.adventure_level,
     occasionTags: stringArray(row.occasion_tags),
+    dietaryTags: stringArray(row.dietary_tags),
     amenities: stringArray(row.amenities),
     workFriendly: row.work_friendly,
     priceLevel: row.price_level,

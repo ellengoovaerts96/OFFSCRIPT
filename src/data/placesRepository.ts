@@ -29,6 +29,7 @@ type PlaceRow = {
   audience_tags: string[] | null;
   adventure_level: number | null;
   occasion_tags: string[] | null;
+  dietary_tags: string[] | null;
   amenities: PlaceAmenity[] | null;
   work_friendly: boolean | null;
   categories: PlaceCategory[] | null;
@@ -145,6 +146,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     audienceTags: compatibleAudienceTags(row.audience_tags),
     adventureLevel: row.adventure_level ?? undefined,
     occasionTags: row.occasion_tags ?? [],
+    dietaryTags: row.dietary_tags ?? [],
     amenities: compatibleAmenities(row.amenities, [
       row.practical_info,
       row.practical_info_en,

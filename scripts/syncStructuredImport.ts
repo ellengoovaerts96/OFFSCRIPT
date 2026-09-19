@@ -34,13 +34,16 @@ type PlaceValues = {
   offscript_reason_en: string | null; offscript_reason_fr: string | null; authenticity: number | null;
   food_orientation: number | null; audience_orientation: number | null; adventure_level: number | null;
   price_level: number | null; traveller_types: string[]; child_friendly: boolean; work_friendly: boolean | null;
-  amenities: string[]; best_timing: string[]; opening_hours: string | null; facebook_url: string | null;
+  amenities: string[]; dietary_tags: string[]; best_timing: string[]; opening_hours: string | null; facebook_url: string | null;
   instagram_url: string | null; tiktok_url: string | null; google_maps_url: string; transport: string | null;
   transport_notes: string | null; safety_notes: string | null; reservation_contact_name: string | null;
   reservation_phone: string | null; source: string; verified_by: string | null; last_verified_at: string | null;
   editorial_review_status: "approved"; editorial_verified_by: string | null; editorial_review_notes: string | null;
 };
-type SyncPlan = { row: SheetRow; values: PlaceValues; existing?: ExistingPlace; changedFields: string[]; dietaryTags: string[] };
+type SyncPlan = {
+  row: SheetRow; values: PlaceValues; existing?: ExistingPlace; changedFields: string[];
+  imageUrls: string[]; imageAdditions: string[];
+};
 
 const translationSchema = z.object({
   translations: z.array(z.object({
@@ -61,7 +64,7 @@ const syncedColumns = [
   "personal_tip_fr", "story_en", "story_fr", "vibe", "vibe_tags", "audience_tags", "occasion_tags",
   "offscript_pick_level", "offscript_priority", "offscript_reason_en", "offscript_reason_fr", "authenticity",
   "food_orientation", "audience_orientation", "adventure_level", "price_level", "traveller_types",
-  "child_friendly", "work_friendly", "amenities", "best_timing", "opening_hours", "facebook_url",
+  "child_friendly", "work_friendly", "amenities", "dietary_tags", "best_timing", "opening_hours", "facebook_url",
   "instagram_url", "tiktok_url", "google_maps_url", "transport", "transport_notes", "safety_notes",
   "reservation_contact_name", "reservation_phone", "source", "verified_by", "last_verified_at",
   "editorial_review_status", "editorial_verified_by", "editorial_review_notes"
@@ -76,6 +79,20 @@ function text(value: unknown): string | null { const normalized = String(value ?
 function normalize(value: unknown): string { return String(value ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function normalizeName(value: string): string { return normalize(value).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
 function list(value: unknown): string[] { return [...new Set(String(value ?? "").split(",").map((item) => item.trim().toLowerCase().replace(/\s+/g, "_")).filter(Boolean))]; }
+function tags(value: unknown): string[] {
+  return [...new Set(String(value ?? "").split(",").map((item) => item.trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")).filter(Boolean))];
+}
+function imageUrls(row: SheetRow): string[] {
+  const candidates = [row.values.image_1, row.values.image_2, row.values.image_3]
+    .flatMap((value) => String(value ?? "").split(","))
+    .map((value) => value.trim()).filter(Boolean);
+  for (const url of candidates) {
+    try { const parsed = new URL(url); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(); }
+    catch { throw new Error(`Sheet row ${row.sheetRow} has an invalid image URL: ${JSON.stringify(url)}.`); }
+  }
+  return [...new Set(candidates)];
+}
 function integer(value: unknown, min: number, max: number, field: string): number | null {
   const raw = normalize(value);
   if (!raw || ["unknown", "inconnu", "non evalue", "not assessed", "n/a"].includes(raw)) return null;
@@ -171,6 +188,7 @@ function baseValues(row: SheetRow, existing?: ExistingPlace): PlaceValues {
     adventure_level: integer(value("adventure_level"), 0, 3, "adventure_level"),
     price_level: integer(value("price_level"), 1, 5, "price_level"), traveller_types: list(value("traveller_types")),
     child_friendly: childFriendly ?? false, work_friendly: workFriendly, amenities: amenities(value("amenities")),
+    dietary_tags: tags(value("dietary_tags")),
     best_timing: list(value("best_timing")), opening_hours: text(value("opening_hours")),
     facebook_url: text(value("facebook_url")), instagram_url: text(value("instagram_url")), tiktok_url: text(value("tiktok_url")),
     google_maps_url: maps, transport, transport_notes: transport, safety_notes: text(value("safety_notes")),
@@ -243,12 +261,34 @@ async function syncContact(client: PoolClient, placeId: string, values: PlaceVal
   }
   await client.query(`INSERT INTO public.place_contacts (place_id,contact_id) VALUES ($1,$2) ON CONFLICT (place_id,contact_id) DO NOTHING`, [placeId, contactId]);
 }
+async function syncImages(client: PoolClient, placeId: string, urls: string[]): Promise<void> {
+  if (!urls.length) return;
+  await client.query(`SELECT id FROM public.places WHERE id=$1 FOR UPDATE`, [placeId]);
+  for (const url of urls) {
+    const next = await client.query<{ sort_order: number }>(
+      `SELECT COALESCE(MAX(sort_order),-1)::int+1 AS sort_order FROM public.place_images WHERE place_id=$1`, [placeId]
+    );
+    await client.query(`INSERT INTO public.place_images (place_id,url,sort_order,is_hero_image,source)
+      VALUES ($1,$2,$3,false,'field_research') ON CONFLICT (place_id,url) DO NOTHING`,
+      [placeId, url, next.rows[0]?.sort_order ?? 0]);
+  }
+  const hero = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS(SELECT 1 FROM public.place_images WHERE place_id=$1 AND is_hero_image) AS exists`, [placeId]
+  );
+  if (!hero.rows[0]?.exists) {
+    await client.query(`UPDATE public.place_images SET is_hero_image=true WHERE id=(
+      SELECT id FROM public.place_images WHERE place_id=$1 ORDER BY sort_order,created_at,id LIMIT 1
+    )`, [placeId]);
+  }
+}
 async function writePlan(client: PoolClient, plan: SyncPlan): Promise<void> {
   const values = syncedColumns.map((column) => plan.values[column]);
   let placeId = plan.existing?.id;
   if (placeId) {
-    const assignments = syncedColumns.map((column, index) => `${column}=$${index + 1}`).join(",");
-    await client.query(`UPDATE public.places SET ${assignments},updated_at=NOW() WHERE id=$${values.length + 1}`, [...values, placeId]);
+    if (plan.changedFields.length) {
+      const assignments = syncedColumns.map((column, index) => `${column}=$${index + 1}`).join(",");
+      await client.query(`UPDATE public.places SET ${assignments},updated_at=NOW() WHERE id=$${values.length + 1}`, [...values, placeId]);
+    }
   } else {
     const inserted = await client.query<{ id: string }>(`INSERT INTO public.places (${syncedColumns.join(",")},status)
       VALUES (${syncedColumns.map((_, index) => `$${index + 1}`).join(",")},'draft') RETURNING id`, values);
@@ -256,6 +296,7 @@ async function writePlan(client: PoolClient, plan: SyncPlan): Promise<void> {
   }
   await syncSubcategories(client, placeId, plan.values.subcategories);
   await syncContact(client, placeId, plan.values);
+  await syncImages(client, placeId, plan.imageUrls);
 }
 
 async function main(): Promise<void> {
@@ -282,6 +323,12 @@ async function main(): Promise<void> {
   const client = await pool.connect();
   try {
     const existingResult = await client.query<Record<string, unknown>>(`SELECT * FROM public.places ORDER BY name`);
+    const existingImagesResult = await client.query<{ place_id: string; url: string }>(`SELECT place_id,url FROM public.place_images`);
+    const existingImageUrls = new Map<string, Set<string>>();
+    for (const image of existingImagesResult.rows) {
+      const urls = existingImageUrls.get(image.place_id) ?? new Set<string>();
+      urls.add(image.url); existingImageUrls.set(image.place_id, urls);
+    }
     const existing = existingResult.rows.map((row) => ({ id: String(row.id), name: String(row.name), source_row_id: text(row.source_row_id), values: row }));
     const bySource = new Map(existing.filter((place) => place.source_row_id).map((place) => [place.source_row_id!, place]));
     const byName = new Map<string, ExistingPlace[]>();
@@ -303,7 +350,14 @@ async function main(): Promise<void> {
         validationErrors.push(`Sheet row ${row.sheetRow} (${row.values.place_name || "unnamed"}): ${error instanceof Error ? error.message : String(error)}`);
         continue;
       }
-      plans.push({ row, values, existing: matched, changedFields: [], dietaryTags: list(row.values.dietary_tags) });
+      let images: string[];
+      try { images = imageUrls(row); }
+      catch (error) {
+        validationErrors.push(error instanceof Error ? error.message : String(error));
+        continue;
+      }
+      const currentUrls = matched ? existingImageUrls.get(matched.id) ?? new Set<string>() : new Set<string>();
+      plans.push({ row, values, existing: matched, changedFields: [], imageUrls: images, imageAdditions: images.filter((url) => !currentUrls.has(url)) });
     }
     if (validationErrors.length) throw new Error(`Validation failed:\n- ${validationErrors.join("\n- ")}`);
 
@@ -327,17 +381,18 @@ async function main(): Promise<void> {
     }
     for (const plan of plans) {
       plan.changedFields = changedFields(plan.existing, plan.values);
-      console.log(JSON.stringify({ action: plan.changedFields.length ? (plan.existing ? "update" : "insert") : "unchanged", place: plan.values.name, changedFields: plan.changedFields, dietaryTagsNotStored: plan.dietaryTags }));
+      console.log(JSON.stringify({ action: plan.changedFields.length ? (plan.existing ? "update" : "insert") : (plan.imageAdditions.length ? "add_images" : "unchanged"), place: plan.values.name, changedFields: plan.changedFields, imagesToAdd: plan.imageAdditions.length }));
     }
-    const changed = plans.filter((plan) => plan.changedFields.length);
+    const changed = plans.filter((plan) => plan.changedFields.length || plan.imageAdditions.length);
     if (!dryRun && changed.length) {
       await client.query("BEGIN");
       try { for (const plan of changed) await writePlan(client, plan); await client.query("COMMIT"); }
       catch (error) { await client.query("ROLLBACK"); throw error; }
     }
     const inserts = changed.filter((plan) => !plan.existing).length;
-    const updates = changed.length - inserts;
-    console.log(`${dryRun ? "Read-only dry run" : "Sync"} complete: ${sheetRows.length} approved place rows validated; ${inserts} inserts; ${updates} updates; ${pendingTranslationRows.length} rows require French translation. Structured Import images were not published.`);
+    const updates = changed.filter((plan) => plan.existing && plan.changedFields.length).length;
+    const addedImages = changed.reduce((count, plan) => count + plan.imageAdditions.length, 0);
+    console.log(`${dryRun ? "Read-only dry run" : "Sync"} complete: ${sheetRows.length} approved place rows validated; ${inserts} inserts; ${updates} updates; ${addedImages} images added; ${pendingTranslationRows.length} rows require French translation.`);
   } finally { client.release(); await pool.end(); }
 }
 
