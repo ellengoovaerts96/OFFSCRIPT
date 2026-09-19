@@ -54,6 +54,7 @@ assert.match(detail, /Photos/);
 assert.match(detail, /future Events tab/);
 assert.match(detail, /target="_blank" rel="noreferrer"/);
 assert.match(detail, /multiple required/);
+assert.match(detail, /1200 × 1500 px/);
 assert.match(detail, /Remove link/);
 assert.match(detail, /Cloudinary asset will not be deleted/);
 

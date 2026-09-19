@@ -32,7 +32,15 @@ export async function uploadPlaceJpeg(input: { buffer: Buffer; filename: string;
       folder: `tuuti/places/${input.placeId}`,
       use_filename: true,
       unique_filename: true,
-      filename_override: input.filename
+      filename_override: input.filename,
+      format: "jpg",
+      transformation: [{
+        width: 1200,
+        height: 1500,
+        crop: "fill",
+        gravity: "auto",
+        quality: "auto:good"
+      }]
     }, (error, result) => {
       if (error || !result) reject(error ?? new Error("Cloudinary returned no upload result."));
       else resolve(result);

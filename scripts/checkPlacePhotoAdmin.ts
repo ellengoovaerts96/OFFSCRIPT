@@ -18,6 +18,11 @@ assert.doesNotMatch(sync, /new Pool|pool\.connect|client\.query/);
 
 const cloudinary = await readFile(new URL("../src/integrations/cloudinary.ts", import.meta.url), "utf8");
 assert.match(cloudinary, /CLOUDINARY_API_SECRET/);
+assert.match(cloudinary, /format: "jpg"/);
+assert.match(cloudinary, /width: 1200/);
+assert.match(cloudinary, /height: 1500/);
+assert.match(cloudinary, /crop: "fill"/);
+assert.match(cloudinary, /quality: "auto:good"/);
 assert.doesNotMatch(cloudinary, /process\.env\.CLOUDINARY_API_SECRET[^\n]*return/);
 
 console.log("Place photo migration, dashboard-only publishing and Cloudinary safety checks passed.");

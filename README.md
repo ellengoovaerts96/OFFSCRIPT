@@ -142,7 +142,8 @@ available for manual curation in the dashboard. New dashboard uploads are stored
 with `source = 'dashboard'`.
 
 The staging Places admin uploads JPEG files to Cloudinary on the server and stores
-only the secure URL and asset metadata in `place_images`. Configure
+new dashboard uploads as 1200 × 1500 px JPEGs. It stores only the secure URL and
+asset metadata in `place_images`. Existing images are not resized retroactively. Configure
 `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in the
 server environment. The secret is never sent to the browser. Removing a photo in
 the admin only removes its database relationship; it does not delete the Cloudinary
