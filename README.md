@@ -290,17 +290,30 @@ and the optional human observations to OpenAI using a strict schema, appends a
 overwrites an existing structured note. Unmentioned facts remain blank and must
 not be invented. Editorial text in `Structured Import` uses English as its single
 editable source language, so a manual correction only has to be made once.
-French and any other derived language must be generated from that approved English
-source during the future database-import step. Human approval remains required
-before database import.
+French is generated from that approved English source during database import.
+Human approval remains required before database import. Preview and import only
+approved place rows with:
+
+```bash
+npm run sync:structured-import -- --dry-run
+npm run sync:structured-import
+```
+
+The dry-run reads Sheets and staging PostgreSQL only; it makes no OpenAI request
+and performs no write. The write command translates changed English content to
+French before applying every database change in one transaction. New places start
+as `draft`, while their editorial review status is `approved`. Existing places are
+matched by stable Field Note source ID and then unique normalized name, so repeated
+runs are idempotent. Structured Import image references are deliberately not
+published; place photos remain managed in the TUUTI Dashboard.
 
 The Field Notes Form interface is French, but researchers may write free text in
 any language. `Field Notes` preserves those original answers. AI produces the
 canonical English copy in `Structured Import`; explicit scores and selections are
 normalized deterministically. Research audience tags use one `expats` value; old
 responses containing `african_expats` or `international_expats` are normalized
-to that same value. A future database importer must map `locals` to the current
-Places matching convention `residents`.
+to that same value. The database importer maps `locals` to the current Places
+matching convention `residents`.
 
 The active Google Form is not automatically recreated from
 `scripts/createFieldNotesForm.gs`. To manage it through the Forms API, enable the
