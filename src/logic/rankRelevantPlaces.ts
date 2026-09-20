@@ -68,12 +68,21 @@ function strongestProductFit(place: Place, context: UserContext): number {
 }
 
 function foodStyleFit(place: Place, context: UserContext): number {
-  if (context.intent !== "food" || context.requestedStyle !== "local") return 1;
+  if (context.intent !== "food" || !context.requestedStyle) return 1;
   if (place.foodOrientation === undefined) return 1;
-  if (place.foodOrientation <= -2) return 3;
-  if (place.foodOrientation === -1) return 2;
-  if (place.foodOrientation === 0) return 1;
-  return 0;
+  if (context.requestedStyle === "local") {
+    if (place.foodOrientation <= -2) return 3;
+    if (place.foodOrientation === -1) return 2;
+    if (place.foodOrientation === 0) return 1;
+    return 0;
+  }
+  if (context.requestedStyle === "international") {
+    if (place.foodOrientation >= 2) return 3;
+    if (place.foodOrientation === 1) return 2;
+    if (place.foodOrientation === 0) return 1;
+    return 0;
+  }
+  return 1;
 }
 
 function compareRankedPlaces(

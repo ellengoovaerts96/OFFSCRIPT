@@ -362,9 +362,14 @@ export function buildSearchProfile(
   const baseLocationFeatures = changedActivity ? [] : compatiblePreviousProfile.locationFeatures;
   const baseOccasions = changedActivity ? [] : compatiblePreviousProfile.occasions;
   const baseVibes = changedActivity ? [] : compatiblePreviousProfile.vibes;
+  const positiveSignals = new Set(
+    [...signals.products, ...signals.occasions].map(normalizeText)
+  );
   const rawExclusions = {
-    products: mergeUnique(compatiblePreviousProfile.exclusions.products, signals.exclusions.products),
-    categories: mergeUnique(compatiblePreviousProfile.exclusions.categories, signals.exclusions.categories),
+    products: mergeUnique(compatiblePreviousProfile.exclusions.products, signals.exclusions.products)
+      .filter((value) => !positiveSignals.has(normalizeText(value))),
+    categories: mergeUnique(compatiblePreviousProfile.exclusions.categories, signals.exclusions.categories)
+      .filter((value) => !positiveSignals.has(normalizeText(value))),
     audienceTags: mergeUnique(compatiblePreviousProfile.exclusions.audienceTags, signals.exclusions.audienceTags),
     dietary: mergeUnique(compatiblePreviousProfile.exclusions.dietary, signals.exclusions.dietary)
   };

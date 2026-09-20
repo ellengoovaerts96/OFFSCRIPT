@@ -147,10 +147,27 @@ function placeServesCoffee(place: Place): boolean {
   return isHospitalityPlace && Boolean(hasDocumentedCoffeeService);
 }
 
+export function placeServesBreakfast(place: Place): boolean {
+  const explicitlyMentionsBreakfast = (value: string | undefined) =>
+    Boolean(value && /\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/.test(normalize(value)));
+
+  return (
+    place.subcategories.some((subcategory) =>
+      explicitlyMentionsBreakfast(subcategory.name) ||
+      explicitlyMentionsBreakfast(subcategory.description)
+    ) ||
+    place.occasionTags.some(explicitlyMentionsBreakfast) ||
+    place.bestTiming.some(explicitlyMentionsBreakfast) ||
+    explicitlyMentionsBreakfast(place.shortDescription) ||
+    explicitlyMentionsBreakfast(place.practicalInfo)
+  );
+}
+
 const LOCAL_STAPLES = new Set(["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"]);
 
 export function searchTermMatchStrength(place: Place, term: string): number {
   if (normalize(term) === "coffee") return placeServesCoffee(place) ? 1 : 0;
+  if (normalize(term) === "breakfast") return placeServesBreakfast(place) ? 1 : 0;
   const terms = aliases(term);
   const values = placeSearchValues(place);
   const directMatch = values.some((value) =>
@@ -206,6 +223,10 @@ export function placePassesSearchProfileHardConstraints(
   // traveller asks for coffee, sushi or cocktails, never fall back to a place
   // that merely matches the broad activity (for example any place to drink).
   if (profile.products.some((term) => !placeMatchesSearchTerm(place, term))) return false;
+  if (
+    profile.occasions.some((occasion) => normalize(occasion) === "breakfast") &&
+    !placeServesBreakfast(place)
+  ) return false;
   if (profile.exclusions.products.some(
     (term) => appliesAsRestaurantWideExclusion(term) && placeMatchesSearchTerm(place, term)
   )) return false;

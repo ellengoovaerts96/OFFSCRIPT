@@ -1014,7 +1014,17 @@ Also extract searchProfileSignals independently from the legacy context:
   }
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
-  const semanticExclusions = parsed.context.excludedSubcategories;
+  const explicitlyRequestedSubcategory = inferRequestedSubcategory(input.message);
+  const semanticExclusions = parsed.context.excludedSubcategories.filter(
+    (excluded) =>
+      !explicitlyRequestedSubcategory ||
+      normalizeContextText(excluded) !== normalizeContextText(explicitlyRequestedSubcategory)
+  );
+  const semanticCategoryExclusions = parsed.context.excludedCategories.filter(
+    (excluded) =>
+      !explicitlyRequestedSubcategory ||
+      normalizeContextText(excluded) !== normalizeContextText(explicitlyRequestedSubcategory)
+  );
   const acceptedPreviousAmenities =
     parsed.previousQuestionResolution === "accepted" && input.previousAssistantMessage
       ? inferRequestedAmenities(input.previousAssistantMessage)
@@ -1099,7 +1109,7 @@ Also extract searchProfileSignals independently from the legacy context:
             previousForMerge?.requestedSubcategory
           ),
       safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? previousForMerge?.safetyConcern,
-      excludedCategories: parsed.context.excludedCategories,
+      excludedCategories: semanticCategoryExclusions,
       excludedSubcategories: semanticExclusions,
       dietaryExclusions: parsed.context.dietaryExclusions,
       avoidAudienceTags: parsed.context.avoidAudienceTags,

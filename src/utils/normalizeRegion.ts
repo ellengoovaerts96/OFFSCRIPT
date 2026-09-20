@@ -7,6 +7,8 @@ const REGION_ALIASES: Record<string, string> = {
   "pointe almadies": "Pointe des Almadies",
   oakam: "Ouakam",
   ouakam: "Ouakam",
+  mamelles: "Ouakam",
+  "les mamelles": "Ouakam",
 };
 
 export const KNOWN_REGIONS = [...new Set(Object.values(REGION_ALIASES))].sort((left, right) =>
