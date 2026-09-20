@@ -86,9 +86,9 @@ function hasMeaningfulSubcategory(context: UserContext): boolean {
 }
 
 function needsSubcategory(context: UserContext): boolean {
-  // A meal moment already makes a broad food request actionable. Asking what
-  // to eat as well would waste one of the three available questions.
-  if (context.intent === "food" && context.timing && context.timing !== "unknown") return false;
+  // Lunch or dinner determines when someone wants to eat, not what kind of
+  // food they want. Keep broad meal requests open until cuisine/style is known
+  // so editorial priority cannot arbitrarily turn "lunch" into pizza.
   if (context.intent === "drink" && context.timing && context.timing !== "unknown") return false;
 
   const normalizedSubcategory = context.requestedSubcategory?.trim().toLowerCase();

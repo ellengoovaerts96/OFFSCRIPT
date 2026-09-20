@@ -26,6 +26,7 @@
     "live-music-intent:check": "node --import tsx scripts/checkLiveMusicIntent.ts",
     "semantic-routing:check": "node --import tsx scripts/checkSemanticRouting.ts",
     "breakfast-matching:check": "node --import tsx scripts/checkBreakfastMatching.ts",
+    "meal-clarification:check": "node --import tsx scripts/checkMealClarification.ts",
     "social-link:check": "node --import tsx scripts/checkSocialLink.ts",
     "recommendation-feedback:check": "node --import tsx scripts/checkRecommendationFeedback.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",

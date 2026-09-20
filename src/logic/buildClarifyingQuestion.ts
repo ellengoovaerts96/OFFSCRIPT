@@ -81,6 +81,14 @@ function buildSubcategoryQuestion(language: "nl" | "fr" | "de" | "en", context: 
     return "Would you prefer local coffee, such as Café Touba, or international-style coffee?";
   }
 
+  const mealMoment = context.intent === "food" && ["lunch", "evening"].includes(context.timing ?? "");
+  if (mealMoment) {
+    if (language === "nl") return "Welke keuken heb je in gedachten: Senegalees/lokaal, Italiaans, Aziatisch, internationaal, vegetarisch of iets anders?";
+    if (language === "fr") return "Tu as envie de quelle cuisine : sénégalaise/locale, italienne, asiatique, internationale, végétarienne ou autre chose ?";
+    if (language === "de") return "Auf welche Küche hast du Lust: senegalesisch/lokal, italienisch, asiatisch, international, vegetarisch oder etwas anderes?";
+    return "What kind of food are you in the mood for: Senegalese/local, Italian, Asian, international, vegetarian, or something else?";
+  }
+
   const options = {
     nl: {
       food: "Wat wil je precies eten of drinken: lokaal eten, ontbijt, koffie, pizza, vegetarisch/vegan, dessert of iets anders?",
