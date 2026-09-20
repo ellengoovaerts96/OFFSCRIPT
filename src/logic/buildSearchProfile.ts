@@ -38,7 +38,7 @@ const LOCATION_FEATURE_PATTERNS: SignalPattern[] = [
 
 const OCCASION_PATTERNS: SignalPattern[] = [
   ["breakfast", /\b(breakfast|ontbijt(?:en)?|petit dejeuner|fruhstuck)\b/],
-  ["lunch", /\b(lunch|middageten|dejeuner|mittagessen)\b/],
+  ["lunch", /\b(lunch(?:en)?|middageten|dejeuner|mittagessen)\b/],
   ["dinner", /\b(dinner|diner|avondeten|ce soir|vanavond|abendessen)\b/],
   ["sunset", /\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/],
   ["drinks", /\b(drinks?|iets drinken|boire un verre|verre|aperitif|apero)\b/],
@@ -110,6 +110,9 @@ function supportedSemanticProducts(
 
   return semanticProducts.flatMap((product) => {
     const normalizedProduct = normalizeText(product);
+    if (["breakfast", "lunch", "dinner"].includes(normalizedProduct)) {
+      return [];
+    }
     const canonicalProduct = PRODUCT_PATTERNS.find(([, pattern]) =>
       pattern.test(normalizedProduct)
     )?.[0];
@@ -215,7 +218,7 @@ export function recognizeActivity(message: string, context: UserContext): Search
   if (/\b(shop|shopping|buy|kopen|winkelen|acheter|boutique)\b/.test(text)) return "shop";
   if (/\b(dance|dancing|party|dansen|uitgaan|danser|sortir)\b/.test(text)) return "dance";
   if (/\b(drink|drinks|cocktail|bar|drinken|boire|verre)\b/.test(text)) return "drink";
-  if (/\b(eat|food|restaurant|breakfast|ontbijt(?:en)?|petit dejeuner|fruhstuck|lunch|dinner|pizza|eten|manger|dejeuner|diner)\b/.test(text)) return "eat";
+  if (/\b(eat|food|restaurant|breakfast|ontbijt(?:en)?|petit dejeuner|fruhstuck|lunch(?:en)?|dinner|pizza|eten|manger|dejeuner|diner)\b/.test(text)) return "eat";
   if (/\b(relax|chill|swim|beach|ontspannen|zwemmen|plage|nager)\b/.test(text)) return "relax";
   if (/\b(sport|sports|sporten|faire du sport|fitness|gym|running|yoga|pilates)\b/.test(text)) return "sports";
   if (/\b(spa|wellness|massage|nails|manicure|pedicure)\b/.test(text)) return "relax";
@@ -228,7 +231,7 @@ export function recognizeProducts(message: string, context: UserContext): string
   const subcategory = normalizeText(context.requestedSubcategory ?? "");
   const nonProducts = new Set([
     "beach", "working", "surfing", "swimming", "running", "cycling", "photography walking", "yoga",
-    "fitness", "walking", "dancing", "excursion"
+    "fitness", "walking", "dancing", "excursion", "breakfast", "lunch", "dinner"
   ]);
   if (subcategory && !nonProducts.has(subcategory)) products.push(subcategory.replaceAll(" ", "_"));
   return unique(products);
@@ -358,7 +361,11 @@ export function buildSearchProfile(
     hasExplicitActivity(message) &&
     compatiblePreviousProfile.activity !== undefined &&
     signals.activity !== compatiblePreviousProfile.activity;
-  const baseProducts = changedActivity ? [] : compatiblePreviousProfile.products;
+  const baseProducts = changedActivity
+    ? []
+    : compatiblePreviousProfile.products.filter(
+        (product) => !["breakfast", "lunch", "dinner"].includes(normalizeText(product))
+      );
   const baseLocationFeatures = changedActivity ? [] : compatiblePreviousProfile.locationFeatures;
   const baseOccasions = changedActivity ? [] : compatiblePreviousProfile.occasions;
   const baseVibes = changedActivity ? [] : compatiblePreviousProfile.vibes;

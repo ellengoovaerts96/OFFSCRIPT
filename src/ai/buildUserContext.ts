@@ -284,7 +284,7 @@ export function inferTiming(message: string): string | undefined {
 
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "sunset";
   if (/\b(morning|breakfast|ochtend|ontbijt(?:en)?|matin|petit déjeuner|frühstück)\b/.test(lower)) return "morning";
-  if (/\b(lunch|noon|midday|middageten|lunchpauze|dejeuner|déjeuner|mittagessen)\b/.test(lower)) return "lunch";
+  if (/\b(lunch(?:en)?|noon|midday|middageten|lunchpauze|dejeuner|déjeuner|mittagessen)\b/.test(lower)) return "lunch";
   if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
   if (/\b(evening|tonight|dinner|avond|vanavond|diner|soir|ce soir|dîner|abend|heute abend|abendessen)\b/.test(lower)) return "evening";
   if (/\b(now|nu|maintenant|jetzt)\b/.test(lower)) return "now";

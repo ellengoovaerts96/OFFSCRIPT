@@ -90,7 +90,10 @@ function buildSubcategoryQuestion(language: "nl" | "fr" | "de" | "en", context: 
     return "What kind of breakfast are you in the mood for: Senegalese/local, international, healthy/vegetarian, or something else?";
   }
 
-  const mealMoment = context.intent === "food" && ["lunch", "evening"].includes(context.timing ?? "");
+  const mealMoment = context.intent === "food" && (
+    ["lunch", "evening"].includes(context.timing ?? "") ||
+    ["lunch", "dinner"].includes(context.requestedSubcategory?.trim().toLowerCase() ?? "")
+  );
   if (mealMoment) {
     if (language === "nl") return "Welke keuken heb je in gedachten: Senegalees/lokaal, Italiaans, Aziatisch, internationaal, vegetarisch of iets anders?";
     if (language === "fr") return "Tu as envie de quelle cuisine : sénégalaise/locale, italienne, asiatique, internationale, végétarienne ou autre chose ?";
