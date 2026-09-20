@@ -672,8 +672,33 @@ function mergeTravellerType(message: string, previousTravellerType?: TravellerTy
   return inferTravellerType(message) ?? parsedTravellerType ?? previousTravellerType;
 }
 
+function stableTravellerContext(previous: UserContext | null | undefined, language: string): UserContext {
+  return {
+    language,
+    travellerType: previous?.travellerType,
+    hasChildren: previous?.hasChildren,
+    childrenAges: previous?.childrenAges,
+    dietaryExclusions: previous?.dietaryExclusions,
+    alcoholAllowed: previous?.alcoholAllowed,
+    safetyConcern: previous?.safetyConcern,
+    clarificationCount: 0
+  };
+}
+
 function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContextResult {
-  const previous = input.previousContext;
+  const language = resolveConversationLanguage(input.message, input.previousContext?.language);
+  const fallbackNewSearch = Boolean(
+    input.previousContext &&
+    isDirectRecommendationRequest(input.message) &&
+    (
+      detectIntent(input.message) ||
+      inferRequestedSubcategory(input.message) ||
+      inferTiming(input.message)
+    )
+  );
+  const previous = fallbackNewSearch
+    ? stableTravellerContext(input.previousContext, language)
+    : input.previousContext;
   const inferredRegion = findKnownRegion(input.message);
   const acceptsBroadLocation =
     acceptsAnyLocation(input.message) ||
@@ -712,7 +737,6 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
     (/\b(?:logo|website|site)\b/.test(routeMessage) &&
       /\b(?:mooi|sterk|leuk|tof|joli|beau|belle|nice|great|cool)\b/.test(routeMessage)) ||
     !clearDatabaseMessage;
-  const language = resolveConversationLanguage(input.message, previous?.language);
   const fallbackConversationReply = language.startsWith("nl")
     ? "Fijn dat je iets laat horen 😊 TUUTI helpt je graag met bijzondere plekken en ervaringen in Senegal. Waar heb je zin in?"
     : language.startsWith("fr")
@@ -735,6 +759,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
       ? "place_lookup"
       : "needs_clarification",
     conversationReply: undefined,
+    recommendationAction: fallbackNewSearch ? "new_search" : undefined,
     context: {
       ...previous,
       language,
@@ -771,6 +796,20 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   };
 }
 
+function deterministicFallbackWithProfile(input: BuildUserContextInput): BuildUserContextResult {
+  const fallback = fallbackBuildUserContext(input);
+  const previousForProfile = fallback.recommendationAction === "new_search"
+    ? stableTravellerContext(input.previousContext, fallback.context.language)
+    : input.previousContext;
+  return withSearchProfile(
+    input.message,
+    fallback,
+    previousForProfile,
+    undefined,
+    input.subcategoryTaxonomy
+  );
+}
+
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
   const acceptsBroadLocation =
@@ -779,13 +818,7 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
   const broadTargetRegion = acceptsBroadLocation ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
   if (!hasOpenAIKey()) {
-    return withSearchProfile(
-      input.message,
-      fallbackBuildUserContext(input),
-      input.previousContext,
-      undefined,
-      input.subcategoryTaxonomy
-    );
+    return deterministicFallbackWithProfile(input);
   }
 
   // A standalone greeting has no recommendation intent. Give the LLM a focused
@@ -813,6 +846,8 @@ Routing rules:
 - When activeRecommendation is present, first interpret whether the message discusses that recommendation or anything in its mentionedTopics. Set recommendationAction to ask_about_place for factual or explanatory questions about the place, a dish, drink, activity, cultural concept, neighbourhood or other mentioned topic; explain_match for questions about why it suits the user; accept_recommendation for acceptance or positive feedback; find_alternative for rejection, changed needs or a request for another option; and new_search only for a clearly different request. Otherwise use none.
 - An informational question such as "What is that dish?", "What does local mean?", "Is it far?" or "What is Café Touba?" never starts a new search when its subject appears in activeRecommendation or mentionedTopics. Preserve the prior travel context unchanged and keep the active recommendation.
 - For find_alternative, extract every newly expressed preference or rejection into context while preserving the earlier needs. Use place_lookup and never select or name a place yourself.
+- A direct request for a different meal, activity, occasion or kind of place is new_search, even when it shares the same broad category. For example, breakfast after sushi is a new search; do not assume the breakfast should still be Japanese. By contrast, a question such as "Can I have breakfast there?" is about the active place.
+- For new_search, keep only stable traveller facts such as language, group and dietary/safety needs. Do not carry over the previous cuisine, product, subcategory, vibe, budget, occasion or search profile unless the newest message expresses it again.
 - A reaction such as "too busy", "not quiet enough" or "I don't want to work" is preference feedback about the active recommendation, not casual conversation. Translate its meaning into the desired context (for example calm, or work excluded) before finding an alternative.
 - TUUTI's current geographic scope is Dakar only: Ngor, Yoff, Ouakam, Almadies and Pointe des Almadies. Never imply that recommendations cover all of Senegal.
 - Use needs_clarification for a TUUTI/Senegal travel request that still lacks information needed for a useful recommendation. Write exactly one natural, context-aware question in conversationReply.
@@ -897,25 +932,23 @@ Also extract searchProfileSignals independently from the legacy context:
     });
   } catch (error) {
     console.error("AI context extraction failed; using deterministic fallback", error);
-    return withSearchProfile(
-      input.message,
-      fallbackBuildUserContext(input),
-      input.previousContext,
-      undefined,
-      input.subcategoryTaxonomy
-    );
+    return deterministicFallbackWithProfile(input);
   }
 
   const parsed = response.output_parsed;
   if (!parsed) {
-    return withSearchProfile(
-      input.message,
-      fallbackBuildUserContext(input),
-      input.previousContext,
-      undefined,
-      input.subcategoryTaxonomy
-    );
+    return deterministicFallbackWithProfile(input);
   }
+
+  const resolvedLanguage = resolveConversationLanguage(
+    input.message,
+    input.previousContext?.language,
+    parsed.context.language
+  );
+  const startsSemanticNewSearch = parsed.recommendationAction === "new_search";
+  const previousForMerge: UserContext | undefined = startsSemanticNewSearch
+    ? stableTravellerContext(input.previousContext, resolvedLanguage)
+    : input.previousContext ?? undefined;
 
   const unmistakableDatabaseMessage = Boolean(
     acceptsBroadLocation ||
@@ -997,11 +1030,11 @@ Also extract searchProfileSignals independently from the legacy context:
     context: {
       language: resolveConversationLanguage(
         input.message,
-        input.previousContext?.language,
+        previousForMerge?.language,
         parsed.context.language
       ),
       currentLocation: normalizeSupportedRegion(
-        nullToUndefined(parsed.context.currentLocation) ?? input.previousContext?.currentLocation
+        nullToUndefined(parsed.context.currentLocation) ?? previousForMerge?.currentLocation
       ),
       targetRegion: normalizeSupportedRegion(
         explicitRegion ??
@@ -1010,45 +1043,45 @@ Also extract searchProfileSignals independently from the legacy context:
         (nullToUndefined(parsed.context.targetRegion)?.toLowerCase() === "dakar"
           ? undefined
           : nullToUndefined(parsed.context.targetRegion)) ??
-        input.previousContext?.targetRegion
+        previousForMerge?.targetRegion
       ),
       travellerType:
         mergeTravellerType(
           input.message,
-          input.previousContext?.travellerType,
+          previousForMerge?.travellerType,
           nullToUndefined(parsed.context.travellerType) as TravellerType | undefined
         ),
-      hasChildren: inferHasChildren(input.message) ?? nullToUndefined(parsed.context.hasChildren) ?? input.previousContext?.hasChildren,
-      childrenAges: nullToUndefined(parsed.context.childrenAges) ?? input.previousContext?.childrenAges,
+      hasChildren: inferHasChildren(input.message) ?? nullToUndefined(parsed.context.hasChildren) ?? previousForMerge?.hasChildren,
+      childrenAges: nullToUndefined(parsed.context.childrenAges) ?? previousForMerge?.childrenAges,
       intent: messageIsKnownRegionOnly
-        ? input.previousContext?.intent
+        ? previousForMerge?.intent
         : mergeIntent(
             input.message,
-            input.previousContext?.intent,
+            previousForMerge?.intent,
             nullToUndefined(parsed.context.intent) as UserIntent | undefined
           ),
-      timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : input.previousContext?.timing),
+      timing: inferTiming(input.message) ?? (acceptsAnyLocation(input.message) ? "flexible" : previousForMerge?.timing),
       budget:
         inferBudget(input.message) ??
-        inferContextualBudget(input.message, input.previousContext?.requestedSubcategory) ??
+        inferContextualBudget(input.message, previousForMerge?.requestedSubcategory) ??
         nullToUndefined(parsed.context.budget) ??
-        input.previousContext?.budget,
+        previousForMerge?.budget,
       requestedSubcategory: isLocalSenegaleseDishRequest(input.message)
         ? undefined
         : resolveRequestedSubcategory(
             input.message,
             parsed.context.requestedSubcategory,
-            input.previousContext?.requestedSubcategory,
+            previousForMerge?.requestedSubcategory,
             semanticExclusions,
             rejectsPreviousSubcategory
           ),
       requestedStyle:
         inferRequestedStyle(input.message) ??
         nullToUndefined(parsed.context.requestedStyle) ??
-        input.previousContext?.requestedStyle,
+        previousForMerge?.requestedStyle,
       requestedAmenities: [
         ...new Set([
-          ...(input.previousContext?.requestedAmenities ?? []),
+          ...(previousForMerge?.requestedAmenities ?? []),
           ...parsed.context.requestedAmenities,
           ...acceptedPreviousAmenities,
           ...inferRequestedAmenities(input.message)
@@ -1058,14 +1091,14 @@ Also extract searchProfileSignals independently from the legacy context:
       // user asked for. Preserve "artistic", "calm", etc. while moving from
       // one neighbourhood to a Dakar-wide search.
       vibe: messageIsKnownRegionOnly || acceptsBroadLocation
-        ? input.previousContext?.vibe
+        ? previousForMerge?.vibe
         : mergeVibe(
             input.message,
-            input.previousContext?.vibe,
+            previousForMerge?.vibe,
             nullToUndefined(parsed.context.vibe),
-            input.previousContext?.requestedSubcategory
+            previousForMerge?.requestedSubcategory
           ),
-      safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? input.previousContext?.safetyConcern,
+      safetyConcern: nullToUndefined(parsed.context.safetyConcern) ?? previousForMerge?.safetyConcern,
       excludedCategories: parsed.context.excludedCategories,
       excludedSubcategories: semanticExclusions,
       dietaryExclusions: parsed.context.dietaryExclusions,
@@ -1073,10 +1106,10 @@ Also extract searchProfileSignals independently from the legacy context:
       maximumPriceLevel: nullToUndefined(parsed.context.maximumPriceLevel) as UserContext["maximumPriceLevel"],
       alcoholAllowed: nullToUndefined(parsed.context.alcoholAllowed),
       directRequest: isDirectRecommendationRequest(input.message) || undefined,
-      clarificationCount: input.previousContext?.clarificationCount ?? 0
+      clarificationCount: previousForMerge?.clarificationCount ?? 0
     },
     confidence: parsed.confidence
-  }, input.previousContext, {
+  }, previousForMerge, {
     ...parsed.searchProfileSignals,
     activity: nullToUndefined(parsed.searchProfileSignals.activity)
   }, input.subcategoryTaxonomy);

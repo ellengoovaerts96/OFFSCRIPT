@@ -51,7 +51,6 @@ import {
   selectBestPlace
 } from "./selectBestPlace.js";
 import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
-import { acceptsAnyLocation } from "./locationReply.js";
 import { preferredSocialUrl } from "./preferredSocialUrl.js";
 import {
   buildFeedbackRatingQuestion,
@@ -72,7 +71,6 @@ import {
   contextForNewSearch,
   findExplicitPlaceRequest,
   isFrustratedReply,
-  shouldStartFreshSearch,
   startsNewSearch
 } from "./searchSession.js";
 
@@ -245,18 +243,6 @@ function buildAlternativeLocationQuestion(language: string, neighbourhood: strin
     return `Möchtest du in ${neighbourhood} bleiben oder auch ein anderes Viertel entdecken?`;
   }
   return `Would you like to stay in ${neighbourhood}, or explore another neighbourhood too?`;
-}
-
-function isRegionOnlyReply(message: string, region: string | undefined): boolean {
-  if (!region) return false;
-  const normalize = (value: string) => value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-  const answer = normalize(message).replace(/^(?:in|at|dans|a|à)\s+/, "");
-  return answer === normalize(region);
 }
 
 function buildLanguagePreferenceResponse(context: UserContext): string {
@@ -997,78 +983,19 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     activePlace &&
     isInformationalActiveRecommendationFollowUp(message, activeMentionedTopics)
   );
-  const didStartNewSearch = shouldStartFreshSearch(
+  // Let the semantic interpreter see the complete conversation before any
+  // deterministic fallback or database matching changes the search state.
+  const interpretation = await buildUserContext({
     message,
     previousContext,
-    isInformationalFollowUp
-  );
-  if (didStartNewSearch) {
-    previousContext = contextForNewSearch(previousContext, storyLanguage);
-    await deleteRecommendationHistoryForUser(userPhone);
-    activeRecommendation = null;
-  }
-
-  const broadensExistingSearch = Boolean(
-    previousContext?.intent &&
-    previousContext.intent !== "unknown" &&
-    (acceptsBroaderLocation(message) || acceptsAnyLocation(message))
-  );
-  const selectsRegionForExistingSearch = Boolean(
-    previousContext?.intent &&
-    previousContext.intent !== "unknown" &&
-    isRegionOnlyReply(message, knownRegion)
-  );
-  const interpretation = broadensExistingSearch
-    ? {
-        context: {
-          ...previousContext,
-          language: storyLanguage,
-          targetRegion: "Dakar",
-          searchProfile: previousContext?.searchProfile
-            ? {
-                ...previousContext.searchProfile,
-                neighbourhood: undefined,
-                mobility: "dakar_wide" as const
-              }
-            : undefined
-        } as UserContext,
-        confidence: 1,
-        route: "place_lookup" as const,
-        recommendationAction: "find_alternative" as const,
-        previousQuestionAction: "continue_search" as const,
-        previousQuestionResolution: "accepted" as const
-      }
-    : selectsRegionForExistingSearch
-      ? {
-          context: {
-            ...previousContext,
-            language: storyLanguage,
-            targetRegion: knownRegion,
-            searchProfile: previousContext?.searchProfile
-              ? {
-                  ...previousContext.searchProfile,
-                  neighbourhood: knownRegion,
-                  mobility: "nearby" as const
-                }
-              : undefined
-          } as UserContext,
-          confidence: 1,
-          route: "place_lookup" as const,
-          recommendationAction: activeRecommendation ? "find_alternative" as const : "none" as const,
-          previousQuestionAction: "continue_search" as const,
-          previousQuestionResolution: "answered_with_detail" as const
-        }
-      : await buildUserContext({
-        message,
-        previousContext,
-        previousAssistantMessage,
-        activeRecommendation: activeRecommendation ? {
-          placeName: activeRecommendation.placeName,
-          needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage },
-          mentionedTopics: activeMentionedTopics
-        } : null,
-        subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
-      });
+    previousAssistantMessage,
+    activeRecommendation: activeRecommendation ? {
+      placeName: activeRecommendation.placeName,
+      needs: activeRecommendation.contextSnapshot ?? previousContext ?? { language: storyLanguage },
+      mentionedTopics: activeMentionedTopics
+    } : null,
+    subcategoryTaxonomy: buildSubcategoryTaxonomy(places)
+  });
   const context = interpretation.context;
   const recommendationNeeds = activeRecommendation?.contextSnapshot ?? previousContext ?? context;
   if (
