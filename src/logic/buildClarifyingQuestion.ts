@@ -82,12 +82,20 @@ function buildSubcategoryQuestion(language: "nl" | "fr" | "de" | "en", context: 
   }
 
   const breakfast = context.intent === "food" &&
-    context.requestedSubcategory?.trim().toLowerCase() === "breakfast";
+    context.requestedSubcategory?.trim().toLowerCase() === "breakfast" &&
+    !context.requestedStyle;
   if (breakfast) {
     if (language === "nl") return "Wat voor ontbijt heb je in gedachten: Senegalees/lokaal, internationaal, gezond/vegetarisch of iets anders?";
     if (language === "fr") return "Tu as envie de quel petit-déjeuner : sénégalais/local, international, sain/végétarien ou autre chose ?";
     if (language === "de") return "Auf welches Frühstück hast du Lust: senegalesisch/lokal, international, gesund/vegetarisch oder etwas anderes?";
     return "What kind of breakfast are you in the mood for: Senegalese/local, international, healthy/vegetarian, or something else?";
+  }
+
+  if (context.intent === "food" && context.requestedStyle === "international") {
+    if (language === "nl") return "Waar heb je precies zin in: Italiaans/pizza, Aziatisch, Mexicaans, gezond/vegetarisch of iets anders?";
+    if (language === "fr") return "Tu as envie de quoi exactement : italien/pizza, asiatique, mexicain, sain/végétarien ou autre chose ?";
+    if (language === "de") return "Worauf hast du genau Lust: italienisch/Pizza, asiatisch, mexikanisch, gesund/vegetarisch oder etwas anderes?";
+    return "What exactly are you in the mood for: Italian/pizza, Asian, Mexican, healthy/vegetarian, or something else?";
   }
 
   const mealMoment = context.intent === "food" && (

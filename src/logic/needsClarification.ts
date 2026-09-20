@@ -75,7 +75,11 @@ function hasMeaningfulSubcategory(context: UserContext): boolean {
     );
   }
 
-  if (context.intent === "food" && context.requestedStyle) return true;
+  // "International" still covers several very different cuisines. Ask one
+  // useful follow-up instead of letting editorial priority choose arbitrarily.
+  if (context.intent === "food" && context.requestedStyle) {
+    return context.requestedStyle !== "international";
+  }
 
   // For work, culture and similar experience-led requests, an explicit mood
   // such as artistic already distinguishes the useful database candidates.

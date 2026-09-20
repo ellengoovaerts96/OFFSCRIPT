@@ -58,6 +58,35 @@ const semanticLunchProfile = buildSearchProfile(
 assert.ok(!semanticLunchProfile.products.includes("lunch"), "Lunch belongs to occasions, not products.");
 assert.ok(semanticLunchProfile.occasions.includes("lunch"));
 
+const internationalLunchContext: UserContext = {
+  ...semanticLunchContext,
+  requestedSubcategory: "International Food",
+  requestedStyle: "international"
+};
+assert.equal(
+  needsClarification(internationalLunchContext),
+  "subcategory",
+  "International food is still too broad to select one cuisine arbitrarily."
+);
+assert.match(buildClarifyingQuestion("subcategory", internationalLunchContext), /Italiaans\/pizza/i);
+const internationalLunchProfile = buildSearchProfile(
+  "Internationaal",
+  internationalLunchContext,
+  undefined,
+  {
+    activity: "eat",
+    products: ["international_food"],
+    locationFeatures: [],
+    occasions: [],
+    vibes: ["international"],
+    exclusions: { products: [], categories: [], audienceTags: [], dietary: [] }
+  }
+);
+assert.ok(
+  !internationalLunchProfile.products.includes("international_food"),
+  "International is a style and ranking preference, not a hard product requirement."
+);
+
 const broadBreakfastContext: UserContext = {
   language: "nl",
   targetRegion: "Yoff",
@@ -75,10 +104,14 @@ assert.match(
   buildClarifyingQuestion("subcategory", broadBreakfastContext),
   /Wat voor ontbijt/i
 );
-assert.notEqual(
+assert.equal(
   needsClarification({ ...broadBreakfastContext, requestedStyle: "international" }),
   "subcategory",
-  "An international breakfast request must not ask for the breakfast style again."
+  "International breakfast still needs a more specific cuisine/style choice."
+);
+assert.match(
+  buildClarifyingQuestion("subcategory", { ...broadBreakfastContext, requestedStyle: "international" }),
+  /Italiaans\/pizza/i
 );
 
 console.log("Broad meal clarification checks passed.");

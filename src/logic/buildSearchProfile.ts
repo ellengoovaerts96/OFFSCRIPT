@@ -110,7 +110,9 @@ function supportedSemanticProducts(
 
   return semanticProducts.flatMap((product) => {
     const normalizedProduct = normalizeText(product);
-    if (["breakfast", "lunch", "dinner"].includes(normalizedProduct)) {
+    if ([
+      "breakfast", "lunch", "dinner", "international food", "international_food", "local food", "local_food"
+    ].includes(normalizedProduct)) {
       return [];
     }
     const canonicalProduct = PRODUCT_PATTERNS.find(([, pattern]) =>
@@ -231,7 +233,8 @@ export function recognizeProducts(message: string, context: UserContext): string
   const subcategory = normalizeText(context.requestedSubcategory ?? "");
   const nonProducts = new Set([
     "beach", "working", "surfing", "swimming", "running", "cycling", "photography walking", "yoga",
-    "fitness", "walking", "dancing", "excursion", "breakfast", "lunch", "dinner"
+    "fitness", "walking", "dancing", "excursion", "breakfast", "lunch", "dinner",
+    "international food", "local food"
   ]);
   if (subcategory && !nonProducts.has(subcategory)) products.push(subcategory.replaceAll(" ", "_"));
   return unique(products);
@@ -364,7 +367,9 @@ export function buildSearchProfile(
   const baseProducts = changedActivity
     ? []
     : compatiblePreviousProfile.products.filter(
-        (product) => !["breakfast", "lunch", "dinner"].includes(normalizeText(product))
+        (product) => ![
+          "breakfast", "lunch", "dinner", "international food", "international_food", "local food", "local_food"
+        ].includes(normalizeText(product))
       );
   const baseLocationFeatures = changedActivity ? [] : compatiblePreviousProfile.locationFeatures;
   const baseOccasions = changedActivity ? [] : compatiblePreviousProfile.occasions;

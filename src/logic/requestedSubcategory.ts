@@ -49,6 +49,8 @@ export function preventSoftSignalAsHardSubcategory(
     "by the ocean",
     "calm",
     "chill",
+    "international food",
+    "local food",
     "ocean view",
     "oceanfront",
     "relaxed",
