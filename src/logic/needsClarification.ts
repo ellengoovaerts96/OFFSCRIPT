@@ -93,6 +93,13 @@ function needsSubcategory(context: UserContext): boolean {
 
   const normalizedSubcategory = context.requestedSubcategory?.trim().toLowerCase();
   if (
+    context.intent === "food" &&
+    normalizedSubcategory === "breakfast" &&
+    !context.requestedStyle
+  ) {
+    return true;
+  }
+  if (
     ["coffee", "café", "cafe"].includes(normalizedSubcategory ?? "") &&
     !context.requestedStyle &&
     !(context.searchProfile?.products ?? []).some((product) =>

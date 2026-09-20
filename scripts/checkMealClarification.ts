@@ -27,4 +27,27 @@ assert.notEqual(
   "An explicitly requested lunch dish must not be asked again."
 );
 
+const broadBreakfastContext: UserContext = {
+  language: "nl",
+  targetRegion: "Yoff",
+  intent: "food",
+  timing: "morning",
+  requestedSubcategory: "breakfast",
+  clarificationCount: 1
+};
+assert.equal(
+  needsClarification(broadBreakfastContext),
+  "subcategory",
+  "A broad breakfast request must ask what kind of breakfast the user wants."
+);
+assert.match(
+  buildClarifyingQuestion("subcategory", broadBreakfastContext),
+  /Wat voor ontbijt/i
+);
+assert.notEqual(
+  needsClarification({ ...broadBreakfastContext, requestedStyle: "international" }),
+  "subcategory",
+  "An international breakfast request must not ask for the breakfast style again."
+);
+
 console.log("Broad meal clarification checks passed.");
