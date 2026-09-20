@@ -218,7 +218,11 @@ export function placePassesSearchProfileHardConstraints(
   // A concrete, verified request is more precise than a broad activity label.
   // For example, a restaurant or nightlife venue with live_music must remain
   // eligible even if semantic parsing broadly labelled the request as culture.
-  if (!placeMatchesSearchActivity(place, profile.activity) && !hasConcreteProductMatch) return false;
+  const requiresDocumentedActivity = profile.activity === "sports" || profile.activity === "surf";
+  if (
+    !placeMatchesSearchActivity(place, profile.activity) &&
+    (requiresDocumentedActivity || !hasConcreteProductMatch)
+  ) return false;
   // Concrete requested products are promises, not soft ranking hints. If the
   // traveller asks for coffee, sushi or cocktails, never fall back to a place
   // that merely matches the broad activity (for example any place to drink).

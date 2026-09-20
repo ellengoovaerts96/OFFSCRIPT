@@ -8,6 +8,7 @@ import { detectLanguage, resolveConversationLanguage } from "./detectLanguage.js
 import { systemPrompt } from "./systemPrompt.js";
 import {
   buildSearchProfile,
+  recognizeSearchProfileSignals,
   type SearchProfileSignals
 } from "../logic/buildSearchProfile.js";
 import {
@@ -946,7 +947,15 @@ Also extract searchProfileSignals independently from the legacy context:
     parsed.context.language
   );
   const startsSemanticNewSearch = parsed.recommendationAction === "new_search";
-  const previousForMerge: UserContext | undefined = startsSemanticNewSearch
+  const deterministicIntent = detectIntent(input.message);
+  const changesExplicitIntent = Boolean(
+    deterministicIntent &&
+    input.previousContext?.intent &&
+    input.previousContext.intent !== "unknown" &&
+    deterministicIntent !== input.previousContext.intent
+  );
+  const startsFreshSearch = startsSemanticNewSearch || changesExplicitIntent;
+  const previousForMerge: UserContext | undefined = startsFreshSearch
     ? stableTravellerContext(input.previousContext, resolvedLanguage)
     : input.previousContext ?? undefined;
 
@@ -1015,12 +1024,12 @@ Also extract searchProfileSignals independently from the legacy context:
 
   const rejectsPreviousSubcategory = rejectsRequestedSubcategory(input.message, input.previousContext?.requestedSubcategory);
   const explicitlyRequestedSubcategory = inferRequestedSubcategory(input.message);
-  const semanticExclusions = parsed.context.excludedSubcategories.filter(
+  const semanticExclusions = (changesExplicitIntent ? [] : parsed.context.excludedSubcategories).filter(
     (excluded) =>
       !explicitlyRequestedSubcategory ||
       normalizeContextText(excluded) !== normalizeContextText(explicitlyRequestedSubcategory)
   );
-  const semanticCategoryExclusions = parsed.context.excludedCategories.filter(
+  const semanticCategoryExclusions = (changesExplicitIntent ? [] : parsed.context.excludedCategories).filter(
     (excluded) =>
       !explicitlyRequestedSubcategory ||
       normalizeContextText(excluded) !== normalizeContextText(explicitlyRequestedSubcategory)
@@ -1031,7 +1040,7 @@ Also extract searchProfileSignals independently from the legacy context:
       : [];
   return withSearchProfile(input.message, {
     route: acceptedDakarWideSearch || continuesDakarWideSearch ? "place_lookup" : parsed.route,
-    recommendationAction: parsed.recommendationAction,
+    recommendationAction: changesExplicitIntent ? "new_search" : parsed.recommendationAction,
     previousQuestionAction: parsed.previousQuestionAction,
     previousQuestionResolution: parsed.previousQuestionResolution,
     conversationReply: acceptedDakarWideSearch || continuesDakarWideSearch
@@ -1080,7 +1089,7 @@ Also extract searchProfileSignals independently from the legacy context:
         ? undefined
         : resolveRequestedSubcategory(
             input.message,
-            parsed.context.requestedSubcategory,
+            changesExplicitIntent ? null : parsed.context.requestedSubcategory,
             previousForMerge?.requestedSubcategory,
             semanticExclusions,
             rejectsPreviousSubcategory
@@ -1119,8 +1128,10 @@ Also extract searchProfileSignals independently from the legacy context:
       clarificationCount: previousForMerge?.clarificationCount ?? 0
     },
     confidence: parsed.confidence
-  }, previousForMerge, {
-    ...parsed.searchProfileSignals,
-    activity: nullToUndefined(parsed.searchProfileSignals.activity)
-  }, input.subcategoryTaxonomy);
+  }, previousForMerge, changesExplicitIntent
+    ? recognizeSearchProfileSignals(input.message, { language: resolvedLanguage })
+    : {
+        ...parsed.searchProfileSignals,
+        activity: nullToUndefined(parsed.searchProfileSignals.activity)
+      }, input.subcategoryTaxonomy);
 }
