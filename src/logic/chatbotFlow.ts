@@ -1031,12 +1031,16 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   const activeNeighbourhood = activePlace?.neighbourhood ?? activePlace?.area;
   const explicitlyChosenRegion = findKnownRegion(message);
+  const searchIsAlreadyDakarWide =
+    normalizeRegion(context.targetRegion) === "Dakar" ||
+    context.searchProfile?.mobility === "dakar_wide";
   if (
     activeRecommendation &&
     activeNeighbourhood &&
     normalizeRegion(activeNeighbourhood) !== "Dakar" &&
     interpretation.recommendationAction === "find_alternative" &&
     !continuesProposedSearch &&
+    !searchIsAlreadyDakarWide &&
     !explicitlyChosenRegion &&
     !acceptsBroaderLocation(message)
   ) {

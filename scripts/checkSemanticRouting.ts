@@ -45,6 +45,8 @@ assert.ok(!fallback.context.searchProfile?.products.includes("sushi"));
 
 const chatbotFlow = await readFile(new URL("../src/logic/chatbotFlow.ts", import.meta.url), "utf8");
 assert.match(chatbotFlow, /const interpretation = await buildUserContext/);
+assert.match(chatbotFlow, /const searchIsAlreadyDakarWide =/);
+assert.match(chatbotFlow, /!searchIsAlreadyDakarWide/);
 assert.doesNotMatch(chatbotFlow, /const broadensExistingSearch/);
 assert.doesNotMatch(chatbotFlow, /const selectsRegionForExistingSearch/);
 
