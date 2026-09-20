@@ -7,6 +7,8 @@ import {
   parseRecommendationFeedbackRating,
   parseRecommendationFeedbackReason
 } from "../src/logic/recommendationFeedback.js";
+import { resolveConversationLanguage } from "../src/ai/detectLanguage.js";
+import { isRecommendationFeedbackOnly } from "../src/logic/chatbotFlow.js";
 
 const ratings = [
   ["I went and loved it", "loved"],
@@ -43,6 +45,12 @@ if (parseRecommendationFeedbackRating("Ik wil ergens eten") !== undefined) {
 }
 if (!isRecommendationExperienceSignal("Het was lekker")) {
   throw new Error("A natural post-visit remark must start the lightweight feedback question.");
+}
+if (!isRecommendationFeedbackOnly("Ziet er perfect uit! Dank je")) {
+  throw new Error("A natural acknowledgement of a recommendation must stay in the feedback flow.");
+}
+if (resolveConversationLanguage("Ziet er perfect uit! Dank je", "fr") !== "nl") {
+  throw new Error("A clear Dutch acknowledgement must switch the reply language to Dutch.");
 }
 const ratingQuestion = buildFeedbackRatingQuestion("nl");
 if (!isFeedbackRatingQuestion(ratingQuestion)) {

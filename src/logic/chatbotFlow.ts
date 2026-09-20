@@ -349,6 +349,10 @@ export function isRecommendationFeedbackOnly(message: string): boolean {
 
   if (!normalized && /[\p{Emoji_Presentation}\uFE0F]/u.test(message)) return true;
 
+  if (/^(?:ziet er |dat ziet er )?(?:perfect|goed|mooi|lekker) uit(?: dank je| bedankt)?$/i.test(normalized)) {
+    return true;
+  }
+
   return /^(?:i know|i know thanks|got it|great|nice|perfect|cool|thanks|thank you|ok|okay|yes|yes thanks|super|top|parfait|merci|merci beaucoup|d accord|ok merci|oui|oui merci|ja|ja dank je|dank je|bedankt|prima|mooi|leuk)$/i.test(
     normalized
   );
