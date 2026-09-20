@@ -72,6 +72,7 @@ import {
   contextForNewSearch,
   findExplicitPlaceRequest,
   isFrustratedReply,
+  shouldStartFreshSearch,
   startsNewSearch
 } from "./searchSession.js";
 
@@ -974,13 +975,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   }
 
   const knownRegion = findKnownRegion(message);
-  const didStartNewSearch = !activeRecommendation && startsNewSearch(message, previousContext);
-  if (didStartNewSearch) {
-    previousContext = contextForNewSearch(previousContext, storyLanguage);
-    await deleteRecommendationHistoryForUser(userPhone);
-    activeRecommendation = null;
-  }
-
   places ??= await listRecommendationPlaces(storyLanguage);
   const activePlace = activeRecommendation?.placeId
     ? places.find((place) => place.id === activeRecommendation?.placeId)
@@ -999,6 +993,21 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     activePlace.practicalInfo,
     activePlace.story
   ].filter((topic): topic is string => Boolean(topic)) : [];
+  const isInformationalFollowUp = Boolean(
+    activePlace &&
+    isInformationalActiveRecommendationFollowUp(message, activeMentionedTopics)
+  );
+  const didStartNewSearch = shouldStartFreshSearch(
+    message,
+    previousContext,
+    isInformationalFollowUp
+  );
+  if (didStartNewSearch) {
+    previousContext = contextForNewSearch(previousContext, storyLanguage);
+    await deleteRecommendationHistoryForUser(userPhone);
+    activeRecommendation = null;
+  }
+
   const broadensExistingSearch = Boolean(
     previousContext?.intent &&
     previousContext.intent !== "unknown" &&
@@ -1062,11 +1071,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       });
   const context = interpretation.context;
   const recommendationNeeds = activeRecommendation?.contextSnapshot ?? previousContext ?? context;
-  const isInformationalFollowUp = Boolean(
-    activePlace &&
-    isInformationalActiveRecommendationFollowUp(message, activeMentionedTopics)
-  );
-
   if (
     activeRecommendation?.placeId &&
     (

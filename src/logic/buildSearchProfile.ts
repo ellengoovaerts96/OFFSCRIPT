@@ -37,7 +37,7 @@ const LOCATION_FEATURE_PATTERNS: SignalPattern[] = [
 ];
 
 const OCCASION_PATTERNS: SignalPattern[] = [
-  ["breakfast", /\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/],
+  ["breakfast", /\b(breakfast|ontbijt(?:en)?|petit dejeuner|fruhstuck)\b/],
   ["lunch", /\b(lunch|middageten|dejeuner|mittagessen)\b/],
   ["dinner", /\b(dinner|diner|avondeten|ce soir|vanavond|abendessen)\b/],
   ["sunset", /\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/],
@@ -215,7 +215,7 @@ export function recognizeActivity(message: string, context: UserContext): Search
   if (/\b(shop|shopping|buy|kopen|winkelen|acheter|boutique)\b/.test(text)) return "shop";
   if (/\b(dance|dancing|party|dansen|uitgaan|danser|sortir)\b/.test(text)) return "dance";
   if (/\b(drink|drinks|cocktail|bar|drinken|boire|verre)\b/.test(text)) return "drink";
-  if (/\b(eat|food|restaurant|lunch|dinner|pizza|eten|manger|dejeuner|diner)\b/.test(text)) return "eat";
+  if (/\b(eat|food|restaurant|breakfast|ontbijt(?:en)?|petit dejeuner|fruhstuck|lunch|dinner|pizza|eten|manger|dejeuner|diner)\b/.test(text)) return "eat";
   if (/\b(relax|chill|swim|beach|ontspannen|zwemmen|plage|nager)\b/.test(text)) return "relax";
   if (/\b(sport|sports|fitness|gym|running|yoga|pilates)\b/.test(text)) return "sports";
   if (/\b(spa|wellness|massage|nails|manicure|pedicure)\b/.test(text)) return "relax";

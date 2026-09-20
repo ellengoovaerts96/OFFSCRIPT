@@ -79,6 +79,14 @@ export function startsNewSearch(message: string, previousContext?: UserContext |
   return hasConcreteSearchSignal(message);
 }
 
+export function shouldStartFreshSearch(
+  message: string,
+  previousContext: UserContext | null | undefined,
+  isActivePlaceFollowUp: boolean
+): boolean {
+  return !isActivePlaceFollowUp && startsNewSearch(message, previousContext);
+}
+
 export function contextForNewSearch(
   previousContext: UserContext | null | undefined,
   language: string

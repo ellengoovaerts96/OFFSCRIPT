@@ -282,7 +282,7 @@ export function inferTiming(message: string): string | undefined {
   const lower = message.toLowerCase();
 
   if (/\b(sunset|zonsondergang|coucher du soleil|sonnenuntergang)\b/.test(lower)) return "sunset";
-  if (/\b(morning|breakfast|ochtend|ontbijt|matin|petit déjeuner|frühstück)\b/.test(lower)) return "morning";
+  if (/\b(morning|breakfast|ochtend|ontbijt(?:en)?|matin|petit déjeuner|frühstück)\b/.test(lower)) return "morning";
   if (/\b(lunch|noon|midday|middageten|lunchpauze|dejeuner|déjeuner|mittagessen)\b/.test(lower)) return "lunch";
   if (/\b(afternoon|middag|namiddag|après-midi|nachmittag)\b/.test(lower)) return "afternoon";
   if (/\b(evening|tonight|dinner|avond|vanavond|diner|soir|ce soir|dîner|abend|heute abend|abendessen)\b/.test(lower)) return "evening";
@@ -352,7 +352,7 @@ export function inferRequestedSubcategory(message: string): string | undefined {
   if (/\b(massage|massages)\b/.test(lower)) return "massage";
   if (/\b(nails|nail salon|manicure|pedicure|ongels|ongelstudio)\b/.test(lower)) return "nails";
 
-  if (/\b(breakfast|ontbijt|petit dejeuner|fruhstuck)\b/.test(lower)) return "breakfast";
+  if (/\b(breakfast|ontbijt(?:en)?|petit dejeuner|fruhstuck)\b/.test(lower)) return "breakfast";
   if (/\b(coffee|cafe|koffie|kaffee)\b/.test(lower)) return "coffee";
   if (/\b(pizza|pizzeria)\b/.test(lower) && !rejectsRequestedSubcategory(message, "pizza")) return "pizza";
   if (/\b(vegan|vegane|veganistisch)\b/.test(lower)) return "vegan";
@@ -474,7 +474,7 @@ function hasExplicitActivityIntent(message: string): boolean {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|drink|bar|cocktail|fitness|gym|workout|training|swim|surf|relax|walk|party|dance|eten|ontbijt|restaurant|diner|lunch|drinken|bar|fitness|gym|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|fitness|gym|nager|surfer|marcher|essen|fruhstuck|restaurant|fitness|gym|trinken|schwimmen|spazieren)\b/.test(
+  return /\b(eat|food|restaurant|breakfast|brunch|lunch|dinner|pizza|pizzeria|drink|bar|cocktail|fitness|gym|workout|training|swim|surf|relax|walk|party|dance|eten|ontbijt(?:en)?|restaurant|diner|lunch|drinken|bar|fitness|gym|zwemmen|surfen|wandelen|manger|restaurant|petit dejeuner|dejeuner|diner|boire|fitness|gym|nager|surfer|marcher|essen|fruhstuck|restaurant|fitness|gym|trinken|schwimmen|spazieren)\b/.test(
     lower
   );
 }

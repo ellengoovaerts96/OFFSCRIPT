@@ -41,6 +41,7 @@ import {
   findExplicitPlaceRequest,
   isAlternativeRequest,
   isFrustratedReply,
+  shouldStartFreshSearch,
   startsNewSearch
 } from "../src/logic/searchSession.js";
 import type { Place, PlaceCategory } from "../src/types/place.js";
@@ -1117,6 +1118,26 @@ assert(
 assert(
   startsNewSearch("Manger sénégalais?", exhaustedBeachBarContext),
   "A new Senegalese-food request must reset stale place exclusions."
+);
+const japaneseDinnerContext = turn("Waar kan ik sushi eten?", {
+  intent: "food",
+  requestedSubcategory: "sushi",
+  requestedStyle: "international"
+});
+assert(
+  shouldStartFreshSearch("Waar kan ik goed ontbijten?", japaneseDinnerContext, false),
+  "A new breakfast request must reset the previous Japanese-food search even when a recommendation is active."
+);
+assert(
+  !shouldStartFreshSearch("Kan ik daar ontbijten?", japaneseDinnerContext, true),
+  "A breakfast question about the active place must remain a place follow-up."
+);
+const freshBreakfastContext = contextForNewSearch(japaneseDinnerContext, "nl");
+assert(
+  freshBreakfastContext.requestedSubcategory === undefined &&
+    freshBreakfastContext.requestedStyle === undefined &&
+    freshBreakfastContext.searchProfile === undefined,
+  "A fresh breakfast search must not inherit sushi or Japanese-food filters."
 );
 const freshContext = contextForNewSearch(exhaustedBeachBarContext, "fr");
 assert(
