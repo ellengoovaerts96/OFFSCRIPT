@@ -47,6 +47,7 @@ const detail = renderPlaceAdminDetail({ place: {
   facebookUrl: null, tiktokUrl: null, latitude: 14.7, longitude: -17.4, lastVerifiedAt: null, source: "field research",
   images: [{ id: "22222222-2222-4222-8222-222222222222", url: "https://images.example/a.jpg", altText: "Terrace", caption: null, isHeroImage: true, sortOrder: 0, source: "dashboard", cloudinaryPublicId: "tuuti/a", originalFilename: "a.jpg", width: 1200, height: 1500 }],
   video: { id: "33333333-3333-4333-8333-333333333333", url: "https://videos.example/a.mp4", cloudinaryPublicId: "tuuti/a-video", posterUrl: "https://images.example/a-video.jpg", originalFilename: "a.mp4", width: 1080, height: 1920, durationSeconds: 12.5, format: "mp4", fileSizeBytes: 5000000, source: "dashboard", createdAt: "2026-09-19T00:00:00.000Z", updatedAt: "2026-09-19T00:00:00.000Z" },
+  feedback: [{ id: "44444444-4444-4444-8444-444444444444", rating: "loved", reason: null, freeText: null, positiveDetail: "Wonderful atmosphere.", travellerType: "couple", requestedVibe: "relaxed", createdAt: "2026-09-20T00:00:00.000Z" }],
   createdAt: "2026-01-01T00:00:00.000Z",
   editorialLockedFields: ["price_level"], editorialUpdatedAt: "2026-09-20T00:00:00.000Z", editorialUpdatedBy: "ellen",
   statusBeforeArchive: null, archivedAt: null
@@ -68,6 +69,10 @@ assert.match(detail, /Edit/);
 assert.match(detail, /price level/);
 assert.match(detail, /Use Field Research again/);
 assert.match(detail, /Archive place/);
+assert.match(detail, /Feedback/);
+assert.match(detail, /Loved it/);
+assert.match(detail, /Wonderful atmosphere/);
+assert.doesNotMatch(detail, /user_phone/);
 
 const editDetail = renderPlaceAdminDetail({ place: {
   ...summary,
@@ -77,7 +82,7 @@ const editDetail = renderPlaceAdminDetail({ place: {
   audienceOrientation: null, audienceTags: [], adventureLevel: null, occasionTags: [], dietaryTags: [], amenities: [], workFriendly: null,
   priceLevel: 2, vibe: null, vibeTags: [], bestFor: [], notIdealFor: [], travellerTypes: [], bestTiming: [], openingHours: null,
   googleMapsUrl: "https://maps.example/a", instagramUrl: null, facebookUrl: null, tiktokUrl: null, latitude: null, longitude: null,
-  lastVerifiedAt: null, source: null, images: [], video: null, createdAt: "2026-01-01T00:00:00.000Z",
+  lastVerifiedAt: null, source: null, images: [], video: null, feedback: [], createdAt: "2026-01-01T00:00:00.000Z",
   editorialLockedFields: [], editorialUpdatedAt: null, editorialUpdatedBy: null, statusBeforeArchive: null, archivedAt: null
 }, csrfToken: "csrf-test", cloudinaryReady: true, edit: true });
 assert.match(editDetail, /Save editorial changes/);
@@ -87,6 +92,7 @@ assert.match(editDetail, /name="work_friendly"/);
 
 const app = await readFile(new URL("../src/app.ts", import.meta.url), "utf8");
 const router = await readFile(new URL("../src/channels/placesAdmin.ts", import.meta.url), "utf8");
+const repository = await readFile(new URL("../src/data/placesAdminRepository.ts", import.meta.url), "utf8");
 assert.match(app, /app\.use\("\/admin\/places", placesAdminRouter\)/);
 assert.match(router, /placesAdminRouter\.use\(requireAdminBasicAuth\)/);
 assert.match(router, /photoUpload\.array\("photos", 20\)/);
@@ -95,5 +101,7 @@ assert.match(router, /updatePlaceEditorial/);
 assert.match(router, /unlockPlaceEditorialField/);
 assert.match(router, /archivePlace/);
 assert.match(router, /restorePlace/);
+assert.match(repository, /recommendation_feedback/);
+assert.doesNotMatch(repository, /'userPhone'/);
 
 console.log("Places admin rendering and route checks passed.");

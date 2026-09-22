@@ -83,12 +83,24 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   source: string | null;
   images: PlaceAdminImage[];
   video: PlaceAdminVideo | null;
+  feedback: PlaceAdminFeedback[];
   createdAt: string;
   editorialLockedFields: string[];
   editorialUpdatedAt: string | null;
   editorialUpdatedBy: string | null;
   statusBeforeArchive: string | null;
   archivedAt: string | null;
+};
+
+export type PlaceAdminFeedback = {
+  id: string;
+  rating: "loved" | "okay" | "disliked" | "did_not_go";
+  reason: string | null;
+  freeText: string | null;
+  positiveDetail: string | null;
+  travellerType: string | null;
+  requestedVibe: string | null;
+  createdAt: string;
 };
 
 export type PlaceAdminImage = {
@@ -190,7 +202,7 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
   const result = await pool.query(`${summarySelect} WHERE p.id = $1`, [id]);
   if (!result.rows[0]) return null;
 
-  const full = await pool.query(`SELECT p.*, image_data.images,
+  const full = await pool.query(`SELECT p.*, image_data.images, feedback_data.feedback,
     (SELECT row_to_json(video_row) FROM (
       SELECT id, url, cloudinary_public_id AS "cloudinaryPublicId", poster_url AS "posterUrl",
         original_filename AS "originalFilename", width, height,
@@ -201,6 +213,7 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     ) video_row) AS video
     FROM public.places p,
     LATERAL (SELECT COALESCE(json_agg(json_build_object('id', pi.id, 'url', pi.url, 'altText', pi.alt_text, 'caption', pi.caption, 'isHeroImage', pi.is_hero_image, 'sortOrder', pi.sort_order, 'source', pi.source, 'cloudinaryPublicId', pi.cloudinary_public_id, 'originalFilename', pi.original_filename, 'width', pi.width, 'height', pi.height) ORDER BY pi.sort_order, pi.created_at), '[]') AS images FROM public.place_images pi WHERE pi.place_id = p.id) image_data
+    CROSS JOIN LATERAL (SELECT COALESCE(json_agg(json_build_object('id', rf.id, 'rating', rf.rating, 'reason', rf.reason, 'freeText', rf.free_text, 'positiveDetail', rf.positive_detail, 'travellerType', rf.traveller_type, 'requestedVibe', rf.requested_vibe, 'createdAt', rf.created_at) ORDER BY rf.created_at DESC), '[]') AS feedback FROM public.recommendation_feedback rf WHERE rf.place_id = p.id) feedback_data
     WHERE p.id = $1`, [id]);
   const row = full.rows[0];
   const base = summary(result.rows[0]);
@@ -246,6 +259,15 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     source: row.source,
     images: Array.isArray(row.images) ? row.images : [],
     video: row.video ?? null,
+    feedback: Array.isArray(row.feedback) ? row.feedback.map((item: Record<string, unknown>) => ({
+      id: String(item.id), rating: String(item.rating) as PlaceAdminFeedback["rating"],
+      reason: item.reason === null ? null : String(item.reason),
+      freeText: item.freeText === null ? null : String(item.freeText),
+      positiveDetail: item.positiveDetail === null ? null : String(item.positiveDetail),
+      travellerType: item.travellerType === null ? null : String(item.travellerType),
+      requestedVibe: item.requestedVibe === null ? null : String(item.requestedVibe),
+      createdAt: new Date(String(item.createdAt)).toISOString()
+    })) : [],
     createdAt: new Date(row.created_at).toISOString(),
     editorialLockedFields: stringArray(row.editorial_locked_fields),
     editorialUpdatedAt: row.editorial_updated_at ? new Date(row.editorial_updated_at).toISOString() : null,
