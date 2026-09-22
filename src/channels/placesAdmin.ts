@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { addDashboardPlaceImage, getPlaceForAdmin, listPlacesForAdmin, placeAdminFilterOptions, removePlaceImageRelationship, removePlaceVideoRelationship, reorderPlaceImages, replaceDashboardPlaceVideo, setPlaceCoverImage, type PlaceAdminFilters } from "../data/placesAdminRepository.js";
+import { addDashboardPlaceImage, archivePlace, EDITORIAL_EDITABLE_FIELDS, getPlaceForAdmin, listPlacesForAdmin, placeAdminFilterOptions, removePlaceImageRelationship, removePlaceVideoRelationship, reorderPlaceImages, replaceDashboardPlaceVideo, restorePlace, setPlaceCoverImage, unlockPlaceEditorialField, updatePlaceEditorial, type EditorialEditableField, type EditorialPlaceUpdate, type PlaceAdminFilters } from "../data/placesAdminRepository.js";
 import { adminCsrfToken, requireAdminBasicAuth, requireAdminCsrf } from "../middleware/adminBasicAuth.js";
 import { renderPlaceAdminDetail, renderPlacesAdminList } from "../logic/placesAdminHtml.js";
 import { cloudinaryConfigured, uploadPlaceJpeg, uploadPlaceVideo } from "../integrations/cloudinary.js";
@@ -24,6 +24,49 @@ const videoUpload = multer({
   }
 });
 const validId = (value: string): boolean => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const listValue = (value: unknown): string[] => String(value ?? "").split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+const nullableText = (value: unknown): string | null => String(value ?? "").trim() || null;
+const nullableInteger = (value: unknown, min: number, max: number, field: string): number | null => {
+  if (String(value ?? "").trim() === "") return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) throw new Error(`${field} must be between ${min} and ${max}.`);
+  return parsed;
+};
+const editableStatuses = new Set(["draft", "ready", "premium"]);
+
+function editorialUpdateFromBody(body: Record<string, unknown>): EditorialPlaceUpdate {
+  const status = String(body.status ?? "draft");
+  if (!editableStatuses.has(status)) throw new Error("Invalid editorial status.");
+  const name = String(body.name ?? "").trim();
+  const googleMapsUrl = String(body.google_maps_url ?? "").trim();
+  if (!name || !googleMapsUrl) throw new Error("Name and Google Maps URL are required.");
+  const workFriendly = String(body.work_friendly ?? "");
+  if (!["", "true", "false"].includes(workFriendly)) throw new Error("Invalid work-friendly value.");
+  return {
+    name,
+    neighbourhood: nullableText(body.neighbourhood), area: nullableText(body.area),
+    categories: listValue(body.categories), subcategories: listValue(body.subcategories),
+    short_description_en: nullableText(body.short_description_en), short_description_fr: nullableText(body.short_description_fr),
+    practical_info_en: nullableText(body.practical_info_en), practical_info_fr: nullableText(body.practical_info_fr),
+    personal_tip_en: nullableText(body.personal_tip_en), personal_tip_fr: nullableText(body.personal_tip_fr),
+    price_level: nullableInteger(body.price_level, 1, 5, "Price level"), vibe: nullableText(body.vibe),
+    vibe_tags: listValue(body.vibe_tags), amenities: listValue(body.amenities),
+    instagram_url: nullableText(body.instagram_url), facebook_url: nullableText(body.facebook_url),
+    tiktok_url: nullableText(body.tiktok_url), google_maps_url: googleMapsUrl,
+    offscript_pick_level: nullableInteger(body.offscript_pick_level, 0, 3, "TUUTI pick level") ?? 0,
+    offscript_priority: nullableInteger(body.offscript_priority, 0, 100, "TUUTI priority") ?? 0,
+    offscript_reason_nl: nullableText(body.offscript_reason_nl), offscript_reason_en: nullableText(body.offscript_reason_en),
+    offscript_reason_fr: nullableText(body.offscript_reason_fr), authenticity: nullableInteger(body.authenticity, 0, 4, "Authenticity"),
+    food_orientation: nullableInteger(body.food_orientation, -2, 2, "Food orientation"),
+    audience_orientation: nullableInteger(body.audience_orientation, -2, 2, "Audience orientation"),
+    audience_tags: listValue(body.audience_tags), adventure_level: nullableInteger(body.adventure_level, 0, 3, "Adventure level"),
+    occasion_tags: listValue(body.occasion_tags), dietary_tags: listValue(body.dietary_tags),
+    work_friendly: workFriendly === "" ? null : workFriendly === "true",
+    status
+  };
+}
+
+const adminIdentity = (): string => process.env.INBOX_USERNAME?.trim() || "admin";
 
 placesAdminRouter.get("/", async (req, res) => {
   const filters: PlaceAdminFilters = {
@@ -127,6 +170,38 @@ placesAdminRouter.post("/:id/photos/:imageId/remove", requireAdminCsrf, async (r
   res.redirect(303, `/admin/places/${id}?removed=1#photos`);
 });
 
+placesAdminRouter.post("/:id/editorial", requireAdminCsrf, async (req, res) => {
+  const id = String(req.params.id);
+  if (!validId(id)) { res.status(404).send("Place not found."); return; }
+  try {
+    const changed = await updatePlaceEditorial(id, editorialUpdateFromBody(req.body), adminIdentity());
+    res.redirect(303, `/admin/places/${id}?editorial_saved=1&changed=${changed.length}#editorial`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Editorial update failed.";
+    res.redirect(303, `/admin/places/${id}?edit=1&editorial_error=${encodeURIComponent(message)}#editorial`);
+  }
+});
+
+placesAdminRouter.post("/:id/editorial/unlock", requireAdminCsrf, async (req, res) => {
+  const id = String(req.params.id);
+  const field = String(req.body.field ?? "") as EditorialEditableField;
+  if (!validId(id) || !EDITORIAL_EDITABLE_FIELDS.includes(field)) { res.status(400).send("Invalid field."); return; }
+  await unlockPlaceEditorialField(id, field, adminIdentity());
+  res.redirect(303, `/admin/places/${id}?unlocked=${encodeURIComponent(field)}#editorial`);
+});
+
+placesAdminRouter.post("/:id/archive", requireAdminCsrf, async (req, res) => {
+  const id = String(req.params.id);
+  if (!validId(id) || !await archivePlace(id, adminIdentity())) { res.status(404).send("Place not found or already archived."); return; }
+  res.redirect(303, `/admin/places/${id}?archived=1#editorial`);
+});
+
+placesAdminRouter.post("/:id/restore", requireAdminCsrf, async (req, res) => {
+  const id = String(req.params.id);
+  if (!validId(id) || !await restorePlace(id, adminIdentity())) { res.status(404).send("Place not found or not archived."); return; }
+  res.redirect(303, `/admin/places/${id}?restored=1#editorial`);
+});
+
 placesAdminRouter.get("/:id", async (req, res) => {
   const placeId = String(req.params.id);
   if (!validId(placeId)) {
@@ -136,10 +211,14 @@ placesAdminRouter.get("/:id", async (req, res) => {
   try {
     const place = await getPlaceForAdmin(placeId);
     if (!place) { res.status(404).send("Place not found."); return; }
-    res.type("html").send(renderPlaceAdminDetail({ place, csrfToken: adminCsrfToken(), cloudinaryReady: cloudinaryConfigured(), notice: {
+    res.type("html").send(renderPlaceAdminDetail({ place, csrfToken: adminCsrfToken(), cloudinaryReady: cloudinaryConfigured(), edit: req.query.edit === "1", notice: {
       uploaded: Number(req.query.uploaded ?? 0), removed: req.query.removed === "1", warning: String(req.query.photo_warning ?? "").trim() || undefined, error: String(req.query.photo_error ?? "").trim() || undefined,
       videoUploaded: req.query.video_uploaded === "1", videoReplaced: req.query.video_replaced === "1", videoRemoved: req.query.video_removed === "1",
-      videoWarning: String(req.query.video_warning ?? "").trim() || undefined, videoError: String(req.query.video_error ?? "").trim() || undefined
+      videoWarning: String(req.query.video_warning ?? "").trim() || undefined, videoError: String(req.query.video_error ?? "").trim() || undefined,
+      editorialSaved: req.query.editorial_saved === "1", editorialChanged: Number(req.query.changed ?? 0),
+      editorialError: String(req.query.editorial_error ?? "").trim() || undefined,
+      unlocked: String(req.query.unlocked ?? "").trim() || undefined,
+      archived: req.query.archived === "1", restored: req.query.restored === "1"
     } }));
   } catch (error) {
     console.error("Places admin detail failed", error);

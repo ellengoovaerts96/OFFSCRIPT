@@ -22,6 +22,7 @@ type ExistingReason = {
   name: string;
   offscript_reason_en: string | null;
   offscript_reason_fr: string | null;
+  editorial_locked_fields: string[] | null;
 };
 function required(name: string): string { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is missing.`); return value; }
 function normalized(value: unknown): string { return String(value ?? "").trim().toLowerCase(); }
@@ -102,7 +103,7 @@ async function main(): Promise<void> {
   let approved = 0;
   try {
     const existingResult = await client.query<ExistingReason>(`
-      SELECT name, offscript_reason_en, offscript_reason_fr
+      SELECT name, offscript_reason_en, offscript_reason_fr, editorial_locked_fields
       FROM public.places
     `);
     const existingByName = new Map(existingResult.rows.map((place) => [normalized(place.name), place]));
@@ -112,8 +113,9 @@ async function main(): Promise<void> {
       const reasonNl = text(row[index("offscript_reason_nl")]);
       if (!placeName || !reasonNl) return [];
       const existing = existingByName.get(normalized(placeName));
-      const hasEnglish = Boolean(text(row[index("offscript_reason_en")]) ?? existing?.offscript_reason_en);
-      const hasFrench = Boolean(text(row[index("offscript_reason_fr")]) ?? existing?.offscript_reason_fr);
+      const locked = new Set(existing?.editorial_locked_fields ?? []);
+      const hasEnglish = locked.has("offscript_reason_en") || Boolean(text(row[index("offscript_reason_en")]) ?? existing?.offscript_reason_en);
+      const hasFrench = locked.has("offscript_reason_fr") || Boolean(text(row[index("offscript_reason_fr")]) ?? existing?.offscript_reason_fr);
       return hasEnglish && hasFrench ? [] : [{ sheetRow: offset + 2, dutch: reasonNl }];
     });
     const reasonTranslations = dryRun
@@ -152,10 +154,21 @@ async function main(): Promise<void> {
            WHERE source_row_id=$1 OR lower(btrim(name))=lower(btrim($2))`,
           [sourceRowId, placeName]
         )
-        : await client.query(`UPDATE public.places SET offscript_pick_level=$1, offscript_priority=$2, price_level=$3,
-          offscript_reason_nl=$4, offscript_reason_fr=$5, offscript_reason_en=$6, authenticity=$7,
-          food_orientation=$8, audience_orientation=$9, audience_tags=$10, adventure_level=$11,
-          occasion_tags=$12, work_friendly=$13, amenities=COALESCE($14::text[], amenities),
+        : await client.query(`UPDATE public.places SET
+          offscript_pick_level=CASE WHEN NOT ('offscript_pick_level'=ANY(editorial_locked_fields)) THEN $1 ELSE offscript_pick_level END,
+          offscript_priority=CASE WHEN NOT ('offscript_priority'=ANY(editorial_locked_fields)) THEN $2 ELSE offscript_priority END,
+          price_level=CASE WHEN NOT ('price_level'=ANY(editorial_locked_fields)) THEN $3 ELSE price_level END,
+          offscript_reason_nl=CASE WHEN NOT ('offscript_reason_nl'=ANY(editorial_locked_fields)) THEN $4 ELSE offscript_reason_nl END,
+          offscript_reason_fr=CASE WHEN NOT ('offscript_reason_fr'=ANY(editorial_locked_fields)) THEN $5 ELSE offscript_reason_fr END,
+          offscript_reason_en=CASE WHEN NOT ('offscript_reason_en'=ANY(editorial_locked_fields)) THEN $6 ELSE offscript_reason_en END,
+          authenticity=CASE WHEN NOT ('authenticity'=ANY(editorial_locked_fields)) THEN $7 ELSE authenticity END,
+          food_orientation=CASE WHEN NOT ('food_orientation'=ANY(editorial_locked_fields)) THEN $8 ELSE food_orientation END,
+          audience_orientation=CASE WHEN NOT ('audience_orientation'=ANY(editorial_locked_fields)) THEN $9 ELSE audience_orientation END,
+          audience_tags=CASE WHEN NOT ('audience_tags'=ANY(editorial_locked_fields)) THEN $10 ELSE audience_tags END,
+          adventure_level=CASE WHEN NOT ('adventure_level'=ANY(editorial_locked_fields)) THEN $11 ELSE adventure_level END,
+          occasion_tags=CASE WHEN NOT ('occasion_tags'=ANY(editorial_locked_fields)) THEN $12 ELSE occasion_tags END,
+          work_friendly=CASE WHEN NOT ('work_friendly'=ANY(editorial_locked_fields)) THEN $13 ELSE work_friendly END,
+          amenities=CASE WHEN NOT ('amenities'=ANY(editorial_locked_fields)) THEN COALESCE($14::text[], amenities) ELSE amenities END,
           editorial_review_status='approved', editorial_verified_by=$15,
           editorial_review_notes=$16, editorial_verified_at=NOW(), updated_at=NOW()
           WHERE source_row_id=$17 OR lower(btrim(name))=lower(btrim($18))`, params);

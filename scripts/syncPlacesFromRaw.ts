@@ -2,6 +2,7 @@ import "dotenv/config";
 import pg, { type PoolClient } from "pg";
 import { extractVibeTags } from "../src/logic/vibeTags.js";
 import { PLACE_AMENITIES } from "../src/types/place.js";
+import { unlockedFields } from "../src/logic/editorialLocks.js";
 
 type RawPlace = Record<string, unknown> & {
   id: number;
@@ -16,6 +17,7 @@ type ExistingPlace = {
   name: string;
   status: string | null;
   values: Record<string, unknown>;
+  lockedFields: string[];
 };
 
 type PlaceValues = {
@@ -192,7 +194,8 @@ function comparable(value: unknown): string {
 
 function changedFields(existing: ExistingPlace | undefined, values: PlaceValues): string[] {
   if (!existing) return [...syncedColumns];
-  return syncedColumns.filter((column) => comparable(existing.values[column]) !== comparable(values[column]));
+  return unlockedFields(syncedColumns, existing.lockedFields)
+    .filter((column) => comparable(existing.values[column]) !== comparable(values[column]));
 }
 
 async function syncSubcategories(client: PoolClient, placeId: string, names: string[]): Promise<void> {
@@ -211,16 +214,20 @@ async function syncSubcategories(client: PoolClient, placeId: string, names: str
 }
 
 async function writePlan(client: PoolClient, plan: SyncPlan): Promise<void> {
-  const values = syncedColumns.map((column) => plan.values[column]);
   let placeId = plan.existing?.id;
 
   if (placeId) {
-    const assignments = syncedColumns.map((column, index) => `${column} = $${index + 1}`).join(", ");
-    await client.query(
-      `UPDATE public.places SET ${assignments}, updated_at = NOW() WHERE id = $${values.length + 1}`,
-      [...values, placeId]
-    );
+    const columns = unlockedFields(syncedColumns, plan.existing?.lockedFields ?? []);
+    if (columns.length) {
+      const values = columns.map((column) => plan.values[column]);
+      const assignments = columns.map((column, index) => `${column} = $${index + 1}`).join(", ");
+      await client.query(
+        `UPDATE public.places SET ${assignments}, updated_at = NOW() WHERE id = $${values.length + 1}`,
+        [...values, placeId]
+      );
+    }
   } else {
+    const values = syncedColumns.map((column) => plan.values[column]);
     const placeholders = syncedColumns.map((_, index) => `$${index + 1}`).join(", ");
     const inserted = await client.query<{ id: string }>(
       `INSERT INTO public.places (${syncedColumns.join(", ")}, status)
@@ -230,7 +237,9 @@ async function writePlan(client: PoolClient, plan: SyncPlan): Promise<void> {
     placeId = inserted.rows[0]!.id;
   }
 
-  await syncSubcategories(client, placeId, plan.values.subcategories);
+  if (!plan.existing?.lockedFields.includes("subcategories")) {
+    await syncSubcategories(client, placeId, plan.values.subcategories);
+  }
 }
 
 async function main(): Promise<void> {
@@ -252,7 +261,8 @@ async function main(): Promise<void> {
     const existingResult = await client.query<Record<string, unknown>>(`SELECT * FROM public.places ORDER BY name`);
     const existing = existingResult.rows.map((row) => ({
       id: String(row.id), source_row_id: text(row.source_row_id), name: String(row.name),
-      status: text(row.status), values: row
+      status: text(row.status), values: row,
+      lockedFields: Array.isArray(row.editorial_locked_fields) ? row.editorial_locked_fields.map(String) : []
     } satisfies ExistingPlace));
     const bySource = new Map(existing.filter((row) => row.source_row_id).map((row) => [row.source_row_id!, row]));
     const byName = new Map<string, ExistingPlace[]>();

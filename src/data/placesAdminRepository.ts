@@ -1,4 +1,18 @@
 import { pool } from "../integrations/postgres.js";
+import { changedEditorialFields } from "../logic/editorialLocks.js";
+import type { PoolClient } from "pg";
+
+export const EDITORIAL_EDITABLE_FIELDS = [
+  "name", "neighbourhood", "area", "categories", "subcategories",
+  "short_description_en", "short_description_fr", "practical_info_en", "practical_info_fr",
+  "personal_tip_en", "personal_tip_fr", "price_level", "vibe", "vibe_tags", "amenities",
+  "instagram_url", "facebook_url", "tiktok_url", "google_maps_url",
+  "offscript_pick_level", "offscript_priority", "offscript_reason_nl", "offscript_reason_en",
+  "offscript_reason_fr", "authenticity", "food_orientation", "audience_orientation",
+  "audience_tags", "adventure_level", "occasion_tags", "dietary_tags", "work_friendly", "status"
+] as const;
+export type EditorialEditableField = typeof EDITORIAL_EDITABLE_FIELDS[number];
+export type EditorialPlaceUpdate = Record<EditorialEditableField, string | number | boolean | null | string[]>;
 
 export type PlaceAdminFilters = {
   search?: string;
@@ -70,6 +84,11 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   images: PlaceAdminImage[];
   video: PlaceAdminVideo | null;
   createdAt: string;
+  editorialLockedFields: string[];
+  editorialUpdatedAt: string | null;
+  editorialUpdatedBy: string | null;
+  statusBeforeArchive: string | null;
+  archivedAt: string | null;
 };
 
 export type PlaceAdminImage = {
@@ -227,8 +246,99 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     source: row.source,
     images: Array.isArray(row.images) ? row.images : [],
     video: row.video ?? null,
-    createdAt: new Date(row.created_at).toISOString()
+    createdAt: new Date(row.created_at).toISOString(),
+    editorialLockedFields: stringArray(row.editorial_locked_fields),
+    editorialUpdatedAt: row.editorial_updated_at ? new Date(row.editorial_updated_at).toISOString() : null,
+    editorialUpdatedBy: row.editorial_updated_by,
+    statusBeforeArchive: row.status_before_archive,
+    archivedAt: row.archived_at ? new Date(row.archived_at).toISOString() : null
   };
+}
+
+async function syncEditorialSubcategories(client: PoolClient, placeId: string, names: string[]): Promise<void> {
+  await client.query(
+    `DELETE FROM public.place_subcategories WHERE place_id = $1 AND NOT (name = ANY($2::text[]))`,
+    [placeId, names]
+  );
+  for (const [index, name] of names.entries()) {
+    await client.query(
+      `INSERT INTO public.place_subcategories (place_id, name, display_order)
+       VALUES ($1,$2,$3)
+       ON CONFLICT (place_id,name) DO UPDATE SET display_order=EXCLUDED.display_order`,
+      [placeId, name, index]
+    );
+  }
+}
+
+export async function updatePlaceEditorial(
+  placeId: string,
+  submitted: EditorialPlaceUpdate,
+  updatedBy: string
+): Promise<string[]> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const currentResult = await client.query<Record<string, unknown>>(
+      "SELECT * FROM public.places WHERE id=$1 FOR UPDATE",
+      [placeId]
+    );
+    const current = currentResult.rows[0];
+    if (!current) throw new Error("Place not found.");
+    const changed = changedEditorialFields(current, submitted, EDITORIAL_EDITABLE_FIELDS);
+    if (!changed.length) {
+      await client.query("COMMIT");
+      return [];
+    }
+    const values = changed.map((field) => submitted[field as EditorialEditableField]);
+    const assignments = changed.map((field, index) => `${field}=$${index + 1}`);
+    await client.query(
+      `UPDATE public.places SET ${assignments.join(", ")},
+       editorial_locked_fields=(SELECT ARRAY(SELECT DISTINCT unnest(editorial_locked_fields || $${values.length + 1}::text[]))),
+       editorial_updated_at=NOW(), editorial_updated_by=$${values.length + 2}, updated_at=NOW()
+       WHERE id=$${values.length + 3}`,
+      [...values, changed, updatedBy, placeId]
+    );
+    if (changed.includes("subcategories")) {
+      await syncEditorialSubcategories(client, placeId, submitted.subcategories as string[]);
+    }
+    await client.query("COMMIT");
+    return changed;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}
+
+export async function unlockPlaceEditorialField(placeId: string, field: EditorialEditableField, updatedBy: string): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE public.places SET editorial_locked_fields=array_remove(editorial_locked_fields,$1),
+     editorial_updated_at=NOW(), editorial_updated_by=$2, updated_at=NOW()
+     WHERE id=$3 AND $1=ANY(editorial_locked_fields)`,
+    [field, updatedBy, placeId]
+  );
+  return result.rowCount === 1;
+}
+
+export async function archivePlace(placeId: string, updatedBy: string): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE public.places SET status_before_archive=CASE WHEN status <> 'archived' THEN status ELSE status_before_archive END,
+     status='archived', archived_at=COALESCE(archived_at,NOW()), editorial_updated_at=NOW(),
+     editorial_updated_by=$2, updated_at=NOW()
+     WHERE id=$1 AND status <> 'archived'`,
+    [placeId, updatedBy]
+  );
+  return result.rowCount === 1;
+}
+
+export async function restorePlace(placeId: string, updatedBy: string): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE public.places SET status=COALESCE(NULLIF(status_before_archive,'archived'),'draft'),
+     status_before_archive=NULL, archived_at=NULL, editorial_updated_at=NOW(),
+     editorial_updated_by=$2, updated_at=NOW()
+     WHERE id=$1 AND status='archived'`,
+    [placeId, updatedBy]
+  );
+  return result.rowCount === 1;
 }
 
 export async function addDashboardPlaceImage(placeId: string, image: NewDashboardImage): Promise<void> {
