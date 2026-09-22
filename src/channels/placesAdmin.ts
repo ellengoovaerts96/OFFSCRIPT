@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { addDashboardPlaceImage, archivePlace, EDITORIAL_EDITABLE_FIELDS, getPlaceForAdmin, listPlacesForAdmin, placeAdminFilterOptions, removePlaceImageRelationship, removePlaceVideoRelationship, reorderPlaceImages, replaceDashboardPlaceVideo, restorePlace, setPlaceCoverImage, unlockPlaceEditorialField, updatePlaceEditorial, type EditorialEditableField, type EditorialPlaceUpdate, type PlaceAdminFilters } from "../data/placesAdminRepository.js";
+import { addDashboardPlaceImage, archivePlace, EDITORIAL_EDITABLE_FIELDS, getPlaceForAdmin, listPlacesForAdmin, placeAdminFilterOptions, removePlaceDish, removePlaceImageRelationship, removePlaceVideoRelationship, reorderPlaceImages, replaceDashboardPlaceVideo, restorePlace, savePlaceDish, setPlaceCoverImage, unlockPlaceEditorialField, updatePlaceEditorial, type DishAvailabilityStatus, type EditorialEditableField, type EditorialPlaceUpdate, type PlaceAdminFilters } from "../data/placesAdminRepository.js";
 import { adminCsrfToken, requireAdminBasicAuth, requireAdminCsrf } from "../middleware/adminBasicAuth.js";
 import { renderPlaceAdminDetail, renderPlacesAdminList } from "../logic/placesAdminHtml.js";
 import { cloudinaryConfigured, uploadPlaceJpeg, uploadPlaceVideo } from "../integrations/cloudinary.js";
@@ -33,6 +33,7 @@ const nullableInteger = (value: unknown, min: number, max: number, field: string
   return parsed;
 };
 const editableStatuses = new Set(["draft", "ready", "premium"]);
+const dishAvailabilityStatuses = new Set<DishAvailabilityStatus>(["known_for", "usually_available", "sometimes_available"]);
 
 function editorialUpdateFromBody(body: Record<string, unknown>): EditorialPlaceUpdate {
   const status = String(body.status ?? "draft");
@@ -108,6 +109,32 @@ placesAdminRouter.post("/:id/photos", photoUpload.array("photos", 20), requireAd
     const message = error instanceof Error ? error.message : "Upload failed.";
     res.redirect(303, `/admin/places/${placeId}?uploaded=${uploaded}&photo_error=${encodeURIComponent(message)}#photos`);
   }
+});
+
+placesAdminRouter.post("/:id/dishes", requireAdminCsrf, async (req, res) => {
+  const placeId = String(req.params.id), dishId = String(req.body.dish_id ?? "");
+  const availabilityStatus = String(req.body.availability_status ?? "") as DishAvailabilityStatus;
+  if (!validId(placeId) || !validId(dishId) || !dishAvailabilityStatuses.has(availabilityStatus)) {
+    res.status(400).send("Invalid dish information."); return;
+  }
+  const verified = String(req.body.last_verified_at ?? "").trim();
+  const lastVerifiedAt = verified ? new Date(`${verified}T12:00:00.000Z`) : null;
+  if (lastVerifiedAt && Number.isNaN(lastVerifiedAt.getTime())) { res.status(400).send("Invalid verification date."); return; }
+  try {
+    await savePlaceDish({ placeId, dishId, availabilityStatus, lastVerifiedAt: lastVerifiedAt?.toISOString() ?? null, notes: nullableText(req.body.notes) });
+    res.redirect(303, `/admin/places/${placeId}?dish_saved=1#dishes`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Dish could not be saved.";
+    res.redirect(303, `/admin/places/${placeId}?dish_error=${encodeURIComponent(message)}#dishes`);
+  }
+});
+
+placesAdminRouter.post("/:id/dishes/:placeDishId/remove", requireAdminCsrf, async (req, res) => {
+  const placeId = String(req.params.id), placeDishId = String(req.params.placeDishId);
+  if (!validId(placeId) || !validId(placeDishId) || !await removePlaceDish(placeId, placeDishId)) {
+    res.status(404).send("Dish link not found."); return;
+  }
+  res.redirect(303, `/admin/places/${placeId}?dish_removed=1#dishes`);
 });
 
 placesAdminRouter.post("/:id/video", videoUpload.single("video"), requireAdminCsrf, async (req, res) => {
@@ -219,6 +246,8 @@ placesAdminRouter.get("/:id", async (req, res) => {
       editorialError: String(req.query.editorial_error ?? "").trim() || undefined,
       unlocked: String(req.query.unlocked ?? "").trim() || undefined,
       archived: req.query.archived === "1", restored: req.query.restored === "1"
+      ,dishSaved: req.query.dish_saved === "1", dishRemoved: req.query.dish_removed === "1",
+      dishError: String(req.query.dish_error ?? "").trim() || undefined
     } }));
   } catch (error) {
     console.error("Places admin detail failed", error);

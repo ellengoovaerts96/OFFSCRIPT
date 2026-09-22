@@ -33,6 +33,12 @@ const TERM_ALIASES: Record<string, string[]> = {
   ],
   seafood: ["seafood", "fish", "poisson", "vis", "fruits de mer"],
   thieboudienne: ["thiéboudienne", "thieboudienne", "thiebou dienne", "ceebu jen"],
+  yassa: ["yassa", "yassa poulet", "poulet yassa", "chicken yassa"],
+  mafe: ["mafé", "mafe", "maafe", "peanut stew"],
+  ceebu_yapp: ["ceebu yapp", "riz à la viande"],
+  soupe_kandia: ["soupe kandia", "soupou kandja"],
+  domoda: ["domoda"],
+  grilled_fish: ["grilled fish", "gegrilde vis", "poisson grillé", "poisson braisé", "dorade grillée", "gegrilde dorade"],
   jewellery: ["jewellery", "jewelry", "bijoux", "juwelen", "sieraden"],
   beachfront: ["beach", "beachfront", "oceanfront", "ocean", "sea", "oceaan", "zee", "plage", "strand", "bord de mer"],
   ocean_view: [
@@ -101,6 +107,16 @@ function placeSearchValues(place: Place): string[] {
     .map(normalize);
 }
 
+function structuredDishMatchStrength(place: Place, term: string): number {
+  const normalizedTerm = normalize(term).replaceAll(" ", "_");
+  const match = (place.dishes ?? []).find((dish) =>
+    normalize(dish.key).replaceAll(" ", "_") === normalizedTerm ||
+    aliases(term).includes(normalize(dish.name))
+  );
+  if (!match) return 0;
+  return match.availabilityStatus === "known_for" ? 6 : match.availabilityStatus === "usually_available" ? 5 : 4;
+}
+
 function placeServesCoffee(place: Place): boolean {
   const coffeeTerms = TERM_ALIASES.coffee.map(normalize);
   const containsCoffee = (value: string | undefined) => {
@@ -164,16 +180,19 @@ export function placeServesBreakfast(place: Place): boolean {
 }
 
 const LOCAL_STAPLES = new Set(["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"]);
+const STRUCTURED_DISH_KEYS = new Set(["thieboudienne", "yassa", "mafe", "ceebu yapp", "soupe kandia", "domoda", "grilled fish"]);
 
 export function searchTermMatchStrength(place: Place, term: string): number {
   if (normalize(term) === "coffee") return placeServesCoffee(place) ? 1 : 0;
   if (normalize(term) === "breakfast") return placeServesBreakfast(place) ? 1 : 0;
+  const dishStrength = structuredDishMatchStrength(place, term);
+  if (dishStrength) return dishStrength;
   const terms = aliases(term);
   const values = placeSearchValues(place);
   const directMatch = values.some((value) =>
     terms.some((candidate) => value.includes(candidate))
   );
-  if (directMatch) return LOCAL_STAPLES.has(normalize(term)) ? 3 : 1;
+  if (directMatch) return LOCAL_STAPLES.has(normalize(term)) || STRUCTURED_DISH_KEYS.has(normalize(term).replaceAll("_", " ")) ? 0 : 1;
 
   // A broad Senegalese-food label does not prove that a particular dish is
   // served. Specific dish requests must remain grounded in documented place

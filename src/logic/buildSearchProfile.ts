@@ -17,9 +17,13 @@ export type SearchProfileSignals = {
 
 const PRODUCT_PATTERNS: SignalPattern[] = [
   ["pizza", /\b(pizza|pizzeria)\b/],
-  ["thiéboudienne", /\b(thieboudienne|thiebou dienne|ceebu jen|thieboudiene)\b/],
+  ["thieboudienne", /\b(thieb|thieboudienne|thiebou dienne|thieboudiene|ceebu jen|riz au poisson)\b/],
   ["yassa", /\byassa\b/],
-  ["mafé", /\bmafe\b/],
+  ["mafe", /\b(mafe|maafe|peanut stew)\b/],
+  ["ceebu_yapp", /\b(ceebu yapp|riz a la viande)\b/],
+  ["soupe_kandia", /\b(soupe kandia|soupou kandja)\b/],
+  ["domoda", /\bdomoda\b/],
+  ["grilled_fish", /\b(grilled fish|gegrilde vis|poisson grille|poisson braise|grilled sea bream|dorade grillee|gegrilde dorade)\b/],
   ["japanese_food", /\b(japanese|japans|japonais|japanisch|sushi)\b/],
   ["senegalese_food", /\b(senegalese food|senegalese dishes|senegalese cuisine|senegalees eten|senegalese gerechten|lokale gerechten|manger senegalais|plats senegalais|cuisine senegalaise|repas senegalais|senegalesische kuche|senegalesische gerichte)\b/],
   ["seafood", /\b(seafood|fish|vis|poisson|fruits de mer)\b/],

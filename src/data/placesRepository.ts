@@ -1,5 +1,5 @@
 import { pool } from "../integrations/postgres.js";
-import type { Place, PlaceAmenity, PlaceCategory, PlaceImage, PlaceSubcategory } from "../types/place.js";
+import type { Place, PlaceAmenity, PlaceCategory, PlaceDish, PlaceImage, PlaceSubcategory } from "../types/place.js";
 import {
   compatibleAmenities,
   compatibleAudienceTags,
@@ -79,6 +79,7 @@ type PlaceRow = {
   status: Place["status"];
   images: PlaceImage[] | null;
   video_url: string | null;
+  dishes: PlaceDish[] | null;
 };
 
 function mergeSubcategories(row: PlaceRow): PlaceSubcategory[] {
@@ -163,6 +164,7 @@ function mapPlace(row: PlaceRow, language = "fr"): Place {
     workFriendly: row.work_friendly ?? undefined,
     categories: compatibleCategories(row.categories),
     subcategories: mergeSubcategories(row),
+    dishes: row.dishes ?? [],
     shortDescription: shortDescription ?? row.short_description,
     practicalInfo: localizedText(language, row.practical_info_en, row.practical_info_fr, row.practical_info),
     personalTip: localizedText(language, row.personal_tip_en, row.personal_tip_fr, row.personal_tip),
@@ -264,6 +266,20 @@ const placeSelect = `
       ),
       '[]'
     ) AS subcategories
+    ,COALESCE(
+      (
+        SELECT json_agg(json_build_object(
+          'key', d.dish_key,
+          'name', CASE WHEN $1::text LIKE 'fr%' THEN d.name_fr WHEN $1::text LIKE 'nl%' THEN d.name_nl ELSE d.name_en END,
+          'availabilityStatus', pd.availability_status,
+          'lastVerifiedAt', pd.last_verified_at,
+          'source', pd.source,
+          'notes', pd.notes
+        ) ORDER BY d.name_en)
+        FROM public.place_dishes pd JOIN public.dishes d ON d.id = pd.dish_id
+        WHERE pd.place_id = p.id
+      ), '[]'
+    ) AS dishes
   FROM places p
 `;
 
@@ -272,7 +288,7 @@ export async function listRecommendationPlaces(language = "fr"): Promise<Place[]
     ${placeSelect}
     WHERE p.status <> 'archived'
     ORDER BY p.status DESC, p.name ASC
-  `);
+  `, [language]);
 
   return result.rows.map((row) => mapPlace(row, language));
 }
@@ -281,11 +297,11 @@ export async function getPlaceById(id: string, language = "fr"): Promise<Place |
   const result = await pool.query<PlaceRow>(
     `
       ${placeSelect}
-      WHERE p.id = $1
+      WHERE p.id = $2
         AND p.status <> 'archived'
       LIMIT 1
     `,
-    [id]
+    [language, id]
   );
 
   return result.rows[0] ? mapPlace(result.rows[0], language) : null;

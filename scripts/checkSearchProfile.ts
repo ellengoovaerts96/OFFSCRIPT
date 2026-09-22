@@ -188,7 +188,7 @@ const localFood = profile("Waar kan ik Thiéboudienne eten in Yoff?", {
 });
 if (
   localFood.activity !== "eat" ||
-  !localFood.products.includes("thiéboudienne") ||
+  !localFood.products.includes("thieboudienne") ||
   localFood.neighbourhood !== "Yoff" ||
   localFood.mobility !== "nearby"
 ) {

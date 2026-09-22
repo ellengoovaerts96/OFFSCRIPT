@@ -152,6 +152,13 @@ function buildPlaceFacts(place: Place): Record<string, unknown> {
       description: subcategory.description,
       imageCount: subcategory.images.length
     })),
+    dishes: (place.dishes ?? []).map((dish) => ({
+      key: dish.key,
+      name: dish.name,
+      availabilityStatus: dish.availabilityStatus,
+      lastVerifiedAt: dish.lastVerifiedAt,
+      notes: dish.notes
+    })),
     shortDescription: place.shortDescription,
     practicalInfo: place.practicalInfo,
     personalTip: place.personalTip,
@@ -370,7 +377,10 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
     const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
     const personalTip = place.personalTip ? `Mijn tip: ${place.personalTip}` : undefined;
     const reservation = place.reservationNeeded ? "Ik raad aan om vooraf te reserveren." : undefined;
-    return [`Ik zou je naar ${place.name} sturen.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
+    const uncertainty = input.context.dishAvailabilityUnconfirmed && input.context.requestedDish
+      ? `Dit is een goede Senegalese plek om ${input.context.requestedDish.replaceAll("_", " ")} te proberen, maar ik kan niet bevestigen dat het vandaag beschikbaar is. Vraag het even wanneer je aankomt.`
+      : undefined;
+    return [`Ik zou je naar ${place.name} sturen.`, uncertainty, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "fr") {
@@ -379,7 +389,10 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
     const practicalInfo = place.practicalInfo ? `Pratique : ${place.practicalInfo}` : undefined;
     const personalTip = place.personalTip ? `Mon conseil : ${place.personalTip}` : undefined;
     const reservation = place.reservationNeeded ? "Je te conseille de réserver à l’avance." : undefined;
-    return [`Je t’enverrais à ${place.name}.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
+    const uncertainty = input.context.dishAvailabilityUnconfirmed && input.context.requestedDish
+      ? `C’est une bonne adresse sénégalaise où tenter ${input.context.requestedDish.replaceAll("_", " ")}, mais je ne peux pas confirmer que le plat est disponible aujourd’hui. Demande en arrivant.`
+      : undefined;
+    return [`Je t’enverrais à ${place.name}.`, uncertainty, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
   }
 
   if (language === "de") {
@@ -388,7 +401,10 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
     const practicalInfo = place.practicalInfo ? `Praktisch: ${place.practicalInfo}` : undefined;
     const personalTip = place.personalTip ? `Mein Tipp: ${place.personalTip}` : undefined;
     const reservation = place.reservationNeeded ? "Ich würde vorher reservieren." : undefined;
-    return [`Ich würde dich zu ${place.name} schicken.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
+    const uncertainty = input.context.dishAvailabilityUnconfirmed && input.context.requestedDish
+      ? `Das ist ein gutes senegalesisches Restaurant, um ${input.context.requestedDish.replaceAll("_", " ")} zu versuchen, aber ich kann nicht bestätigen, dass das Gericht heute verfügbar ist. Frag am besten bei der Ankunft.`
+      : undefined;
+    return [`Ich würde dich zu ${place.name} schicken.`, uncertainty, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
   }
 
   const fit = intent ? `This place is a good fit if you are looking for ${intent}.` : "This place is a good fit for what you want.";
@@ -396,7 +412,10 @@ function fallbackAnswer(input: GenerateAnswerInput): string {
   const practicalInfo = place.practicalInfo ? `Practical info: ${place.practicalInfo}` : undefined;
   const personalTip = place.personalTip ? `My tip: ${place.personalTip}` : undefined;
   const reservation = place.reservationNeeded ? "I recommend booking in advance." : undefined;
-  return [`I would send you to ${place.name}.`, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
+  const uncertainty = input.context.dishAvailabilityUnconfirmed && input.context.requestedDish
+    ? `This is a good Senegalese place to try for ${input.context.requestedDish.replaceAll("_", " ")}, but I cannot confirm that it is available today. It is worth asking when you arrive.`
+    : undefined;
+  return [`I would send you to ${place.name}.`, uncertainty, explanation, practicalInfo, personalTip, reservation].filter(Boolean).join(" ");
 }
 
 export async function generateAnswer(input: GenerateAnswerInput): Promise<string> {
@@ -427,6 +446,8 @@ The offscriptReason explains the recommendation but never overrides a mismatch w
 When selectedPlace.personalTip is available, always finish with that exact tip introduced naturally as "My tip", "Mon conseil", "Mijn tip" or the equivalent in the target language. Do not replace it with a generic AI tip.
 Do not include a Google Maps link.
 Only include a URL if it comes from retrievedFacts.stories or retrievedFacts.experiences and is directly relevant.
+When context.dishAvailabilityUnconfirmed is true, explicitly say that the selected place serves Senegalese food but that the requested dish is not confirmed as available today. Suggest asking on arrival. Never state or imply that the place serves that dish.
+For a structured dish with availabilityStatus known_for, usually_available or sometimes_available, describe exactly that confidence level; none of these statuses proves availability today.
 Omit missing facts. Do not invent anything.`,
     input: JSON.stringify({
       userMessage: input.userMessage,

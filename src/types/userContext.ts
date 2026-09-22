@@ -43,4 +43,6 @@ export type UserContext = {
   directRequest?: boolean;
   clarificationCount?: number;
   searchProfile?: SearchProfile;
+  requestedDish?: string;
+  dishAvailabilityUnconfirmed?: boolean;
 };

@@ -84,6 +84,8 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   images: PlaceAdminImage[];
   video: PlaceAdminVideo | null;
   feedback: PlaceAdminFeedback[];
+  dishes?: PlaceAdminDish[];
+  dishCatalog?: DishCatalogItem[];
   createdAt: string;
   editorialLockedFields: string[];
   editorialUpdatedAt: string | null;
@@ -91,6 +93,19 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   statusBeforeArchive: string | null;
   archivedAt: string | null;
 };
+
+export type DishAvailabilityStatus = "known_for" | "usually_available" | "sometimes_available";
+export type PlaceAdminDish = {
+  id: string;
+  dishId: string;
+  key: string;
+  name: string;
+  availabilityStatus: DishAvailabilityStatus;
+  lastVerifiedAt: string | null;
+  source: string;
+  notes: string | null;
+};
+export type DishCatalogItem = { id: string; key: string; name: string };
 
 export type PlaceAdminFeedback = {
   id: string;
@@ -216,6 +231,13 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     CROSS JOIN LATERAL (SELECT COALESCE(json_agg(json_build_object('id', rf.id, 'rating', rf.rating, 'reason', rf.reason, 'freeText', rf.free_text, 'positiveDetail', rf.positive_detail, 'travellerType', rf.traveller_type, 'requestedVibe', rf.requested_vibe, 'createdAt', rf.created_at) ORDER BY rf.created_at DESC), '[]') AS feedback FROM public.recommendation_feedback rf WHERE rf.place_id = p.id) feedback_data
     WHERE p.id = $1`, [id]);
   const row = full.rows[0];
+  const [dishRows, catalogRows] = await Promise.all([
+    pool.query(`SELECT pd.id, pd.dish_id, d.dish_key, d.name_en, pd.availability_status,
+      pd.last_verified_at, pd.source, pd.notes
+      FROM public.place_dishes pd JOIN public.dishes d ON d.id=pd.dish_id
+      WHERE pd.place_id=$1 ORDER BY d.name_en`, [id]),
+    pool.query(`SELECT id, dish_key, name_en FROM public.dishes ORDER BY name_en`)
+  ]);
   const base = summary(result.rows[0]);
   return {
     ...base,
@@ -268,6 +290,13 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
       requestedVibe: item.requestedVibe === null ? null : String(item.requestedVibe),
       createdAt: new Date(String(item.createdAt)).toISOString()
     })) : [],
+    dishes: dishRows.rows.map((dish) => ({
+      id: String(dish.id), dishId: String(dish.dish_id), key: String(dish.dish_key), name: String(dish.name_en),
+      availabilityStatus: String(dish.availability_status) as DishAvailabilityStatus,
+      lastVerifiedAt: dish.last_verified_at ? new Date(dish.last_verified_at).toISOString() : null,
+      source: String(dish.source), notes: dish.notes === null ? null : String(dish.notes)
+    })),
+    dishCatalog: catalogRows.rows.map((dish) => ({ id: String(dish.id), key: String(dish.dish_key), name: String(dish.name_en) })),
     createdAt: new Date(row.created_at).toISOString(),
     editorialLockedFields: stringArray(row.editorial_locked_fields),
     editorialUpdatedAt: row.editorial_updated_at ? new Date(row.editorial_updated_at).toISOString() : null,
@@ -275,6 +304,25 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     statusBeforeArchive: row.status_before_archive,
     archivedAt: row.archived_at ? new Date(row.archived_at).toISOString() : null
   };
+}
+
+export async function savePlaceDish(input: {
+  placeId: string; dishId: string; availabilityStatus: DishAvailabilityStatus;
+  lastVerifiedAt: string | null; notes: string | null;
+}): Promise<void> {
+  await pool.query(`INSERT INTO public.place_dishes
+    (place_id,dish_id,availability_status,last_verified_at,source,notes)
+    VALUES ($1,$2,$3,$4,'dashboard',$5)
+    ON CONFLICT (place_id,dish_id) DO UPDATE SET
+      availability_status=EXCLUDED.availability_status,
+      last_verified_at=EXCLUDED.last_verified_at,
+      source='dashboard', notes=EXCLUDED.notes, updated_at=NOW()`,
+  [input.placeId, input.dishId, input.availabilityStatus, input.lastVerifiedAt, input.notes]);
+}
+
+export async function removePlaceDish(placeId: string, placeDishId: string): Promise<boolean> {
+  const result = await pool.query("DELETE FROM public.place_dishes WHERE id=$1 AND place_id=$2", [placeDishId, placeId]);
+  return result.rowCount === 1;
 }
 
 async function syncEditorialSubcategories(client: PoolClient, placeId: string, names: string[]): Promise<void> {

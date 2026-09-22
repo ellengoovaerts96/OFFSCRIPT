@@ -27,6 +27,15 @@ export type PlaceSubcategory = {
   images: PlaceImage[];
 };
 
+export type PlaceDish = {
+  key: string;
+  name: string;
+  availabilityStatus: "known_for" | "usually_available" | "sometimes_available";
+  lastVerifiedAt?: string;
+  source: "dashboard" | "field_research" | "restaurant" | "traveller_feedback";
+  notes?: string;
+};
+
 export const PLACE_AMENITIES = [
   "air_conditioning",
   "wifi",
@@ -72,6 +81,7 @@ export type Place = {
   workFriendly?: boolean;
   categories: PlaceCategory[];
   subcategories: PlaceSubcategory[];
+  dishes?: PlaceDish[];
   shortDescription: string;
   practicalInfo?: string;
   personalTip?: string;

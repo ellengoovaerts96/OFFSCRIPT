@@ -206,6 +206,26 @@ function recommendationFocusLabel(context: UserContext): string | undefined {
   return labels[language][focus.toLowerCase()] ?? labels[language][normalized] ?? normalized;
 }
 
+const STRUCTURED_DISH_PRODUCTS = new Set([
+  "thieboudienne", "yassa", "mafe", "ceebu_yapp", "soupe_kandia", "domoda", "grilled_fish"
+]);
+
+function unconfirmedDishFallbackContext(context: UserContext): UserContext | null {
+  const requestedDish = context.searchProfile?.products.find((product) =>
+    STRUCTURED_DISH_PRODUCTS.has(product.toLowerCase().replaceAll(" ", "_"))
+  );
+  if (!requestedDish || !context.searchProfile) return null;
+  return {
+    ...context,
+    requestedDish,
+    dishAvailabilityUnconfirmed: true,
+    searchProfile: {
+      ...context.searchProfile,
+      products: context.searchProfile.products.map((product) => product === requestedDish ? "senegalese_food" : product)
+    }
+  };
+}
+
 function buildNoNewMatchResponse(context: UserContext, previousPlaceName?: string): string {
   const focus = recommendationFocusLabel(context);
   const placeReference = previousPlaceName ? `: ${previousPlaceName}` : "";
@@ -1264,6 +1284,14 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const selection = selectBestPlace(newPlaces, context);
 
   if (!selection) {
+    const fallbackContext = unconfirmedDishFallbackContext(context);
+    if (fallbackContext) {
+      const fallbackSelection = selectBestPlace(newPlaces, fallbackContext);
+      if (fallbackSelection) {
+      await upsertConversationContext(userPhone, fallbackContext);
+      return recommendationResult(fallbackSelection.place, fallbackContext, message, fallbackSelection.score);
+      }
+    }
     const alternativeSelection = selectBestAlternativePlace(newPlaces, context);
 
     if (alternativeSelection) {

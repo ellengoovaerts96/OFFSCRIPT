@@ -38,6 +38,7 @@
     "editorial-locks:check": "node --import tsx scripts/checkEditorialLocks.ts",
     "place-photo-admin:check": "node --import tsx scripts/checkPlacePhotoAdmin.ts",
     "place-video-admin:check": "node --import tsx scripts/checkPlaceVideoAdmin.ts",
+    "place-dishes:check": "node --import tsx scripts/checkPlaceDishes.ts",
     "field-notes-assessment:check": "node --import tsx scripts/checkFieldNotesAssessment.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
