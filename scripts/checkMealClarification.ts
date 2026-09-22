@@ -114,4 +114,28 @@ assert.match(
   /Italiaans\/pizza/i
 );
 
+const americanBreakfastContext: UserContext = {
+  language: "en",
+  intent: "food",
+  timing: "morning",
+  requestedSubcategory: "breakfast",
+  directRequest: true,
+  clarificationCount: 0,
+  searchProfile: {
+    activity: "eat", products: ["american_breakfast"], locationFeatures: [], occasions: ["breakfast"],
+    vibes: [], amenities: [], dietaryRequirements: [],
+    exclusions: { products: [], categories: [], audienceTags: [], dietary: [] }
+  }
+};
+assert.equal(
+  needsClarification(americanBreakfastContext, []),
+  "location",
+  "American breakfast is already specific; only the missing neighbourhood may be requested."
+);
+assert.notEqual(
+  needsClarification({ ...americanBreakfastContext, targetRegion: "Yoff" }, []),
+  "subcategory",
+  "An exact breakfast dish must never trigger another cuisine or breakfast-format question."
+);
+
 console.log("Broad meal clarification checks passed.");

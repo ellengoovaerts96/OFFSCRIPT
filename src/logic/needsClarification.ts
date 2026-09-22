@@ -26,6 +26,17 @@ const SUBCATEGORY_REQUIRED_INTENTS = new Set([
   "work"
 ]);
 
+const SPECIFIC_DISH_PRODUCTS = new Set([
+  "thieboudienne", "yassa", "mafe", "ceebu_yapp", "soupe_kandia", "domoda",
+  "grilled_fish", "continental_breakfast", "american_breakfast", "grilled_prawns"
+]);
+
+function hasSpecificDishProduct(context: UserContext): boolean {
+  return (context.searchProfile?.products ?? []).some((product) =>
+    SPECIFIC_DISH_PRODUCTS.has(product.trim().toLowerCase().replaceAll(" ", "_"))
+  );
+}
+
 function hasSpecificLocation(context: UserContext): boolean {
   const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
 
@@ -68,6 +79,8 @@ function needsVibeForBroadIntent(context: UserContext): boolean {
 }
 
 function hasMeaningfulSubcategory(context: UserContext): boolean {
+  if (context.intent === "food" && hasSpecificDishProduct(context)) return true;
+
   if (context.intent === "beach") {
     return Boolean(
       (context.requestedSubcategory && context.requestedSubcategory !== "beach") ||
@@ -90,6 +103,10 @@ function hasMeaningfulSubcategory(context: UserContext): boolean {
 }
 
 function needsSubcategory(context: UserContext): boolean {
+  // A named dish already answers what the traveller wants to eat. Asking for
+  // another cuisine/style or meal format only repeats the same decision.
+  if (context.intent === "food" && hasSpecificDishProduct(context)) return false;
+
   // Lunch or dinner determines when someone wants to eat, not what kind of
   // food they want. Keep broad meal requests open until cuisine/style is known
   // so editorial priority cannot arbitrarily turn "lunch" into pizza.
