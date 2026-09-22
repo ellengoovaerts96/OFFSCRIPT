@@ -153,7 +153,12 @@ function needsTranslation(existing: ExistingPlace | undefined, englishColumn: ke
 }
 
 function baseValues(row: SheetRow, existing?: ExistingPlace): PlaceValues {
-  const value = (header: string): string => row.values[header] ?? "";
+  const visibleHeaderAliases: Record<string, string> = {
+    offscript_pick_level: "tuuti_pick_level",
+    offscript_priority: "tuuti_priority",
+    offscript_reason_en: "tuuti_reason_en"
+  };
+  const value = (header: string): string => row.values[visibleHeaderAliases[header] ?? header] ?? row.values[header] ?? "";
   const name = text(value("place_name"));
   const region = text(value("region"));
   const description = text(value("short_description_en"));

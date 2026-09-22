@@ -22,8 +22,8 @@ const headers = [
   "source_note_id", "source_timestamp", "visit_date", "researcher", "place_name", "entry_type",
   "country", "region", "neighbourhood", "area", "categories", "subcategories",
   "short_description_en", "practical_info_en", "personal_tip_en", "story_en", "vibe",
-  "audience_tags", "occasion_tags", "dietary_tags", "offscript_pick_level",
-  "offscript_priority", "offscript_reason_en",
+  "audience_tags", "occasion_tags", "dietary_tags", "tuuti_pick_level",
+  "tuuti_priority", "tuuti_reason_en",
   "authenticity", "food_orientation", "audience_orientation", "adventure_level", "price_level",
   "traveller_types", "child_friendly", "work_friendly", "amenities", "best_timing", "opening_hours",
   "contact_person", "phone", "facebook_url", "instagram_url", "tiktok_url", "google_maps_url",
@@ -147,8 +147,8 @@ function structuredRow(sourceId: string, timestamp: string, visitDate: string, r
     short_description_en: cell(note.short_description_en), practical_info_en: cell(note.practical_info_en),
     personal_tip_en: cell(note.personal_tip_en), story_en: cell(note.story_en),
     vibe: cell(note.vibe), audience_tags: list(note.audience_tags), occasion_tags: list(note.occasion_tags), dietary_tags: list(note.dietary_tags),
-    offscript_pick_level: cell(note.offscript_pick_level), offscript_priority: cell(note.offscript_priority),
-    offscript_reason_en: cell(note.offscript_reason_en),
+    tuuti_pick_level: cell(note.offscript_pick_level), tuuti_priority: cell(note.offscript_priority),
+    tuuti_reason_en: cell(note.offscript_reason_en),
     authenticity: cell(note.authenticity), food_orientation: cell(note.food_orientation), audience_orientation: cell(note.audience_orientation),
     adventure_level: cell(note.adventure_level), price_level: cell(note.price_level), traveller_types: list(note.traveller_types),
     child_friendly: cell(note.child_friendly), work_friendly: cell(note.work_friendly), amenities: list(note.amenities),
@@ -251,9 +251,15 @@ async function main(): Promise<void> {
     const headerChanged = headers.some((header, index) => normalize(existingHeaders[index]) !== normalize(header));
     if (headerChanged) {
       const oldIndexes = new Map(existingHeaders.map((header, index) => [normalize(header), index]));
+      const legacyHeader: Record<string, string> = {
+        tuuti_pick_level: "offscript_pick_level",
+        tuuti_priority: "offscript_priority",
+        tuuti_reason_en: "offscript_reason_en"
+      };
       const reorderedRows = existing.slice(1).map((row) =>
         headers.map((header) => {
-          const oldIndex = oldIndexes.get(normalize(header));
+          const normalizedHeader = normalize(header);
+          const oldIndex = oldIndexes.get(normalizedHeader) ?? oldIndexes.get(legacyHeader[normalizedHeader] ?? "");
           return oldIndex === undefined ? "" : row[oldIndex] ?? "";
         })
       );

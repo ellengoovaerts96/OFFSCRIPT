@@ -14,6 +14,7 @@
     "setup:editorial-sheet": "tsx scripts/setupEditorialRankingSheet.ts",
     "setup:field-notes-sheet": "tsx scripts/processFieldNotes.ts --headers-only",
     "setup:field-notes-form": "node --import tsx scripts/updateFieldNotesForm.ts",
+    "rename:field-notes-branding": "node --import tsx scripts/renameFieldNotesBranding.ts",
     "process:field-notes": "tsx scripts/processFieldNotes.ts",
     "sync:structured-import": "node --import tsx scripts/syncStructuredImport.ts",
     "sync:editorial-ranking": "node --import tsx scripts/syncEditorialRanking.ts",

@@ -6,6 +6,7 @@ import {
   assessmentOccasionTags,
   assessmentWorkFriendly
 } from "../src/logic/fieldNotesAssessment.js";
+import { readFile } from "node:fs/promises";
 
 assert.equal(assessmentInteger("-2 — Entièrement locale", -2, 2, "food_orientation"), -2);
 assert.equal(assessmentInteger("3 — Authentique", 0, 4, "authenticity"), 3);
@@ -20,5 +21,15 @@ assert.deepEqual(assessmentOccasionTags("En couple, Musique live, Petit budget")
 assert.equal(assessmentWorkFriendly("Oui"), true);
 assert.equal(assessmentWorkFriendly("Non"), false);
 assert.equal(assessmentWorkFriendly("Non évalué"), null);
+
+const processor = await readFile(new URL("./processFieldNotes.ts", import.meta.url), "utf8");
+const importer = await readFile(new URL("./syncStructuredImport.ts", import.meta.url), "utf8");
+assert.match(processor, /"tuuti_pick_level"/);
+assert.match(processor, /"tuuti_priority"/);
+assert.match(processor, /"tuuti_reason_en"/);
+assert.match(processor, /tuuti_pick_level: "offscript_pick_level"/);
+assert.match(importer, /offscript_pick_level: "tuuti_pick_level"/);
+assert.match(importer, /offscript_priority: "tuuti_priority"/);
+assert.match(importer, /offscript_reason_en: "tuuti_reason_en"/);
 
 console.log("Field Notes assessment normalization checks passed.");
