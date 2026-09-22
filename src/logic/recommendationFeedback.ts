@@ -40,6 +40,10 @@ export function parseRecommendationFeedbackRating(
   if (/^(?:i went|we went|i tried it|we tried it).*(?:not for me|didn t like it|did not like it)$/.test(value)) return "disliked";
   if (/^(?:j y suis alle|nous y sommes alles|j ai essaye).*(?:pas pour moi|je n ai pas aime)$/.test(value)) return "disliked";
   if (/^(?:ik ben geweest|we zijn geweest|ik heb het geprobeerd).*(?:niet voor mij|vond het niet leuk)$/.test(value)) return "disliked";
+  if (/^(?:ik was niet(?: zo)? tevreden|ik vond het niet (?:goed|leuk|lekker)|het viel tegen)(?:\s+.*)?$/.test(value)) return "disliked";
+  if (/^(?:je n etais pas(?: tres)? satisfait|je n ai pas aime|ca ne m a pas plu|j ai ete decu)(?:\s+.*)?$/.test(value)) return "disliked";
+  if (/^(?:i wasn t(?: very)? happy|i was not(?: very)? happy|i didn t like it|it was disappointing)(?:\s+.*)?$/.test(value)) return "disliked";
+  if (/^(?:ich war nicht(?: so)? zufrieden|es hat mir nicht gefallen|es war enttauschend)(?:\s+.*)?$/.test(value)) return "disliked";
   if (/^(?:didn t go|did not go|i didn t go|je n y suis pas alle|pas alle|niet geweest|ik ben niet gegaan|nicht hingegangen)$/.test(value)) return "did_not_go";
   return undefined;
 }

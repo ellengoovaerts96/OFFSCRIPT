@@ -16,6 +16,10 @@ const ratings = [
   ["J’ai aimé! Prix/qualité super", "loved"],
   ["Ik ben geweest en het was oké", "okay"],
   ["J’y suis allé, pas pour moi", "disliked"],
+  ["ik was niet zo tevreden", "disliked"],
+  ["Het viel tegen", "disliked"],
+  ["Je n’étais pas très satisfait", "disliked"],
+  ["I wasn't very happy", "disliked"],
   ["🚫 Niet geweest", "did_not_go"]
 ] as const;
 
@@ -42,6 +46,9 @@ for (const [message, expected] of reasons) {
 
 if (parseRecommendationFeedbackRating("Ik wil ergens eten") !== undefined) {
   throw new Error("A new search request must not be mistaken for place feedback.");
+}
+if (parseRecommendationFeedbackRating("Ik ben niet tevreden met deze suggestie") !== undefined) {
+  throw new Error("Rejecting a suggestion before visiting must not be stored as experience feedback.");
 }
 if (!isRecommendationExperienceSignal("Het was lekker")) {
   throw new Error("A natural post-visit remark must start the lightweight feedback question.");
