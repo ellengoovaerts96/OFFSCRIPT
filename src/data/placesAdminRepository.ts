@@ -5,7 +5,7 @@ import type { PoolClient } from "pg";
 export const EDITORIAL_EDITABLE_FIELDS = [
   "name", "neighbourhood", "area", "categories", "subcategories",
   "short_description_en", "short_description_fr", "practical_info_en", "practical_info_fr",
-  "personal_tip_en", "personal_tip_fr", "price_level", "vibe", "vibe_tags", "amenities",
+  "personal_tip_en", "personal_tip_fr", "opening_hours", "price_level", "vibe", "vibe_tags", "amenities",
   "instagram_url", "facebook_url", "tiktok_url", "google_maps_url",
   "offscript_pick_level", "offscript_priority", "offscript_reason_nl", "offscript_reason_en",
   "offscript_reason_fr", "authenticity", "food_orientation", "audience_orientation",

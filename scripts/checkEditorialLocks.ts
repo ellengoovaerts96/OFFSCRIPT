@@ -13,6 +13,16 @@ assert.deepEqual(
   "Only the actually changed field may be locked."
 );
 assert.deepEqual(unlockedFields(["name", "price_level", "subcategories"], ["price_level"]), ["name", "subcategories"]);
+assert.deepEqual(
+  changedEditorialFields({ opening_hours: "Mon–Sun 13:30–00:30" }, { opening_hours: "Mon–Sun 13:30–00:30" }, ["opening_hours"]),
+  [],
+  "Unchanged opening hours must not become locked."
+);
+assert.deepEqual(
+  changedEditorialFields({ opening_hours: "Mon–Sun 13:30–00:30" }, { opening_hours: "Fri 15:00–00:30" }, ["opening_hours"]),
+  ["opening_hours"],
+  "Changed opening hours must be protected as an editorial correction."
+);
 
 const placesSync = await readFile(new URL("./syncPlacesFromRaw.ts", import.meta.url), "utf8");
 assert.match(placesSync, /unlockedFields\(syncedColumns, existing\.lockedFields\)/, "sync:places must omit locked fields from its change plan.");
@@ -32,6 +42,7 @@ assert.match(repository, /editorial_locked_fields=.*editorial_locked_fields/);
 assert.match(repository, /array_remove\(editorial_locked_fields,\$1\)/);
 assert.match(repository, /status_before_archive=CASE WHEN status <> 'archived'/);
 assert.match(repository, /status=COALESCE\(NULLIF\(status_before_archive,'archived'\),'draft'\)/);
+assert.match(repository, /"opening_hours"/, "Opening hours must be an editable, lockable editorial field.");
 
 const recommendations = await readFile(new URL("../src/data/placesRepository.ts", import.meta.url), "utf8");
 assert.match(recommendations, /p\.status <> 'archived'/, "Archived places must not be recommended.");

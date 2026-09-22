@@ -67,6 +67,7 @@ assert.match(detail, /Remove link/);
 assert.match(detail, /Cloudinary asset will not be deleted/);
 assert.match(detail, /Edit/);
 assert.match(detail, /price level/);
+assert.match(detail, /Opening hours/);
 assert.match(detail, /Use Field Research again/);
 assert.match(detail, /Archive place/);
 assert.match(detail, /Feedback/);

@@ -50,6 +50,7 @@ function editorialUpdateFromBody(body: Record<string, unknown>): EditorialPlaceU
     short_description_en: nullableText(body.short_description_en), short_description_fr: nullableText(body.short_description_fr),
     practical_info_en: nullableText(body.practical_info_en), practical_info_fr: nullableText(body.practical_info_fr),
     personal_tip_en: nullableText(body.personal_tip_en), personal_tip_fr: nullableText(body.personal_tip_fr),
+    opening_hours: nullableText(body.opening_hours),
     price_level: nullableInteger(body.price_level, 1, 5, "Price level"), vibe: nullableText(body.vibe),
     vibe_tags: listValue(body.vibe_tags), amenities: listValue(body.amenities),
     instagram_url: nullableText(body.instagram_url), facebook_url: nullableText(body.facebook_url),
