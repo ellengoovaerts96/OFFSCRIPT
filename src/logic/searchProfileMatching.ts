@@ -39,6 +39,9 @@ const TERM_ALIASES: Record<string, string[]> = {
   soupe_kandia: ["soupe kandia", "soupou kandja"],
   domoda: ["domoda"],
   grilled_fish: ["grilled fish", "gegrilde vis", "poisson grillé", "poisson braisé", "dorade grillée", "gegrilde dorade"],
+  continental_breakfast: ["continental breakfast", "continentaal ontbijt", "petit déjeuner continental"],
+  american_breakfast: ["american breakfast", "amerikaans ontbijt", "petit déjeuner américain"],
+  grilled_prawns: ["grilled prawns", "grilled shrimp", "gegrilde gamba's", "gegrilde garnalen", "gambas grillées", "crevettes grillées"],
   jewellery: ["jewellery", "jewelry", "bijoux", "juwelen", "sieraden"],
   beachfront: ["beach", "beachfront", "oceanfront", "ocean", "sea", "oceaan", "zee", "plage", "strand", "bord de mer"],
   ocean_view: [
@@ -180,7 +183,7 @@ export function placeServesBreakfast(place: Place): boolean {
 }
 
 const LOCAL_STAPLES = new Set(["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"]);
-const STRUCTURED_DISH_KEYS = new Set(["thieboudienne", "yassa", "mafe", "ceebu yapp", "soupe kandia", "domoda", "grilled fish"]);
+const STRUCTURED_DISH_KEYS = new Set(["thieboudienne", "yassa", "mafe", "ceebu yapp", "soupe kandia", "domoda", "grilled fish", "continental breakfast", "american breakfast", "grilled prawns"]);
 
 export function searchTermMatchStrength(place: Place, term: string): number {
   if (normalize(term) === "coffee") return placeServesCoffee(place) ? 1 : 0;

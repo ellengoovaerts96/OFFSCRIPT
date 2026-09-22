@@ -5,12 +5,17 @@ import { searchTermMatchStrength } from "../src/logic/searchProfileMatching.js";
 import type { Place } from "../src/types/place.js";
 
 const migration = await readFile(new URL("../migrations/056_place_dishes.sql", import.meta.url), "utf8");
+const additionalMigration = await readFile(new URL("../migrations/057_additional_dishes.sql", import.meta.url), "utf8");
 assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.dishes/);
 assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.dish_aliases/);
 assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.place_dishes/);
 assert.match(migration, /known_for.*usually_available.*sometimes_available/s);
 assert.match(migration, /grilled_fish/);
 assert.doesNotMatch(migration, /DELETE FROM|TRUNCATE/i);
+assert.match(additionalMigration, /continental_breakfast/);
+assert.match(additionalMigration, /american_breakfast/);
+assert.match(additionalMigration, /grilled_prawns/);
+assert.doesNotMatch(additionalMigration, /DELETE FROM|TRUNCATE/i);
 
 const foodContext = { language: "nl", intent: "food" } as const;
 const profile = buildSearchProfile("Waar kan ik gegrilde dorade eten?", foodContext);
@@ -18,6 +23,9 @@ assert.deepEqual(profile.products, ["grilled_fish"]);
 assert.deepEqual(buildSearchProfile("Where can I eat ceebu jën?", foodContext).products, ["thieboudienne"]);
 assert.deepEqual(buildSearchProfile("Ik wil mafé eten", foodContext).products, ["mafe"]);
 assert.deepEqual(buildSearchProfile("Je cherche du soupou kandja", foodContext).products, ["soupe_kandia"]);
+assert.deepEqual(buildSearchProfile("Ik wil een continentaal ontbijt", foodContext).products, ["continental_breakfast"]);
+assert.deepEqual(buildSearchProfile("Je cherche un petit déjeuner américain", foodContext).products, ["american_breakfast"]);
+assert.deepEqual(buildSearchProfile("Waar eet ik gegrilde gamba’s?", foodContext).products, ["grilled_prawns"]);
 
 const base = {
   id: "1", name: "Test", country: "Senegal", region: "Dakar", vibeTags: [],

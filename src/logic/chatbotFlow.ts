@@ -207,7 +207,8 @@ function recommendationFocusLabel(context: UserContext): string | undefined {
 }
 
 const STRUCTURED_DISH_PRODUCTS = new Set([
-  "thieboudienne", "yassa", "mafe", "ceebu_yapp", "soupe_kandia", "domoda", "grilled_fish"
+  "thieboudienne", "yassa", "mafe", "ceebu_yapp", "soupe_kandia", "domoda", "grilled_fish",
+  "continental_breakfast", "american_breakfast", "grilled_prawns"
 ]);
 
 function unconfirmedDishFallbackContext(context: UserContext): UserContext | null {
