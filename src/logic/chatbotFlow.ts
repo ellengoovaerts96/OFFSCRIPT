@@ -1,3 +1,4 @@
+import { placePhoneMessage } from "./placePhone.js";
 import {
   buildUserContext,
   acceptsBroaderLocation,
@@ -85,6 +86,7 @@ export type ChatbotFlowResult =
       context: UserContext;
       placeId: string;
       placeName: string;
+      reservationPhone?: string;
       googleMapsUrl: string;
       shortDescription: string;
       offscriptReason?: string;
@@ -819,6 +821,7 @@ function recommendationResult(
     context,
     placeId: place.id,
     placeName: place.name,
+    reservationPhone: place.reservationPhone,
     googleMapsUrl: place.googleMapsUrl,
     shortDescription: place.shortDescription,
     offscriptReason: place.offscriptReason,
@@ -1386,8 +1389,9 @@ export async function handleChatMessage(input: {
         localizedRecommendation.practicalInfo
       ]
     : [];
+  const phoneMessage = result.type === "recommendation" ? placePhoneMessage(result.reservationPhone) : undefined;
   const whatsAppContactLine =
-    result.type === "recommendation" && mentionsWhatsApp(recommendationMessages)
+    result.type === "recommendation" && !phoneMessage && mentionsWhatsApp(recommendationMessages)
       ? buildWhatsAppContactLine(
           result.context,
           await listPlaceContactDetails(result.placeId)
@@ -1399,7 +1403,7 @@ export async function handleChatMessage(input: {
           localizedRecommendation.shortDescription,
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
-          whatsAppContactLine,
+          phoneMessage ?? whatsAppContactLine,
           result.socialUrl,
           result.googleMapsUrl
         ].filter(

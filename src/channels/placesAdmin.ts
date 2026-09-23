@@ -1,3 +1,4 @@
+import { normalizePlacePhone } from "../logic/placePhone.js";
 import { Router } from "express";
 import multer from "multer";
 import { addDashboardPlaceImage, archivePlace, EDITORIAL_EDITABLE_FIELDS, getPlaceForAdmin, listPlacesForAdmin, placeAdminFilterOptions, removePlaceDish, removePlaceImageRelationship, removePlaceVideoRelationship, reorderPlaceImages, replaceDashboardPlaceVideo, restorePlace, savePlaceDish, setPlaceCoverImage, unlockPlaceEditorialField, updatePlaceEditorial, type DishAvailabilityStatus, type EditorialEditableField, type EditorialPlaceUpdate, type PlaceAdminFilters } from "../data/placesAdminRepository.js";
@@ -51,6 +52,7 @@ function editorialUpdateFromBody(body: Record<string, unknown>): EditorialPlaceU
     practical_info_en: nullableText(body.practical_info_en), practical_info_fr: nullableText(body.practical_info_fr),
     personal_tip_en: nullableText(body.personal_tip_en), personal_tip_fr: nullableText(body.personal_tip_fr),
     opening_hours: nullableText(body.opening_hours),
+    reservation_phone: normalizePlacePhone(body.reservation_phone),
     price_level: nullableInteger(body.price_level, 1, 5, "Price level"), vibe: nullableText(body.vibe),
     vibe_tags: listValue(body.vibe_tags), amenities: listValue(body.amenities),
     instagram_url: nullableText(body.instagram_url), facebook_url: nullableText(body.facebook_url),

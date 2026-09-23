@@ -1,3 +1,4 @@
+import { normalizePlacePhone, placePhoneMessage } from "../src/logic/placePhone.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { renderPlaceAdminDetail, renderPlacesAdminList } from "../src/logic/placesAdminHtml.js";
@@ -86,6 +87,14 @@ const editDetail = renderPlaceAdminDetail({ place: {
   lastVerifiedAt: null, source: null, images: [], video: null, feedback: [], createdAt: "2026-01-01T00:00:00.000Z",
   editorialLockedFields: [], editorialUpdatedAt: null, editorialUpdatedBy: null, statusBeforeArchive: null, archivedAt: null
 }, csrfToken: "csrf-test", cloudinaryReady: true, edit: true });
+assert.match(editDetail, /name="reservation_phone" type="tel"/);
+assert.equal(normalizePlacePhone("00221 77 123 45 67"), "+221771234567");
+assert.equal(normalizePlacePhone(""), null);
+assert.throws(() => normalizePlacePhone("771234567"), /country code/);
+assert.throws(() => normalizePlacePhone("+221771234567;bad"), /country code/);
+assert.equal(placePhoneMessage("+221 77 123 45 67"), "+221771234567\nWhatsApp: https://wa.me/221771234567");
+assert.equal(placePhoneMessage(undefined), undefined);
+assert.equal(placePhoneMessage("771234567"), undefined);
 assert.match(editDetail, /Save editorial changes/);
 assert.match(editDetail, /name="subcategories"/);
 assert.match(editDetail, /name="offscript_priority"/);

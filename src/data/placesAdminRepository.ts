@@ -6,7 +6,7 @@ export const EDITORIAL_EDITABLE_FIELDS = [
   "name", "neighbourhood", "area", "categories", "subcategories",
   "short_description_en", "short_description_fr", "practical_info_en", "practical_info_fr",
   "personal_tip_en", "personal_tip_fr", "opening_hours", "price_level", "vibe", "vibe_tags", "amenities",
-  "instagram_url", "facebook_url", "tiktok_url", "google_maps_url",
+  "reservation_phone", "instagram_url", "facebook_url", "tiktok_url", "google_maps_url",
   "offscript_pick_level", "offscript_priority", "offscript_reason_nl", "offscript_reason_en",
   "offscript_reason_fr", "authenticity", "food_orientation", "audience_orientation",
   "audience_tags", "adventure_level", "occasion_tags", "dietary_tags", "work_friendly", "status"
@@ -73,6 +73,7 @@ export type PlaceAdminDetail = PlaceAdminSummary & {
   travellerTypes: string[];
   bestTiming: string[];
   openingHours: string | null;
+  reservationPhone?: string | null;
   googleMapsUrl: string;
   instagramUrl: string | null;
   facebookUrl: string | null;
@@ -271,6 +272,7 @@ export async function getPlaceForAdmin(id: string): Promise<PlaceAdminDetail | n
     travellerTypes: stringArray(row.traveller_types),
     bestTiming: stringArray(row.best_timing),
     openingHours: row.opening_hours,
+    reservationPhone: row.reservation_phone,
     googleMapsUrl: row.google_maps_url,
     instagramUrl: row.instagram_url,
     facebookUrl: row.facebook_url,
