@@ -121,3 +121,29 @@ export async function uploadPlaceVideo(input: { buffer: Buffer; filename: string
     fileSizeBytes: response.bytes
   };
 }
+
+/** Event evidence is kept in its original format, without crop or recompression. */
+export async function uploadEventScreenshot(input: { buffer: Buffer; filename: string; format: "png" | "jpg" | "heic" }): Promise<import("../logic/eventImport.js").EventSource> {
+  cloudinary.config({
+    cloud_name: required("CLOUDINARY_CLOUD_NAME"), api_key: required("CLOUDINARY_API_KEY"),
+    api_secret: required("CLOUDINARY_API_SECRET"), secure: true
+  });
+  const response = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({
+      resource_type: "image", folder: "tuuti/events/sources", unique_filename: true,
+      allowed_formats: ["png", "jpg", "jpeg", "heic", "heif"],
+      filename_override: input.filename, timeout: 60000,
+      // HEIC needs a browser/vision-compatible derivative; PNG/JPG stay untouched.
+      ...(input.format === "heic" ? { eager: [{ format: "jpg", quality: 95 }] } : {})
+    }, (error, result) => {
+      if (error || !result) reject(error ?? new Error("Cloudinary returned no screenshot."));
+      else resolve(result);
+    });
+    stream.end(input.buffer);
+  });
+  if (!response.secure_url || !response.public_id) throw new Error("Screenshot upload returned incomplete metadata.");
+  const previewUrl = input.format === "heic" ? response.eager?.[0]?.secure_url : response.secure_url;
+  if (!previewUrl) throw new Error("HEIC conversion failed. Please export the screenshot as PNG and try again.");
+  return { originalUrl: response.secure_url, previewUrl, publicId: response.public_id,
+    filename: input.filename, format: response.format ?? input.format };
+}

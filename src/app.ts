@@ -1,4 +1,5 @@
 import express from "express";
+import { eventsAdminRouter } from "./channels/eventsAdmin.js";
 import { inboxRouter } from "./channels/inbox.js";
 import { whatsappRouter } from "./channels/whatsapp.js";
 import { webchatRouter } from "./channels/webchat.js";
@@ -28,6 +29,7 @@ app.use("/webchat", webchatRouter);
 app.use("/go", sourceRedirectRouter);
 app.use("/admin/sources", sourcesAdminRouter);
 app.use("/admin/places", placesAdminRouter);
+app.use("/admin/events", eventsAdminRouter);
 app.use("/admin", dashboardRouter);
 app.use(inboxRouter);
 

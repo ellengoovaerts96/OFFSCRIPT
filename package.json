@@ -43,7 +43,8 @@
     "field-notes-assessment:check": "node --import tsx scripts/checkFieldNotesAssessment.ts",
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
-    "start": "node dist/migrate.js && node dist/server.js"
+    "start": "node dist/migrate.js && node dist/server.js",
+    "event-import:check": "node --import tsx scripts/checkEventImport.ts"
   },
   "keywords": [],
   "author": "",
