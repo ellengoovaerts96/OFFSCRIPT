@@ -17,16 +17,18 @@ export async function createRecommendationFeedback(input: {
   context: UserContext;
   acquisitionSourceId?: string;
   freeText?: string;
+  reason?: RecommendationFeedbackReason;
+  complete?: boolean;
 }): Promise<void> {
   await pool.query(
     `INSERT INTO public.recommendation_feedback (
        user_phone, place_id, place_name, rating, traveller_type, requested_vibe,
-       context_snapshot, acquisition_source_id, free_text, awaiting_positive_detail
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10)`,
+       context_snapshot, acquisition_source_id, free_text, awaiting_positive_detail, reason
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11)`,
     [input.userPhone, input.placeId, input.placeName, input.rating,
       input.context.travellerType ?? null, input.context.vibe ?? input.context.requestedStyle ?? null,
       JSON.stringify(input.context), input.acquisitionSourceId ?? null, input.freeText ?? null,
-      input.rating === "loved"]
+      input.rating === "loved" && !input.complete, input.reason ?? null]
   );
 }
 
@@ -69,4 +71,9 @@ export async function setPositiveRecommendationFeedbackDetail(id: string, detail
      WHERE id = $1`,
     [id, detail]
   );
+}
+
+export async function listFeedbackPlaces(): Promise<Array<{ id: string; name: string }>> {
+  const result = await pool.query<{ id: string; name: string }>("SELECT id, name FROM public.places ORDER BY name");
+  return result.rows;
 }

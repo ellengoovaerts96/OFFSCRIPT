@@ -1,3 +1,4 @@
+import { interpretPlaceFeedback } from "../ai/interpretPlaceFeedback.js";
 import { placePhoneMessage } from "./placePhone.js";
 import {
   buildUserContext,
@@ -25,6 +26,7 @@ import { listRecommendationPlaces } from "../data/placesRepository.js";
 import { getWhatsAppUser } from "../data/whatsappUsersRepository.js";
 import {
   createRecommendationFeedback,
+  listFeedbackPlaces,
   getPendingRecommendationFeedback,
   setPositiveRecommendationFeedbackDetail,
   setRecommendationFeedbackFreeText,
@@ -879,6 +881,56 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       context,
       message: buildOffscriptWelcomeResponse()
     };
+  }
+
+  // Interpret unsolicited reviews before ordinary place questions or new searches.
+  // Persist the exact wording before acknowledging it to the traveller.
+  const feedbackPlaces = await listFeedbackPlaces().catch((error) => {
+    console.error("Could not load places for feedback interpretation", error);
+    return [];
+  });
+  const naturalFeedback = await interpretPlaceFeedback({
+    message,
+    places: feedbackPlaces,
+    activePlace: activeRecommendation?.placeId ? { id: activeRecommendation.placeId, name: activeRecommendation.placeName } : undefined
+  });
+  if (naturalFeedback?.feedback.length && !naturalFeedback.ambiguousPlace) {
+    const context: UserContext = {
+      ...(previousContext ?? { clarificationCount: 0 }),
+      language: resolveConversationLanguage(message, previousContext?.language, "fr")
+    };
+    const names: string[] = [];
+    for (const feedback of naturalFeedback.feedback) {
+      const place = feedbackPlaces.find(candidate => candidate.id === feedback.placeId);
+      if (!place) continue;
+      await createRecommendationFeedback({
+        userPhone, placeId: place.id, placeName: place.name,
+        rating: feedback.rating, reason: feedback.reason, complete: true,
+        context, acquisitionSourceId: whatsappUser?.acquisitionSourceId,
+        freeText: message.trim()
+      });
+      names.push(place.name);
+    }
+    if (names.length) {
+      const language = context.language;
+      const places = names.join(", ");
+      const reply = language.startsWith("nl")
+        ? `Dank je! Ik heb je feedback over ${places} bewaard: “${message.trim()}”`
+        : language.startsWith("fr")
+          ? `Merci ! J’ai enregistré ton retour sur ${places} : « ${message.trim()} »`
+          : language.startsWith("de")
+            ? `Danke! Ich habe deine Rückmeldung zu ${places} gespeichert: „${message.trim()}“`
+            : `Thanks! I’ve saved your feedback about ${places}: “${message.trim()}”`;
+      return { type: "clarification", context, message: reply };
+    }
+  }
+  if (naturalFeedback?.ambiguousPlace) {
+    const context: UserContext = { ...(previousContext ?? { clarificationCount: 0 }), language: resolveConversationLanguage(message, previousContext?.language, "fr") };
+    return { type: "clarification", context, message: context.language.startsWith("nl")
+      ? "Over welke plaats gaat je feedback? Noem de plaats even bij je waardering, dan kan ik die juist bewaren."
+      : context.language.startsWith("fr") ? "De quel endroit parles-tu ? Ajoute son nom à ton avis pour que je puisse l’enregistrer au bon endroit."
+      : context.language.startsWith("de") ? "Welchen Ort meinst du? Nenne den Ort zusammen mit deiner Bewertung, damit ich sie richtig speichern kann."
+      : "Which place is this about? Include its name with your feedback so I can save it against the right place." };
   }
 
   const feedbackRating = parseRecommendationFeedbackRating(message, {
