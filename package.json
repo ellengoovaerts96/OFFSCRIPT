@@ -31,6 +31,7 @@
     "social-link:check": "node --import tsx scripts/checkSocialLink.ts",
     "recommendation-feedback:check": "node --import tsx scripts/checkRecommendationFeedback.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",
+    "whatsapp-deadline:check": "node --experimental-vm-modules scripts/checkWhatsAppDeadline.mjs",
     "source-tracking:check": "node --import tsx scripts/checkSourceTracking.ts",
     "sources-admin:check": "node --import tsx scripts/checkSourcesAdmin.ts",
     "dashboard:check": "node --import tsx scripts/checkDashboard.ts",

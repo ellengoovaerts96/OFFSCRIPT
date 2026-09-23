@@ -26,45 +26,46 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       return;
     }
 
-    const prepared = await prepareInboundWhatsAppMessage({
-      messageSid,
-      userPhone: from,
-      message: rawIncomingMessage
-    });
+    // Include deduplication and user/source preparation in the response deadline:
+    // these also access Postgres and can stall before recommendation processing.
+    const processing = (async () => {
+      const prepared = await prepareInboundWhatsAppMessage({
+        messageSid,
+        userPhone: from,
+        message: rawIncomingMessage
+      });
+      if (prepared.duplicate) return { duplicate: true as const };
 
-    if (prepared.duplicate) {
-      sendTwilioMessages(res, []);
-      return;
-    }
-
-    const incomingMessage = prepared.message;
-
-    // Logging must never delay the Twilio webhook response. Railway/Postgres
-    // can briefly be slow even while recommendation processing is healthy.
-    void logChatMessage(from, "incoming", incomingMessage);
-
-    const processing = handleChatMessage({
-      userPhone: from,
-      message: incomingMessage
-    });
+      void logChatMessage(from, "incoming", prepared.message);
+      const result = await handleChatMessage({
+        userPhone: from,
+        message: prepared.message
+      });
+      return { duplicate: false as const, result };
+    })();
     const result = await withinWebhookDeadline(processing);
 
     if (!result) {
-      const acknowledgement = buildProcessingAcknowledgement(incomingMessage);
+      const acknowledgement = buildProcessingAcknowledgement(rawIncomingMessage);
       sendTwilioMessages(res, [acknowledgement]);
       void logChatMessage(from, "outgoing", acknowledgement);
 
       if (canSendWhatsAppMessage(twilioTo)) {
         void withinDelayedProcessingDeadline(processing)
-          .then((completedResult) => sendCompletedResult(from, twilioTo, completedResult))
-          .catch((error) => sendDelayedFailure(from, twilioTo, incomingMessage, error));
+          .then((completed) => completed.duplicate ? undefined : sendCompletedResult(from, twilioTo, completed.result))
+          .catch((error) => sendDelayedFailure(from, twilioTo, rawIncomingMessage, error));
       } else {
         console.error("WhatsApp processing exceeded the webhook deadline and delayed sending is unavailable.");
       }
       return;
     }
 
-    const { reply, followUpMessages, locationActions, imageUrls, videoUrls, afterMediaMessages } = result;
+    if (result.duplicate) {
+      sendTwilioMessages(res, []);
+      return;
+    }
+
+    const { reply, followUpMessages, locationActions, imageUrls, videoUrls, afterMediaMessages } = result.result;
 
     void logChatMessage(from, "outgoing", reply);
 
