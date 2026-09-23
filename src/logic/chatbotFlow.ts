@@ -1,5 +1,6 @@
+import { localizeEventText } from "../ai/localizeEventText.js";
 import { listPublishedEvents } from "../data/eventsRepository.js";
-import { isStoredEventRequest, selectPublishedEvents, formatPublishedEvents } from "./publishedEvents.js";
+import { isStoredEventRequest, selectPublishedEvents, formatPublishedEventMessages } from "./publishedEvents.js";
 import { currentEventDateRange } from "../ai/findCurrentEvent.js";
 import { interpretPlaceFeedback } from "../ai/interpretPlaceFeedback.js";
 import { placePhoneMessage } from "./placePhone.js";
@@ -1399,8 +1400,14 @@ export async function handleChatMessage(input: {
     try {
       const range = currentEventDateRange(input.message);
       const events = selectPublishedEvents(await listPublishedEvents(range.start, range.end), input.message);
-      if (events.length) return { reply: formatPublishedEvents(events, detectLanguage(input.message, "fr")),
-        followUpMessages: [], locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
+      if (events.length) {
+        let previousLanguage: string | undefined;
+        try { previousLanguage = (await getConversationContext(input.userPhone))?.language; } catch { /* Use the current message language. */ }
+        const language = resolveConversationLanguage(input.message, previousLanguage, "fr");
+        const localized = await localizeEventText(events, language);
+        const messages = formatPublishedEventMessages(localized.events, language, localized.unavailable);
+        return { reply: messages[0], followUpMessages: messages.slice(1), locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
+      }
     } catch (error) { console.error("Could not load reviewed events", error); }
   }
   if (isCurrentEventRequest(input.message)) {
