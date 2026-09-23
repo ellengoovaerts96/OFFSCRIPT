@@ -1,3 +1,4 @@
+import { rememberEventLanguage } from "./eventConversationLanguage.js";
 import { localizeEventText } from "../ai/localizeEventText.js";
 import { listPublishedEvents } from "../data/eventsRepository.js";
 import { isStoredEventRequest, selectPublishedEvents, formatPublishedEventMessages } from "./publishedEvents.js";
@@ -1396,14 +1397,14 @@ export async function handleChatMessage(input: {
   videoUrls: string[];
   afterMediaMessages: string[];
 }> {
+  const eventLanguage = isStoredEventRequest(input.message) || isCurrentEventRequest(input.message)
+    ? await rememberEventLanguage(input.userPhone, input.message) : undefined;
   if (isStoredEventRequest(input.message)) {
     try {
       const range = currentEventDateRange(input.message);
       const events = selectPublishedEvents(await listPublishedEvents(range.start, range.end), input.message);
       if (events.length) {
-        let previousLanguage: string | undefined;
-        try { previousLanguage = (await getConversationContext(input.userPhone))?.language; } catch { /* Use the current message language. */ }
-        const language = resolveConversationLanguage(input.message, previousLanguage, "fr");
+        const language = eventLanguage ?? detectLanguage(input.message, "fr");
         const localized = await localizeEventText(events, language);
         const messages = formatPublishedEventMessages(localized.events, language, localized.unavailable);
         return { reply: messages[0], followUpMessages: messages.slice(1), locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
@@ -1428,7 +1429,7 @@ export async function handleChatMessage(input: {
       console.error("Could not load curated venues for current event search", error);
     }
 
-    const currentEventReply = await findCurrentEvent(input.message, curatedVenues);
+    const currentEventReply = await findCurrentEvent(input.message, curatedVenues, eventLanguage);
     return {
       reply: currentEventReply ?? "",
       followUpMessages: [],

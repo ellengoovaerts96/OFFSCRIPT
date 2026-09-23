@@ -167,3 +167,10 @@ export async function upsertConversationContext(userPhone: string, context: User
     ]
   );
 }
+
+/** Update language without replacing the user's existing search preferences. */
+export async function upsertConversationLanguage(userPhone: string, language: string): Promise<void> {
+  await pool.query(`INSERT INTO conversation_context(user_phone, language, updated_at)
+    VALUES ($1, $2, NOW()) ON CONFLICT(user_phone) DO UPDATE
+    SET language=EXCLUDED.language, updated_at=NOW()`, [userPhone, language]);
+}

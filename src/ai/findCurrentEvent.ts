@@ -179,11 +179,11 @@ function citationUrls(response: Response): string[] {
 
 export async function findCurrentEvent(
   message: string,
-  curatedVenues: CuratedEventVenue[] = []
+  curatedVenues: CuratedEventVenue[] = [],
+  language = detectLanguage(message, "fr")
 ): Promise<string | null> {
   if (!isCurrentEventRequest(message)) return null;
 
-  const language = detectLanguage(message, "fr");
   if (!hasOpenAIKey()) return fallbackMessage(language);
 
   const range = currentEventDateRange(message);
