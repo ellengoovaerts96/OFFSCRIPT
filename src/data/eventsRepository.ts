@@ -13,15 +13,15 @@ export async function listEventVenues(): Promise<EventVenue[]> {
 }
 function eventFromRow(row: Record<string, any>): AdminEvent {
   return { id: row.id, data: { ...emptyEvent(), ...row.details, title: row.title, placeId: row.place_id, eventVenueId: row.event_venue_id ?? null, status: row.status,
-    eventDate: row.event_date ? String(row.event_date) : null },
+    eventDate: row.event_date_iso ?? null },
     source: row.source, extraction: row.extraction, updatedAt: new Date(row.updated_at).toISOString() };
 }
 export async function listAdminEvents(): Promise<AdminEvent[]> {
-  const result = await pool.query("SELECT *, event_date::text AS event_date FROM public.events ORDER BY event_date DESC NULLS LAST, created_at DESC LIMIT 200");
+  const result = await pool.query("SELECT e.*, e.event_date::text AS event_date_iso FROM public.events e ORDER BY e.event_date DESC NULLS LAST, e.created_at DESC LIMIT 200");
   return result.rows.map(eventFromRow);
 }
 export async function getAdminEvent(id: string): Promise<AdminEvent | null> {
-  const result = await pool.query("SELECT *, event_date::text AS event_date FROM public.events WHERE id=$1", [id]);
+  const result = await pool.query("SELECT e.*, e.event_date::text AS event_date_iso FROM public.events e WHERE e.id=$1", [id]);
   return result.rows[0] ? eventFromRow(result.rows[0]) : null;
 }
 export async function saveAdminEvent(input: { data: EventData; draft?: EventDraft; id?: string; admin: string }): Promise<string> {
@@ -71,7 +71,7 @@ export async function saveAdminEvent(input: { data: EventData; draft?: EventDraf
 }
 
 export async function listPublishedEvents(start: string, end: string): Promise<EventData[]> {
-  const result = await pool.query(`SELECT e.*, e.event_date::text AS event_date,
+  const result = await pool.query(`SELECT e.*, e.event_date::text AS event_date_iso,
     COALESCE(p.name,v.name) AS venue_name, COALESCE(p.neighbourhood,v.neighbourhood) AS venue_neighbourhood,
     COALESCE(p.area,v.area) AS venue_area, COALESCE(p.google_maps_url,v.google_maps_url) AS venue_maps,
     COALESCE(p.reservation_phone,v.contact_phone) AS venue_phone

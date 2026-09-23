@@ -48,7 +48,7 @@ assert.ok(queries.some(([sql])=>sql==='ROLLBACK'));
 assert.equal(queries.at(-1)[0],'release');
 queries=[];
 const today = new Date().toISOString().slice(0,10);
-publishedRows=[{id:eventId,title:'Test',details:logic.emptyEvent(),status:'published',event_date:today,updated_at:new Date(),venue_name:'Prieto',venue_neighbourhood:'Almadies',venue_area:'Dakar',venue_maps:'https://maps.google.com/?q=Prieto',venue_phone:'123'}];
+publishedRows=[{id:eventId,title:'Test',details:logic.emptyEvent(),status:'published',event_date_iso:today,updated_at:new Date(),venue_name:'Prieto',venue_neighbourhood:'Almadies',venue_area:'Dakar',venue_maps:'https://maps.google.com/?q=Prieto',venue_phone:'123'}];
 const results=await listPublishedEvents(today,today);
 assert.equal(results[0].googleMapsUrl,publishedRows[0].venue_maps);
 assert.ok(queries[0][0].includes("e.status='published'"));
@@ -57,7 +57,7 @@ assert.deepEqual(queries[0][1],[today,today]);
 console.log('Event persistence: venue saving, inheritance, transaction rollback, retry idempotency and published query checks passed.');
 
 queries=[];
-publishedRows=[{...publishedRows[0],event_date:'2020-01-01',details:{...logic.emptyEvent(),recurrenceFrequency:'weekly',recurrenceWeekday:String(new Date().getUTCDay())}}];
+publishedRows=[{...publishedRows[0],event_date_iso:'2020-01-01',details:{...logic.emptyEvent(),recurrenceFrequency:'weekly',recurrenceWeekday:String(new Date().getUTCDay())}}];
 const recurring=await listPublishedEvents(today,today);
 assert.equal(recurring[0].eventDate,today);
 assert.ok(queries[0][0].includes("e.details->>'recurrenceFrequency' = 'weekly'"));

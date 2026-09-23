@@ -41,7 +41,7 @@ async function extractAndReview(res: Response, draft: EventDraft, data: EventDat
 
 eventsAdminRouter.get("/", async (_req, res) => {
   try { res.type("html").send(renderEventsList(await listAdminEvents())); }
-  catch (error) { console.error("Events list failed", error); res.status(503).send("Events could not be loaded. Check that the database migration has completed."); }
+  catch (error) { console.error("Events list failed", error); res.status(503).send("Events could not be loaded. Please retry. Details are recorded in the server logs."); }
 });
 eventsAdminRouter.get("/import", (_req, res) => importPage(res));
 eventsAdminRouter.get("/new", async (_req, res) => {
