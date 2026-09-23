@@ -20,7 +20,7 @@ const PRODUCT_PATTERNS: SignalPattern[] = [
   ["thieboudienne", /\b(thieb|thieboudienne|thiebou dienne|thieboudiene|ceebu jen|riz au poisson)\b/],
   ["yassa", /\byassa\b/],
   ["mafe", /\b(mafe|maafe|peanut stew)\b/],
-  ["ceebu_yapp", /\b(ceebu yapp|riz a la viande)\b/],
+  ["ceebu_yapp", /\b(ceebu yapp|thiebou yapp|riz a la viande)\b/],
   ["soupe_kandia", /\b(soupe kandia|soupou kandja)\b/],
   ["domoda", /\bdomoda\b/],
   ["grilled_fish", /\b(grilled fish|gegrilde vis|poisson grille|poisson braise|grilled sea bream|dorade grillee|gegrilde dorade)\b/],

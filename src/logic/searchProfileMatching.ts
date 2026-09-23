@@ -35,7 +35,7 @@ const TERM_ALIASES: Record<string, string[]> = {
   thieboudienne: ["thiéboudienne", "thieboudienne", "thiebou dienne", "ceebu jen"],
   yassa: ["yassa", "yassa poulet", "poulet yassa", "chicken yassa"],
   mafe: ["mafé", "mafe", "maafe", "peanut stew"],
-  ceebu_yapp: ["ceebu yapp", "riz à la viande"],
+  ceebu_yapp: ["ceebu yapp", "thiébou yapp", "riz à la viande"],
   soupe_kandia: ["soupe kandia", "soupou kandja"],
   domoda: ["domoda"],
   grilled_fish: ["grilled fish", "gegrilde vis", "poisson grillé", "poisson braisé", "dorade grillée", "gegrilde dorade"],
