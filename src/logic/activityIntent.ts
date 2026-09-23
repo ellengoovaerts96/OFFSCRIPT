@@ -9,6 +9,7 @@ export type NormalizedActivityIntent = {
 };
 
 const ACTIVITY_PATTERNS: Array<NormalizedActivityIntent & { pattern: RegExp }> = [
+  { focus: "padel", intent: "sports", recommendationType: "activity", pattern: /\bpadel\b/ },
   {
     focus: "running",
     intent: "sports",

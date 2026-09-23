@@ -30,3 +30,12 @@ for (const message of ["oké", "Oké!", "oke", "ok", "okay"]) {
 assert.equal(acceptsBroaderLocationInContext("nee", question), false);
 assert.equal(acceptsBroaderLocationInContext("oké, maar niet buiten Yoff", question), false);
 console.log("Broader-location reply checks passed.");
+
+const located = await buildUserContext({
+  message: "almadies",
+  previousContext: initial.context,
+  previousAssistantMessage: "In welke buurt ben je nu?"
+});
+assert.equal(located.context.intent, "sports");
+assert.equal(located.context.requestedSubcategory, "padel");
+assert.equal(located.context.targetRegion, "Almadies");

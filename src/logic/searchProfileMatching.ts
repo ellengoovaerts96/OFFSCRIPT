@@ -185,7 +185,14 @@ export function placeServesBreakfast(place: Place): boolean {
 const LOCAL_STAPLES = new Set(["thieboudienne", "thiebou dienne", "ceebu jen", "yassa", "mafe"]);
 const STRUCTURED_DISH_KEYS = new Set(["thieboudienne", "yassa", "mafe", "ceebu yapp", "soupe kandia", "domoda", "grilled fish", "continental breakfast", "american breakfast", "grilled prawns"]);
 
+/** A nearby court in directions is not evidence that this venue offers padel. */
+export function placeOffersPadel(place: Place): boolean {
+  return [...place.categories, ...place.subcategories.map((subcategory) => subcategory.name)]
+    .some((value) => /\bpadel\b/.test(normalize(value)));
+}
+
 export function searchTermMatchStrength(place: Place, term: string): number {
+  if (normalize(term) === "padel") return placeOffersPadel(place) ? 1 : 0;
   if (normalize(term) === "coffee") return placeServesCoffee(place) ? 1 : 0;
   if (normalize(term) === "breakfast") return placeServesBreakfast(place) ? 1 : 0;
   const dishStrength = structuredDishMatchStrength(place, term);
@@ -213,6 +220,7 @@ export function placeMatchesSearchActivity(
   activity: SearchActivity | undefined
 ): boolean {
   if (!activity || activity === "unknown") return true;
+  if (activity === "sports" && placeOffersPadel(place)) return true;
   if (activity === "work" && place.workFriendly) return true;
   const activityTerms = ACTIVITY_INTENTS[activity] ?? [];
   if (!activityTerms.length) return true;

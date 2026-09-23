@@ -1,3 +1,4 @@
+import { placeOffersPadel } from "./searchProfileMatching.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
@@ -189,6 +190,7 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
   if (!focus) return false;
 
   const normalizedFocus = normalizeValue(focus);
+  if (normalizedFocus === "padel") return placeOffersPadel(place);
   if (normalizedFocus === "working" && place.workFriendly === true) return true;
   const aliases = VIBE_ALIASES[normalizedFocus] ?? [normalizedFocus];
   const structuredMatch = (

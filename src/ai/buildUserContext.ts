@@ -818,6 +818,9 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
     acceptsBroaderLocationInContext(input.message, input.previousAssistantMessage);
   const broadTargetRegion = acceptsBroadLocation ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
+  if (messageIsKnownRegionOnly && input.previousContext?.intent) {
+    return deterministicFallbackWithProfile(input);
+  }
   if (!hasOpenAIKey()) {
     return deterministicFallbackWithProfile(input);
   }
