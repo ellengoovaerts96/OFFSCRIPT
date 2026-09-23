@@ -35,3 +35,11 @@ Select Repeat → Every week, choose a weekday, and enter an active-from date in
 Explicit recurrence wording such as “Jeudis soir 20h” can preselect Thursday during import; a bare weekday or single dated event cannot. The original source wording is kept. No start date is inferred when none is given: the admin chooses when the schedule becomes active. Multiple weekdays and non-weekly patterns remain source text for manual review rather than being guessed.
 
 The schedule fields (`recurrenceFrequency`, `recurrenceWeekday` with Sunday=0, and `recurrenceUntil`) are saved in the existing event `details` JSONB; `event_date` is the active-from date. No migration is needed. The chatbot expands published schedules into dates in Dakar time and retains the event’s location, contact and child-friendly details. Test with `npm run event-recurrence:check` and `npm run event-persistence:check`.
+
+## Look up missing location details
+
+The review/edit form has a “Zoek ontbrekende locatiegegevens” button. It submits only venue name, existing neighbourhood/area, Instagram account, source URL and the names of missing fields to an authenticated, CSRF-protected lookup endpoint. The existing OpenAI integration uses web search; it does not upload the screenshot again. Exact search/citation URLs are checked server-side. Ambiguous matches, unsupported fields and invented or uncited Maps links are discarded.
+
+The admin sees the matched name/address, proposed values, evidence and source links. Each “Use proposal” button fills an empty field only and adds its source to verification notes. Existing input is preserved. Changing venue/context invalidates pending results. Nothing is written to the database by the lookup; Save event is still required and the review checkbox is cleared when accepting a proposal. This does not overwrite a shared place/venue record.
+
+A timeout or unavailable service leaves the form intact. Missing details can always be entered manually. Automated checks: `npm run event-location:check` covers grounding, input validation, auth/CSRF, no database writes, browser acceptance and stale response handling with mocked services. A live OpenAI search remains to be checked on staging.

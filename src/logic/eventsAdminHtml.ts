@@ -49,6 +49,7 @@ export function renderEventReview(input: { csrf: string; token?: string; id?: st
   ${input.extraction ? `<details><summary>Original AI extraction and date context</summary><pre>${e(JSON.stringify({ context: input.context, extraction: input.extraction }, null, 2))}</pre></details>` : ""}</aside>
   <section class="panel"><form method="post" action="${input.id ? `/admin/events/${input.id}` : "/admin/events"}"><input type="hidden" name="_csrf" value="${e(input.csrf)}">${input.token ? `<input type="hidden" name="draft" value="${e(input.token)}">` : ""}
   <div class="fields">${field("title", "text", true)}${field("venueName", "text", true)}${field("neighbourhood")}${field("area")}${field("googleMapsUrl", "url", true)}
+  <div class="wide"><button type="button" class="secondary" id="location-lookup">Zoek ontbrekende locatiegegevens</button><p class="meta">Find missing neighbourhood, area, Maps link and phone online. Review each proposal and its source before using it. Existing values stay unchanged.</p><div id="location-results" aria-live="polite"></div></div>
   <label class="wide">Existing place or saved event venue (optional)<select id="venue-select">${option("", selectedVenue ? "selected" : "", "New event venue — save these location details for reuse")}${input.venues.map(venueOption).join("")}</select><input type="hidden" name="placeId" value="${e(data.placeId ?? "")}"><input type="hidden" name="eventVenueId" value="${e(data.eventVenueId ?? "")}"><small>Missing details are filled from the selected venue. Your event-specific edits are preserved. New venues are saved for reuse when you save the event; they are not added to Places.</small></label>
 
   ${field("dateText", "text", true)}${field("eventDate", "date", true)}
@@ -66,5 +67,47 @@ export function renderEventReview(input: { csrf: string; token?: string; id?: st
   for(const field of Object.keys(fields))form.elements[field].addEventListener('input',()=>{delete inherited[field]});
   select.addEventListener('change',()=>{const venue=readVenue();form.elements.placeId.value=venue&&venue.kind!=='event'?venue.id:'';form.elements.eventVenueId.value=venue&&venue.kind==='event'?venue.id:'';
   for(const [field,key] of Object.entries(fields)){const el=form.elements[field];if(!el.value||el.value===inherited[field]){el.value=venue?(venue[key]||''):'';inherited[field]=el.value}}});
+  const lookupButton=document.getElementById('location-lookup'),lookupResults=document.getElementById('location-results');
+  const lookupFields={neighbourhood:'Neighbourhood',area:'Area',googleMapsUrl:'Google Maps link',contactPhone:'Contact phone'};
+  let lookupVersion=0;
+  function invalidateLookup(){lookupVersion++;lookupResults.replaceChildren()}
+  for(const name of ['venueName','neighbourhood','area','instagramAccount','sourceUrl'])form.elements[name].addEventListener('input',invalidateLookup);
+  select.addEventListener('change',invalidateLookup);
+  lookupButton.addEventListener('click',async()=>{
+    const missingFields=Object.keys(lookupFields).filter(name=>!form.elements[name].value.trim());
+    lookupResults.replaceChildren();
+    if(!missingFields.length){lookupResults.textContent='All location fields are already filled in.';return}
+    if(form.elements.venueName.value.trim().length<2){lookupResults.textContent='Enter a venue name first.';return}
+    const version=++lookupVersion;
+    const context=Object.fromEntries(['venueName','neighbourhood','area','instagramAccount','sourceUrl'].map(name=>[name,form.elements[name].value.trim()]));
+    lookupButton.disabled=true;lookupResults.textContent='Searching public sources…';
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),40000);
+    try{
+      const response=await fetch('/admin/events/location-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...context,missingFields,_csrf:form.elements._csrf.value}),signal:controller.signal});
+      const result=await response.json();if(!response.ok)throw new Error(result.error||'Lookup failed. Please retry.');
+      if(version!==lookupVersion)return;
+      lookupResults.replaceChildren();
+      const heading=document.createElement('p');heading.textContent=[result.venueName,result.address,result.explanation].filter(Boolean).join(' — ');lookupResults.append(heading);
+      if(!result.suggestions.length){const empty=document.createElement('p');empty.textContent='No verified proposals found. Add more location context or fill in the details manually.';lookupResults.append(empty)}
+      for(const suggestion of result.suggestions){
+        const card=document.createElement('div');card.className='notice warning';
+        const value=document.createElement('strong');value.textContent=lookupFields[suggestion.field]+': '+suggestion.value;
+        const evidence=document.createElement('p');evidence.textContent=suggestion.evidence;
+        const source=document.createElement('a');source.href=suggestion.sourceUrl;source.textContent='Check source';source.target='_blank';source.rel='noopener noreferrer';
+        const apply=document.createElement('button');apply.type='button';apply.className='secondary';apply.textContent='Use proposal';apply.style.marginLeft='12px';
+        apply.addEventListener('click',()=>{
+          if(version!==lookupVersion)return;
+          const field=form.elements[suggestion.field];
+          if(field.value.trim()){apply.textContent='Field already filled';apply.disabled=true;return}
+          field.value=suggestion.value;delete inherited[suggestion.field];form.elements.reviewed.checked=false;
+          const note='Location lookup — '+lookupFields[suggestion.field]+': '+suggestion.value+' — '+suggestion.sourceUrl;
+          form.elements.verificationNotes.value+=(form.elements.verificationNotes.value?String.fromCharCode(10):'')+note;
+          apply.textContent='Added — save event to keep';apply.disabled=true;
+        });
+        card.append(value,evidence,source,apply);lookupResults.append(card);
+      }
+    }catch(error){if(version===lookupVersion)lookupResults.textContent=error.name==='AbortError'?'Search timed out. Your form has not changed.':error.message}
+    finally{clearTimeout(timeout);lookupButton.disabled=false}
+  });
   </script>`);
 }

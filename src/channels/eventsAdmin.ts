@@ -1,3 +1,5 @@
+import { findEventLocation } from "../ai/findEventLocation.js";
+import { validateLocationLookupInput } from "../logic/eventLocationLookup.js";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import { adminCsrfToken, requireAdminBasicAuth, requireAdminCsrf } from "../middleware/adminBasicAuth.js";
@@ -88,6 +90,17 @@ eventsAdminRouter.post("/import/retry", requireAdminCsrf, async (req, res) => {
   } catch (error) {
     if (draft) { try { await reviewPage(res, draft, data, message(error), 400); return; } catch { /* render upload error below */ } }
     importPage(res, 400, message(error));
+  }
+});
+// Read-only lookup: no event or venue writes; current form edits remain in the browser.
+eventsAdminRouter.post("/location-lookup", requireAdminCsrf, async (req, res) => {
+  let input;
+  try { input = validateLocationLookupInput(req.body); }
+  catch { res.status(400).json({error:"Enter a venue name and valid location details before searching."}); return; }
+  try { res.json(await findEventLocation(input)); }
+  catch (error) {
+    console.error("Event location lookup failed", error);
+    res.status(503).json({error:hasOpenAIKey() ? "Online lookup failed or timed out. Your form has not changed; retry or enter the details manually." : "Online lookup is unavailable. Enter the details manually."});
   }
 });
 eventsAdminRouter.get("/:id", async (req, res) => {
