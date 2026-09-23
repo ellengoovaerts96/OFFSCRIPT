@@ -10,7 +10,7 @@ const DAKAR_TIME_ZONE = "Africa/Dakar";
 type DateRange = {
   start: string;
   end: string;
-  kind: "week" | "weekend";
+  kind: "week" | "weekend" | "day";
 };
 
 export type CuratedEventVenue = {
@@ -54,6 +54,12 @@ function addDays(date: Date, days: number): Date {
 export function currentEventDateRange(message: string, now = new Date()): DateRange {
   const today = dakarDate(now);
   const lower = message.toLowerCase();
+  if (/\b(today|tonight|vandaag|vanavond|aujourd.hui|ce soir|tomorrow|morgen|demain)\b/.test(lower)) {
+    const date = addDays(today, /\b(tomorrow|morgen|demain)\b/.test(lower) ? 1 : 0);
+    return { start: isoDate(date), end: isoDate(date), kind: "day" };
+  }
+  const explicit = lower.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (explicit && Number.isFinite(Date.parse(explicit[1]))) return {start:explicit[1],end:explicit[1],kind:"day"};
   const asksWeekend = /week[ -]?end|weekend/.test(lower);
   const asksNext = /\b(next|volgend|volgende|prochain|kommend|nächst)\w*\b/i.test(lower);
 
@@ -64,6 +70,12 @@ export function currentEventDateRange(message: string, now = new Date()): DateRa
     return { start: isoDate(start), end: isoDate(addDays(start, 1)), kind: "weekend" };
   }
 
+  const dayNames = [/\b(sunday|dimanche|zondag)\b/, /\b(monday|lundi|maandag)\b/, /\b(tuesday|mardi|dinsdag)\b/, /\b(wednesday|mercredi|woensdag)\b/, /\b(thursday|jeudi|donderdag)\b/, /\b(friday|vendredi|vrijdag)\b/, /\b(saturday|samedi|zaterdag)\b/];
+  const requestedDay = dayNames.findIndex(pattern => pattern.test(lower));
+  if (requestedDay >= 0) {
+    const date = addDays(today, (requestedDay - today.getUTCDay() + 7) % 7 + (asksNext ? 7 : 0));
+    return {start:isoDate(date),end:isoDate(date),kind:"day"};
+  }
   const weekday = today.getUTCDay() || 7;
   const start = addDays(today, 1 - weekday + (asksNext ? 7 : 0));
   return { start: isoDate(start), end: isoDate(addDays(start, 6)), kind: "week" };

@@ -44,7 +44,9 @@
     "ai:check": "tsx scripts/checkAI.ts",
     "build": "tsc",
     "start": "node dist/migrate.js && node dist/server.js",
-    "event-import:check": "node --import tsx scripts/checkEventImport.ts"
+    "event-import:check": "node --import tsx scripts/checkEventImport.ts",
+    "published-events:check": "node --import tsx scripts/checkPublishedEvents.ts",
+    "event-persistence:check": "node --experimental-vm-modules --import tsx scripts/checkEventPersistence.mjs"
   },
   "keywords": [],
   "author": "",

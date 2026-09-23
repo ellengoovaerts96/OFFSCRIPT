@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { emptyEvent, parseEventContext, reviewExtraction, matchEventVenue, validateEvent, screenshotFormat, type ExtractedEvent } from '../src/logic/eventImport.js';
+import { emptyEvent, fillEventVenue, parseEventContext, reviewExtraction, matchEventVenue, validateEvent, screenshotFormat, type ExtractedEvent } from '../src/logic/eventImport.js';
 import { newEventDraft, signEventDraft, readEventDraft } from '../src/logic/eventImportDraft.js';
 import { renderEventImport, renderEventReview } from '../src/logic/eventsAdminHtml.js';
 const blank = parseEventContext({});
@@ -60,3 +60,19 @@ assert.equal(reviewExtraction({...fixture,category:'Workshop',childFriendly:'unk
 assert.equal(reviewExtraction({...fixture,childFriendly:'no'},context).childFriendly,'no');
 assert.match(html,/name="childFriendly"/);
 console.log('Child-friendly event checks passed.');
+
+const savedVenue = {...venue, kind:'place' as const, googleMapsUrl:'https://maps.google.com/?q=Prieto', contactPhone:'+221123456789'};
+const linked = fillEventVenue({...emptyEvent(),title:'Party',contactPhone:'event contact'},savedVenue);
+assert.equal(linked.googleMapsUrl,savedVenue.googleMapsUrl);
+assert.equal(linked.neighbourhood,venue.neighbourhood);
+assert.equal(linked.contactPhone,'event contact');
+assert.equal(linked.placeId,venue.id);
+assert.equal(linked.eventVenueId,null);
+const reused = fillEventVenue({...emptyEvent(),title:'Workshop'}, {...savedVenue,kind:'event'});
+assert.equal(reused.eventVenueId,venue.id);
+assert.equal(reused.placeId,null);
+assert.throws(()=>validateEvent({...reused,placeId:venue.id}));
+assert.throws(()=>validateEvent({...linked,status:'published'}),/full date/);
+assert.equal(validateEvent({...linked,status:'published',eventDate:'2026-09-26'}).status,'published');
+assert.match(html,/name="status"/);
+console.log('Venue inheritance and publication validation passed.');

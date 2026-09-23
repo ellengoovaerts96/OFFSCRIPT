@@ -1,3 +1,6 @@
+import { listPublishedEvents } from "../data/eventsRepository.js";
+import { isStoredEventRequest, selectPublishedEvents, formatPublishedEvents } from "./publishedEvents.js";
+import { currentEventDateRange } from "../ai/findCurrentEvent.js";
 import { interpretPlaceFeedback } from "../ai/interpretPlaceFeedback.js";
 import { placePhoneMessage } from "./placePhone.js";
 import {
@@ -1392,6 +1395,14 @@ export async function handleChatMessage(input: {
   videoUrls: string[];
   afterMediaMessages: string[];
 }> {
+  if (isStoredEventRequest(input.message)) {
+    try {
+      const range = currentEventDateRange(input.message);
+      const events = selectPublishedEvents(await listPublishedEvents(range.start, range.end), input.message);
+      if (events.length) return { reply: formatPublishedEvents(events, detectLanguage(input.message, "fr")),
+        followUpMessages: [], locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
+    } catch (error) { console.error("Could not load reviewed events", error); }
+  }
   if (isCurrentEventRequest(input.message)) {
     let curatedVenues: CuratedEventVenue[] = [];
     try {

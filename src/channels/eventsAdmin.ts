@@ -5,7 +5,7 @@ import { cloudinaryConfigured, uploadEventScreenshot } from "../integrations/clo
 import { hasOpenAIKey } from "../integrations/openai.js";
 import { extractEventScreenshot } from "../ai/extractEventScreenshot.js";
 import { getAdminEvent, listAdminEvents, listEventVenues, saveAdminEvent } from "../data/eventsRepository.js";
-import { emptyEvent, extractionToEvent, matchEventVenue, parseEventContext, safeSourceUrl, screenshotFormat, sourceTypes, validateEvent, type EventData } from "../logic/eventImport.js";
+import { emptyEvent, fillEventVenue, extractionToEvent, matchEventVenue, parseEventContext, safeSourceUrl, screenshotFormat, sourceTypes, validateEvent, type EventData } from "../logic/eventImport.js";
 import { newEventDraft, readEventDraft, signEventDraft, type EventDraft } from "../logic/eventImportDraft.js";
 import { renderEventImport, renderEventReview, renderEventsList } from "../logic/eventsAdminHtml.js";
 
@@ -30,7 +30,7 @@ async function extractAndReview(res: Response, draft: EventDraft, data: EventDat
     data = extractionToEvent(draft.extraction, data.sourceUrl);
     if (selectedSourceType !== "unknown") data.sourceType = selectedSourceType;
     const match = matchEventVenue(data.venueName, await listEventVenues());
-    data.placeId = match.exact?.id ?? null;
+    if (match.exact) data = fillEventVenue(data, match.exact);
   } catch (failure) {
     error = message(failure);
   }

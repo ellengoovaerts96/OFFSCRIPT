@@ -17,10 +17,10 @@ export const extractedEventSchema = z.object({
 });
 export type ExtractedEvent = z.infer<typeof extractedEventSchema>;
 export type EventContext = { month: number | null; year: number | null; publicationDate: string | null };
-export type EventVenue = { id: string; name: string; neighbourhood: string | null; area: string | null };
+export type EventVenue = { id: string; name: string; neighbourhood: string | null; area: string | null; googleMapsUrl?: string | null; contactPhone?: string | null; kind?: "place" | "event" };
 export type EventSource = { originalUrl: string; previewUrl: string; publicId: string; filename: string; format: string };
 export type EventData = {
-  title: string; venueName: string; neighbourhood: string; area: string; googleMapsUrl: string; placeId: string | null; eventDate: string | null;
+  title: string; venueName: string; neighbourhood: string; area: string; googleMapsUrl: string; placeId: string | null; eventVenueId: string | null; status: "draft" | "published"; eventDate: string | null;
   dateText: string; startTime: string | null; endTime: string | null;
   category: string; description: string; price: string; conditions: string;
   reservationRequired: "yes" | "no" | "unknown"; childFriendly: "yes" | "no" | "unknown"; contactPhone: string;
@@ -54,7 +54,7 @@ export function safeSourceUrl(value: unknown): string {
   } catch { throw new Error("Use a valid http or https source URL."); }
 }
 export function emptyEvent(): EventData {
-  return { title: "", venueName: "", neighbourhood: "", area: "", googleMapsUrl: "", placeId: null, eventDate: null, dateText: "", startTime: null, endTime: null,
+  return { title: "", venueName: "", neighbourhood: "", area: "", googleMapsUrl: "", placeId: null, eventVenueId: null, status: "draft", eventDate: null, dateText: "", startTime: null, endTime: null,
     category: "", description: "", price: "", conditions: "", reservationRequired: "unknown", childFriendly: "unknown", contactPhone: "",
     instagramAccount: "", recurrence: "", sourceType: "unknown", sourceUrl: "", verificationNotes: "" };
 }
@@ -82,7 +82,22 @@ export function validateEvent(body: Record<string, unknown>): EventData {
   }
   data.placeId = data.placeId || null;
   if (data.placeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.placeId)) throw new Error("Invalid place selection.");
+  data.eventVenueId = data.eventVenueId || null;
+  if (data.eventVenueId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.eventVenueId)) throw new Error("Invalid event venue selection.");
+  if (data.placeId && data.eventVenueId) throw new Error("Select either a place or an event venue, not both.");
+  data.status = data.status || "draft";
+  if (!["draft", "published"].includes(data.status)) throw new Error("Invalid event visibility.");
+  if (data.status === "published" && (!data.eventDate || !(data.venueName || data.placeId || data.eventVenueId))) throw new Error("Confirm a full date and venue before making this event available to the chatbot.");
   return data;
+}
+export function fillEventVenue(data: EventData, venue: EventVenue): EventData {
+  const result = { ...data };
+  for (const [field, value] of Object.entries({venueName: venue.name, neighbourhood: venue.neighbourhood, area: venue.area, googleMapsUrl: venue.googleMapsUrl, contactPhone: venue.contactPhone})) {
+    if (!result[field as keyof EventData] && value) Object.assign(result, { [field]: value });
+  }
+  result.placeId = venue.kind === "event" ? null : venue.id;
+  result.eventVenueId = venue.kind === "event" ? venue.id : null;
+  return result;
 }
 export function reviewExtraction(raw: unknown, context: EventContext): ExtractedEvent {
   const data = extractedEventSchema.parse(raw);
