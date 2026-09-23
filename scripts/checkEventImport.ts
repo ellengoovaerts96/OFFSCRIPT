@@ -4,7 +4,7 @@ import { newEventDraft, signEventDraft, readEventDraft } from '../src/logic/even
 import { renderEventImport, renderEventReview } from '../src/logic/eventsAdminHtml.js';
 const blank = parseEventContext({});
 const context = parseEventContext({month:'9',year:'2026'});
-const fixture: ExtractedEvent = {readable:true,title:'Latine Mix x Afro',venueName:'Prieto',eventDate:'2026-09-19',dateText:'samedi 19',startTime:'20:00',endTime:null,category:'Music',description:'Latin rhythms, Afro vibes, DJ Mirado',price:'Free entry',conditions:'Consumption required',reservationRequired:'unknown',contactPhone:'78 731 18 18',instagramAccount:'@prietodakar',recurrence:null,sourceType:'instagram',dateBasis:'provided_context',uncertainFields:[]};
+const fixture: ExtractedEvent = {readable:true,title:'Latine Mix x Afro',venueName:'Prieto',neighbourhood:null,area:null,googleMapsUrl:null,eventDate:'2026-09-19',dateText:'samedi 19',startTime:'20:00',endTime:null,category:'Music',description:'Latin rhythms, Afro vibes, DJ Mirado',price:'Free entry',conditions:'Consumption required',reservationRequired:'unknown',childFriendly:'unknown',contactPhone:'78 731 18 18',instagramAccount:'@prietodakar',recurrence:null,sourceType:'instagram',dateBasis:'provided_context',uncertainFields:[]};
 assert.equal(reviewExtraction(fixture,blank).eventDate,null);
 const extracted = reviewExtraction(fixture,context);
 assert.equal(extracted.eventDate,'2026-09-19');
@@ -40,3 +40,23 @@ assert.ok(!html.includes('<script>alert(1)</script>'));
 assert.match(html,/name="reviewed" value="yes" required/);
 assert.match(html,/Consumption required/);
 console.log('Event import checks passed: date context, uncertainty, validation, venue matching, source signatures and review form.');
+
+const standalone = validateEvent({...emptyEvent(), title:'Beach party', venueName:'Temporary beach stage', neighbourhood:'Ngor', area:'Dakar', googleMapsUrl:'https://maps.google.com/?q=Ngor', contactPhone:'78 731 18 18'});
+assert.equal(standalone.placeId,null);
+assert.equal(standalone.neighbourhood,'Ngor');
+assert.equal(standalone.area,'Dakar');
+assert.equal(standalone.contactPhone,'78 731 18 18');
+assert.equal(JSON.parse(JSON.stringify(standalone)).googleMapsUrl,'https://maps.google.com/?q=Ngor');
+assert.equal(validateEvent({...standalone,placeId:venue.id}).placeId,venue.id);
+assert.throws(()=>validateEvent({...standalone,googleMapsUrl:'javascript:alert(1)'}));
+assert.equal(reviewExtraction({...fixture,googleMapsUrl:'javascript:alert(1)'},context).googleMapsUrl,null);
+for (const name of ['venueName','neighbourhood','area','googleMapsUrl','contactPhone']) assert.ok(html.includes(`name="${name}"`));
+console.log('Standalone and linked event location checks passed.');
+
+assert.equal(validateEvent({...standalone,category:'Workshop',childFriendly:'yes'}).childFriendly,'yes');
+assert.equal(validateEvent({...standalone,category:'Workshop'}).childFriendly,'unknown');
+assert.throws(()=>validateEvent({...standalone,childFriendly:'maybe'}));
+assert.equal(reviewExtraction({...fixture,category:'Workshop',childFriendly:'unknown'},context).childFriendly,'unknown');
+assert.equal(reviewExtraction({...fixture,childFriendly:'no'},context).childFriendly,'no');
+assert.match(html,/name="childFriendly"/);
+console.log('Child-friendly event checks passed.');

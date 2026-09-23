@@ -1,5 +1,5 @@
 import { pool } from "../integrations/postgres.js";
-import { validateEvent, type EventData, type EventSource, type EventVenue, type ExtractedEvent, type EventContext } from "../logic/eventImport.js";
+import { emptyEvent, validateEvent, type EventData, type EventSource, type EventVenue, type ExtractedEvent, type EventContext } from "../logic/eventImport.js";
 import type { EventDraft } from "../logic/eventImportDraft.js";
 
 export type AdminEvent = { id: string; data: EventData; source: EventSource | null;
@@ -9,7 +9,7 @@ export async function listEventVenues(): Promise<EventVenue[]> {
   return result.rows;
 }
 function eventFromRow(row: Record<string, any>): AdminEvent {
-  return { id: row.id, data: { ...row.details, title: row.title, placeId: row.place_id,
+  return { id: row.id, data: { ...emptyEvent(), ...row.details, title: row.title, placeId: row.place_id,
     eventDate: row.event_date ? String(row.event_date) : null },
     source: row.source, extraction: row.extraction, updatedAt: new Date(row.updated_at).toISOString() };
 }

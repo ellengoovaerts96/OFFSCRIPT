@@ -11,3 +11,7 @@ Uses existing `OPENAI_API_KEY`, default OpenAI model configuration, `CLOUDINARY_
 Extraction uploads the source and returns a signed, 24-hour review token, with no event database write. Only an authenticated, CSRF-protected, validated save inserts a draft. Retrying a save uses the same unique import ID to avoid duplicates. Source metadata and original extraction are retained when editing. Cancelled uploads remain in Cloudinary for manual cleanup; no automatic asset deletion is implemented.
 
 Checks: `npm run build`, `npm run event-import:check`, `npm run dashboard:check`, `npm run places-admin:check`. A live staging smoke test with an actual screenshot is still required to verify the configured OpenAI/Cloudinary services and database migration.
+
+Events can be independent of places: venueName, neighbourhood, area, googleMapsUrl and contactPhone are stored in each event’s existing `details` JSONB column, whether or not `place_id` is selected. No new place is created, and a place link is optional. Existing events default missing fields to empty; no database migration is needed for these additional JSON fields.
+
+The event-specific `childFriendly` field uses yes/no/unknown and is also stored in `details`. Workshops are supported by the free-text category. Extraction only marks child suitability when explicit, retains age restrictions in the description, and otherwise uses unknown, including for older events.

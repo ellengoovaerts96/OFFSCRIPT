@@ -1,14 +1,15 @@
 import { z } from "zod";
 
 export const sourceTypes = ["unknown", "instagram", "facebook", "whatsapp", "flyer", "other"] as const;
-export const eventFields = ["title", "venueName", "eventDate", "dateText", "startTime", "endTime", "category", "description", "price", "conditions", "reservationRequired", "contactPhone", "instagramAccount", "recurrence", "sourceType"] as const;
+export const eventFields = ["title", "venueName", "neighbourhood", "area", "googleMapsUrl", "eventDate", "dateText", "startTime", "endTime", "category", "description", "price", "conditions", "reservationRequired", "childFriendly", "contactPhone", "instagramAccount", "recurrence", "sourceType"] as const;
 const text = z.string().max(3000).nullable();
 export const extractedEventSchema = z.object({
   readable: z.boolean(),
-  title: text, venueName: text, eventDate: text, dateText: text,
+  title: text, venueName: text, neighbourhood: text, area: text, googleMapsUrl: text, eventDate: text, dateText: text,
   startTime: text, endTime: text, category: text, description: text,
   price: text, conditions: text,
   reservationRequired: z.enum(["yes", "no", "unknown"]),
+  childFriendly: z.enum(["yes", "no", "unknown"]),
   contactPhone: text, instagramAccount: text, recurrence: text,
   sourceType: z.enum(sourceTypes),
   dateBasis: z.enum(["explicit", "provided_context", "unknown"]),
@@ -19,10 +20,10 @@ export type EventContext = { month: number | null; year: number | null; publicat
 export type EventVenue = { id: string; name: string; neighbourhood: string | null; area: string | null };
 export type EventSource = { originalUrl: string; previewUrl: string; publicId: string; filename: string; format: string };
 export type EventData = {
-  title: string; venueName: string; placeId: string | null; eventDate: string | null;
+  title: string; venueName: string; neighbourhood: string; area: string; googleMapsUrl: string; placeId: string | null; eventDate: string | null;
   dateText: string; startTime: string | null; endTime: string | null;
   category: string; description: string; price: string; conditions: string;
-  reservationRequired: "yes" | "no" | "unknown"; contactPhone: string;
+  reservationRequired: "yes" | "no" | "unknown"; childFriendly: "yes" | "no" | "unknown"; contactPhone: string;
   instagramAccount: string; recurrence: string; sourceType: typeof sourceTypes[number];
   sourceUrl: string; verificationNotes: string;
 };
@@ -53,8 +54,8 @@ export function safeSourceUrl(value: unknown): string {
   } catch { throw new Error("Use a valid http or https source URL."); }
 }
 export function emptyEvent(): EventData {
-  return { title: "", venueName: "", placeId: null, eventDate: null, dateText: "", startTime: null, endTime: null,
-    category: "", description: "", price: "", conditions: "", reservationRequired: "unknown", contactPhone: "",
+  return { title: "", venueName: "", neighbourhood: "", area: "", googleMapsUrl: "", placeId: null, eventDate: null, dateText: "", startTime: null, endTime: null,
+    category: "", description: "", price: "", conditions: "", reservationRequired: "unknown", childFriendly: "unknown", contactPhone: "",
     instagramAccount: "", recurrence: "", sourceType: "unknown", sourceUrl: "", verificationNotes: "" };
 }
 export function validateEvent(body: Record<string, unknown>): EventData {
@@ -68,8 +69,11 @@ export function validateEvent(body: Record<string, unknown>): EventData {
   }
   if (!data.title || data.title.length > 300) throw new Error("Enter an event title (maximum 300 characters).");
   if (!["yes", "no", "unknown"].includes(data.reservationRequired)) throw new Error("Invalid reservation choice.");
+  if (!data.childFriendly) data.childFriendly = "unknown";
+  if (!["yes", "no", "unknown"].includes(data.childFriendly)) throw new Error("Invalid child-friendly choice.");
   if (!sourceTypes.includes(data.sourceType)) throw new Error("Invalid source type.");
   data.sourceUrl = safeSourceUrl(data.sourceUrl);
+  data.googleMapsUrl = safeSourceUrl(data.googleMapsUrl);
   data.eventDate = data.eventDate || null;
   if (data.eventDate && !validDate(data.eventDate)) throw new Error("Enter a complete, valid event date or leave it empty.");
   for (const key of ["startTime", "endTime"] as const) {
@@ -112,6 +116,10 @@ export function reviewExtraction(raw: unknown, context: EventContext): Extracted
     if (data[field] && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(data[field])) {
       data[field] = null; warn(field, "Time could not be reliably interpreted.");
     }
+  }
+  if (data.googleMapsUrl) {
+    try { data.googleMapsUrl = safeSourceUrl(data.googleMapsUrl); }
+    catch { data.googleMapsUrl = null; warn("googleMapsUrl", "The map link is invalid. Enter it manually."); }
   }
   if (!data.readable) throw new Error("No readable event information was found. Try a clearer screenshot or enter the event manually.");
   return data;
