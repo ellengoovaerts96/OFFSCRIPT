@@ -65,6 +65,14 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       return;
     }
 
+    if (result.result.contactMessages?.length && canSendWhatsAppMessage(twilioTo)) {
+      // A single TwiML response queues all messages together. Use the REST
+      // delivery path so information is delivered before contact details.
+      sendTwilioMessages(res, []);
+      void sendCompletedResult(from, twilioTo, result.result);
+      return;
+    }
+
     const { reply, followUpMessages, contactMessages = [], locationActions, imageUrls, videoUrls, afterMediaMessages } = result.result;
 
     void logChatMessage(from, "outgoing", reply);
@@ -130,10 +138,12 @@ async function sendCompletedResult(
   result: ChatbotMessageResult
 ): Promise<void> {
   try {
-    const textMessages = [...buildRecommendationTextMessages(result.reply, result.followUpMessages), ...(result.contactMessages ?? [])];
+    const informationMessages = buildRecommendationTextMessages(result.reply, result.followUpMessages);
+    const contactMessages = result.contactMessages ?? [];
+    const textMessages = [...informationMessages, ...contactMessages];
     for (const text of textMessages) {
-      await sendWhatsAppMessage(to, text, undefined, fromOverride);
-      await logChatMessage(to, "outgoing", text);
+      await sendWhatsAppMessage(to, text, undefined, fromOverride, undefined, contactMessages.length > 0);
+      void logChatMessage(to, "outgoing", text);
     }
     await sendRecommendationFollowUps(
       to,

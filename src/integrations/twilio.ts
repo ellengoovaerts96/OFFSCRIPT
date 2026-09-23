@@ -16,7 +16,8 @@ export async function sendWhatsAppMessage(
   body?: string,
   mediaUrl?: string[],
   fromOverride?: string,
-  persistentAction?: string[]
+  persistentAction?: string[],
+  waitForDelivery = false
 ): Promise<void> {
   const from = twilioWhatsAppFrom || fromOverride;
 
@@ -24,11 +25,43 @@ export async function sendWhatsAppMessage(
     throw new Error("TWILIO_WHATSAPP_FROM is not configured and no webhook To number was available.");
   }
 
-  await twilioClient.messages.create({
+  const message = await twilioClient.messages.create({
     from,
     to,
     ...(body ? { body } : {}),
     ...(mediaUrl?.length ? { mediaUrl } : {}),
     ...(persistentAction?.length ? { persistentAction } : {})
   });
+  if (waitForDelivery) await waitForWhatsAppDelivery(message.sid, message.status);
+}
+
+async function waitForWhatsAppDelivery(sid: string, initialStatus: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let expired = false;
+  const delivered = async () => {
+    let status = initialStatus;
+    while (!expired) {
+      if (status === "delivered" || status === "read") return;
+      if (["failed", "undelivered", "canceled"].includes(status)) {
+        throw new Error(`WhatsApp message ${sid} was ${status}; stopping the remaining messages.`);
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+      if (expired) return;
+      status = (await twilioClient.messages(sid).fetch()).status;
+    }
+  };
+  try {
+    await Promise.race([
+      delivered(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          expired = true;
+          reject(new Error(`WhatsApp delivery confirmation timed out for ${sid}; stopping the remaining messages.`));
+        }, 60_000);
+      })
+    ]);
+  } finally {
+    expired = true;
+    if (timer) clearTimeout(timer);
+  }
 }
