@@ -92,7 +92,7 @@ assert.equal(normalizePlacePhone("00221 77 123 45 67"), "+221771234567");
 assert.equal(normalizePlacePhone(""), null);
 assert.throws(() => normalizePlacePhone("771234567"), /country code/);
 assert.throws(() => normalizePlacePhone("+221771234567;bad"), /country code/);
-assert.equal(placePhoneMessage("+221 77 123 45 67"), "+221771234567\nWhatsApp: https://wa.me/221771234567");
+assert.equal(placePhoneMessage("+221 77 123 45 67"), "📞 +221771234567\n💬 WhatsApp: https://wa.me/221771234567");
 assert.equal(placePhoneMessage(undefined), undefined);
 assert.equal(placePhoneMessage("771234567"), undefined);
 assert.match(editDetail, /Save editorial changes/);

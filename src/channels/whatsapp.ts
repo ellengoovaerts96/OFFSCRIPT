@@ -65,11 +65,11 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       return;
     }
 
-    const { reply, followUpMessages, locationActions, imageUrls, videoUrls, afterMediaMessages } = result.result;
+    const { reply, followUpMessages, contactMessages = [], locationActions, imageUrls, videoUrls, afterMediaMessages } = result.result;
 
     void logChatMessage(from, "outgoing", reply);
 
-    for (const outgoingMessage of [...followUpMessages, ...afterMediaMessages]) {
+    for (const outgoingMessage of [...followUpMessages, ...contactMessages, ...afterMediaMessages]) {
       void logChatMessage(from, "outgoing", outgoingMessage);
     }
 
@@ -77,7 +77,7 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
     // content in one ordered TwiML response: text -> photos -> video.
     sendTwilioMessages(
       res,
-      buildRecommendationTextMessages(reply, followUpMessages),
+      [...buildRecommendationTextMessages(reply, followUpMessages), ...contactMessages],
       imageUrls,
       videoUrls,
       afterMediaMessages
@@ -130,7 +130,7 @@ async function sendCompletedResult(
   result: ChatbotMessageResult
 ): Promise<void> {
   try {
-    const textMessages = buildRecommendationTextMessages(result.reply, result.followUpMessages);
+    const textMessages = [...buildRecommendationTextMessages(result.reply, result.followUpMessages), ...(result.contactMessages ?? [])];
     for (const text of textMessages) {
       await sendWhatsAppMessage(to, text, undefined, fromOverride);
       await logChatMessage(to, "outgoing", text);

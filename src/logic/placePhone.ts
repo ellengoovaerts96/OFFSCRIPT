@@ -9,11 +9,13 @@ export function normalizePlacePhone(value: unknown): string | null {
   return phone;
 }
 
-export function placePhoneMessage(value: string | null | undefined): string | undefined {
+export function placePhoneMessage(value: string | null | undefined, placeName?: string): string | undefined {
   try {
     const phone = normalizePlacePhone(value);
     // A standalone international number is recognized by WhatsApp as a callable number.
-    return phone ? `${phone}\nWhatsApp: https://wa.me/${phone.slice(1)}` : undefined;
+    const name = placeName?.replace(/[\r\n*_~`]/g, " ").replace(/\s+/g, " ").trim();
+    const heading = name ? `*Contact · ${name}*\n` : "";
+    return phone ? `${heading}📞 ${phone}\n💬 WhatsApp: https://wa.me/${phone.slice(1)}` : undefined;
   } catch {
     // Older imported numbers may lack a country code; never guess a destination.
     return undefined;

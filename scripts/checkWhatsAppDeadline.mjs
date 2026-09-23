@@ -4,7 +4,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../src/channels/whatsapp.ts', import.meta.url), 'utf8');
-const result = { reply: 'Padel in Dakar', followUpMessages: [], locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
+const result = { reply: 'Padel in Dakar', followUpMessages: [], contactMessages: ['*Contact · 11 Players*\n📞 +221771234567\n💬 WhatsApp: https://wa.me/221771234567'], locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
 async function scenario({ delayedPreparation = false, duplicate = false, fails = false } = {}) {
   let handler, release;
   const timers = new Map();
@@ -45,11 +45,12 @@ async function scenario({ delayedPreparation = false, duplicate = false, fails =
     for (let i = 0; i < 30; i++) await Promise.resolve();
     if (duplicate) { assert.equal(sent.length, 0); assert.equal(calls, 0); }
     else if (fails) { assert.match(sent[0][1], /Sorry/); assert.equal(calls, 0); }
-    else { assert.equal(sent[0][1], result.reply); assert.equal(calls, 1); }
+    else { assert.equal(sent[0][1], result.reply); assert.equal(sent[1][1], result.contactMessages[0]); assert.equal(calls, 1); }
   } else {
     await pending;
     assert.match(responses[0], duplicate ? /<Response><\/Response>/ : /Padel in Dakar/);
     assert.equal(calls, duplicate ? 0 : 1);
+    if (!duplicate) assert.match(responses[0], /Padel in Dakar<\/Body><\/Message><Message><Body>\*Contact · 11 Players\*/);
   }
   assert.equal(responses.length, 1);
   assert.equal(timers.size, 0);

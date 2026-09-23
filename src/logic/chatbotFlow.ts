@@ -1331,6 +1331,7 @@ export async function handleChatMessage(input: {
 }): Promise<{
   reply: string;
   followUpMessages: string[];
+  contactMessages?: string[];
   locationActions: string[];
   imageUrls: string[];
   videoUrls: string[];
@@ -1389,7 +1390,7 @@ export async function handleChatMessage(input: {
         localizedRecommendation.practicalInfo
       ]
     : [];
-  const phoneMessage = result.type === "recommendation" ? placePhoneMessage(result.reservationPhone) : undefined;
+  const phoneMessage = result.type === "recommendation" ? placePhoneMessage(result.reservationPhone, result.placeName) : undefined;
   const whatsAppContactLine =
     result.type === "recommendation" && !phoneMessage && mentionsWhatsApp(recommendationMessages)
       ? buildWhatsAppContactLine(
@@ -1403,13 +1404,15 @@ export async function handleChatMessage(input: {
           localizedRecommendation.shortDescription,
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
-          phoneMessage ?? whatsAppContactLine,
           result.socialUrl,
           result.googleMapsUrl
         ].filter(
           (message): message is string => Boolean(message)
         )
       : [];
+  const contactMessages = localizedRecommendation
+    ? [phoneMessage ?? whatsAppContactLine].filter((message): message is string => Boolean(message))
+    : [];
   const afterMediaMessages: string[] = [];
 
   if (result.type === "recommendation") {
@@ -1424,6 +1427,7 @@ export async function handleChatMessage(input: {
   return {
     reply,
     followUpMessages,
+    contactMessages,
     locationActions,
     imageUrls: result.type === "recommendation" ? result.imageUrls : [],
     videoUrls: result.type === "recommendation" && result.videoUrl ? [result.videoUrl] : [],
