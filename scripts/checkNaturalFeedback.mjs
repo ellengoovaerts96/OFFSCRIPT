@@ -4,11 +4,17 @@ import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 
 const source = stripTypeScriptTypes(readFileSync(new URL('../src/logic/chatbotFlow.ts', import.meta.url), 'utf8'));
-async function check({ ambiguous = false, fails = false, named = false } = {}) {
+async function check({ ambiguous = false, fails = false, named = false, reset = false } = {}) {
   const writes = [];
-  const message = named ? 'Chez Mami was lekker, maar bij B was de bediening slecht.' : 'Lekker maar iets te pikant!';
+  const cleared = [];
+  const message = reset ? 'reset' : named ? 'Chez Mami was lekker, maar bij B was de bediening slecht.' : 'Lekker maar iets te pikant!';
   const context = vm.createContext({ console: { error() {} }, setTimeout, clearTimeout });
   const mocks = {
+    deleteConversationContext: async () => cleared.push('context'),
+    deleteRecommendationHistoryForUser: async () => cleared.push('history'),
+    closePendingFeedbackConversation: async () => cleared.push('pending-feedback'),
+    upsertConversationContext: async () => {},
+    buildOffscriptWelcomeResponse: () => 'Welcome',
     getConversationContext: async () => ({ language: 'nl', intent: 'food' }),
     getLastOutgoingMessage: async () => 'Chez Mami',
     getLastRecommendedPlace: async () => ({ placeId: 'a', placeName: 'Chez Mami' }),
@@ -37,6 +43,7 @@ async function check({ ambiguous = false, fails = false, named = false } = {}) {
     return;
   }
   const reply = await module.namespace.runChatbotFlow('test', message);
+  if (reset) { assert.deepEqual(cleared, ['context', 'history', 'pending-feedback']); assert.equal(writes.length, 0); assert.equal(reply.message, 'Welcome'); return; }
   if (ambiguous) { assert.equal(writes.length, 0); assert.match(reply.message, /welke plaats/); return; }
   assert.equal(writes.length, named ? 2 : 1);
   assert.equal(writes[0].freeText, message);
@@ -46,6 +53,7 @@ async function check({ ambiguous = false, fails = false, named = false } = {}) {
   assert.match(reply.message, /bewaard/);
   if (named) assert.equal(writes[1].placeId, 'b');
 }
+await check({ reset: true });
 await check();
 await check({ named: true });
 await check({ ambiguous: true });
@@ -54,7 +62,7 @@ console.log('Natural feedback flow checks passed (4 scenarios).');
 
 const interpreterSource = stripTypeScriptTypes(readFileSync(new URL('../src/ai/interpretPlaceFeedback.ts', import.meta.url), 'utf8'));
 const sandbox = vm.createContext({ console: { error() {} } });
-let parsed = { ambiguousPlace: false, feedback: [
+let parsed = { isFeedback: true, ambiguityEvidence: '', ambiguousPlace: false, feedback: [
   { placeId: 'a', rating: 'okay', reason: 'food_drinks', evidence: 'iets te pikant' },
   { placeId: 'a', rating: 'loved', reason: 'food_drinks', evidence: 'Lekker' },
   { placeId: 'invented', rating: 'loved', reason: 'food_drinks', evidence: 'Lekker' },
@@ -71,7 +79,7 @@ await interpreter.evaluate();
 const interpreted = await interpreter.namespace.interpretPlaceFeedback({ message: 'Lekker maar iets te pikant!', places: [{ id: 'a', name: 'Chez Mami' }, { id: 'b', name: 'B' }] });
 assert.equal(interpreted.feedback.length, 1, 'Reject unknown IDs, invented evidence and duplicate ratings');
 assert.equal(interpreted.feedback[0].rating, 'okay');
-parsed = { ambiguousPlace: false, feedback: [] };
+parsed = { isFeedback: false, ambiguityEvidence: '', ambiguousPlace: false, feedback: [] };
 assert.equal((await interpreter.namespace.interpretPlaceFeedback({ message: 'Is het pikant?', places: [] })).feedback.length, 0);
 console.log('Feedback interpretation validation checks passed.');
 const repositorySource = stripTypeScriptTypes(readFileSync(new URL('../src/data/recommendationFeedbackRepository.ts', import.meta.url), 'utf8'));
@@ -86,3 +94,18 @@ assert.equal(stored.parameters[8], 'Lekker!');
 assert.equal(stored.parameters[9], false, 'Completed spontaneous feedback must not capture the next unrelated message as detail');
 assert.equal(stored.parameters[10], 'food_drinks');
 console.log('Feedback persistence parameter checks passed.');
+
+parsed = { isFeedback: true, ambiguityEvidence: 'Waar kan ik thieboudienne eten?', ambiguousPlace: true, feedback: [] };
+for (const message of ['Waar kan ik thieboudienne eten?', 'Where can I eat dinner?', 'Où puis-je manger ?', 'Wo kann ich essen?']) {
+  const result = await interpreter.namespace.interpretPlaceFeedback({ message, places: [] });
+  assert.equal(result.isFeedback, false);
+  assert.equal(result.ambiguousPlace, false);
+}
+parsed = { isFeedback: false, ambiguityEvidence: '', ambiguousPlace: true, feedback: [] };
+assert.equal((await interpreter.namespace.interpretPlaceFeedback({ message: 'Ik zoek een restaurant', places: [] })).ambiguousPlace, false);
+await repository.namespace.closePendingFeedbackConversation('test');
+assert.match(stored.sql, /conversation_closed = true/);
+assert.doesNotMatch(stored.sql, /DELETE/);
+await repository.namespace.getPendingRecommendationFeedback('test');
+assert.match(stored.sql, /conversation_closed = false/);
+console.log('Search intent and feedback reset checks passed.');

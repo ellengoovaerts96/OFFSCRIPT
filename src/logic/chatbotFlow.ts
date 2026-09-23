@@ -26,6 +26,7 @@ import { listRecommendationPlaces } from "../data/placesRepository.js";
 import { getWhatsAppUser } from "../data/whatsappUsersRepository.js";
 import {
   createRecommendationFeedback,
+  closePendingFeedbackConversation,
   listFeedbackPlaces,
   getPendingRecommendationFeedback,
   setPositiveRecommendationFeedbackDetail,
@@ -860,6 +861,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
     await deleteConversationContext(userPhone);
     await deleteRecommendationHistoryForUser(userPhone);
+    await closePendingFeedbackConversation(userPhone);
     await upsertConversationContext(userPhone, context);
 
     return {
@@ -874,6 +876,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
     await deleteConversationContext(userPhone);
     await deleteRecommendationHistoryForUser(userPhone);
+    await closePendingFeedbackConversation(userPhone);
     await upsertConversationContext(userPhone, context);
 
     return {

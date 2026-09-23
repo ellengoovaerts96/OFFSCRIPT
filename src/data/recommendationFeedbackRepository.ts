@@ -40,7 +40,7 @@ export async function getPendingRecommendationFeedback(userPhone: string): Promi
     awaiting_positive_detail: boolean;
   }>(
     `SELECT id, rating, reason, awaiting_positive_detail FROM public.recommendation_feedback
-     WHERE user_phone = $1 AND (
+     WHERE user_phone = $1 AND conversation_closed = false AND (
        awaiting_positive_detail = true OR
        (rating IN ('okay', 'disliked') AND (reason IS NULL OR (reason = 'something_else' AND free_text IS NULL)))
      )
@@ -76,4 +76,11 @@ export async function setPositiveRecommendationFeedbackDetail(id: string, detail
 export async function listFeedbackPlaces(): Promise<Array<{ id: string; name: string }>> {
   const result = await pool.query<{ id: string; name: string }>("SELECT id, name FROM public.places ORDER BY name");
   return result.rows;
+}
+
+export async function closePendingFeedbackConversation(userPhone: string): Promise<void> {
+  await pool.query(
+    "UPDATE public.recommendation_feedback SET conversation_closed = true, awaiting_positive_detail = false, updated_at = NOW() WHERE user_phone = $1 AND conversation_closed = false",
+    [userPhone]
+  );
 }
