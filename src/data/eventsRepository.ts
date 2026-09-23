@@ -1,3 +1,4 @@
+import { eventOccurrences } from "../logic/eventRecurrence.js";
 import { pool } from "../integrations/postgres.js";
 import { createHash } from "node:crypto";
 import { emptyEvent, fillEventVenue, validateEvent, type EventData, type EventSource, type EventVenue, type ExtractedEvent, type EventContext } from "../logic/eventImport.js";
@@ -75,12 +76,17 @@ export async function listPublishedEvents(start: string, end: string): Promise<E
     COALESCE(p.area,v.area) AS venue_area, COALESCE(p.google_maps_url,v.google_maps_url) AS venue_maps,
     COALESCE(p.reservation_phone,v.contact_phone) AS venue_phone
     FROM public.events e LEFT JOIN public.places p ON p.id=e.place_id LEFT JOIN public.event_venues v ON v.id=e.event_venue_id
-    WHERE e.status='published' AND e.event_date BETWEEN $1::date AND $2::date
-      AND e.event_date >= (NOW() AT TIME ZONE 'Africa/Dakar')::date
+    WHERE e.status='published' AND (
+      (COALESCE(e.details->>'recurrenceFrequency','none') <> 'weekly' AND e.event_date BETWEEN $1::date AND $2::date
+        AND e.event_date >= (NOW() AT TIME ZONE 'Africa/Dakar')::date)
+      OR (e.details->>'recurrenceFrequency' = 'weekly' AND e.event_date <= $2::date
+        AND (NULLIF(e.details->>'recurrenceUntil','') IS NULL OR e.details->>'recurrenceUntil' >= GREATEST($1::date, (NOW() AT TIME ZONE 'Africa/Dakar')::date)::text))
+    )
     ORDER BY e.event_date, e.details->>'startTime', e.id LIMIT 100`, [start,end]);
-  return result.rows.map(row => {
+  return result.rows.flatMap(row => {
     const data = eventFromRow(row).data;
-    return { ...data, venueName:data.venueName || row.venue_name || '', neighbourhood:data.neighbourhood || row.venue_neighbourhood || '',
+    const resolved = { ...data, venueName:data.venueName || row.venue_name || '', neighbourhood:data.neighbourhood || row.venue_neighbourhood || '',
       area:data.area || row.venue_area || '', googleMapsUrl:data.googleMapsUrl || row.venue_maps || '', contactPhone:data.contactPhone || row.venue_phone || '' };
+    return eventOccurrences(resolved, start, end, new Date().toISOString().slice(0,10));
   });
 }

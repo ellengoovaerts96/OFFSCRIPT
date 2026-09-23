@@ -22,8 +22,16 @@ Existing places and saved event venues appear in the same selector. Missing name
 
 Saving an unlinked venue creates a reusable `event_venues` record within the event transaction. It is not a curated Places entry. A stable key of name/location/Maps URL avoids exact duplicates, and import-token retries are serialized and idempotent. Edits in an event stay specific to that event and do not modify the shared venue. To store a separate venue, choose “New event venue”. Existing saved events gain these reusable links when next saved.
 
-The chatbot checks published dashboard events before its existing event/search flow for questions such as “Wat is er te doen?”, events, workshops or concerts. It restricts dates to the requested day/week/weekend (default: this week), excludes past dates and finished events today, filters explicit neighbourhoods and requires childFriendly=yes for requests with children. Replies contain venue, neighbourhood, area, Maps URL, phone and entrance conditions when available. No match or a database failure preserves the existing fallback flow. This does not expand explicit recurrences into future dates. Descriptions retain the admin/source language.
+The chatbot checks published dashboard events before its existing event/search flow for questions such as “Wat is er te doen?”, events, workshops or concerts. It restricts dates to the requested day/week/weekend (default: this week), excludes past dates and finished events today, filters explicit neighbourhoods and requires childFriendly=yes for requests with children. Replies contain venue, neighbourhood, area, Maps URL, phone and entrance conditions when available. No match or a database failure preserves the existing fallback flow. Reviewed weekly schedules are expanded into actual occurrence dates within the requested period. Descriptions retain the admin/source language.
 
 Additional tests: `npm run published-events:check`, `npm run event-persistence:check` (mocked database transaction tests). Run migrations and a live end-to-end screenshot → review → publish → WhatsApp check on staging before production.
 
 Validation note: the broader `conversation:check` currently fails on the pizza-budget clarification fixture, identically on the pre-change HEAD. Targeted event checks, build, Dashboard and Places checks pass.
+
+## Weekly events
+
+Select Repeat → Every week, choose a weekday, and enter an active-from date in the event date field. Repeat until is optional and inclusive; leave it blank for an ongoing schedule. Change visibility to Draft to stop recommendations. Publishing requires a valid start date and weekday. A bounded range must contain at least one occurrence. One-time events keep their existing date behavior.
+
+Explicit recurrence wording such as “Jeudis soir 20h” can preselect Thursday during import; a bare weekday or single dated event cannot. The original source wording is kept. No start date is inferred when none is given: the admin chooses when the schedule becomes active. Multiple weekdays and non-weekly patterns remain source text for manual review rather than being guessed.
+
+The schedule fields (`recurrenceFrequency`, `recurrenceWeekday` with Sunday=0, and `recurrenceUntil`) are saved in the existing event `details` JSONB; `event_date` is the active-from date. No migration is needed. The chatbot expands published schedules into dates in Dakar time and retains the event’s location, contact and child-friendly details. Test with `npm run event-recurrence:check` and `npm run event-persistence:check`.

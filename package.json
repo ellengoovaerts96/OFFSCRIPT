@@ -46,7 +46,8 @@
     "start": "node dist/migrate.js && node dist/server.js",
     "event-import:check": "node --import tsx scripts/checkEventImport.ts",
     "published-events:check": "node --import tsx scripts/checkPublishedEvents.ts",
-    "event-persistence:check": "node --experimental-vm-modules --import tsx scripts/checkEventPersistence.mjs"
+    "event-persistence:check": "node --experimental-vm-modules --import tsx scripts/checkEventPersistence.mjs",
+    "event-recurrence:check": "node --import tsx scripts/checkEventRecurrence.ts"
   },
   "keywords": [],
   "author": "",

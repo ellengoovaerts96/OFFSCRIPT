@@ -4,6 +4,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 import * as logic from '../src/logic/eventImport.ts';
 import * as crypto from 'node:crypto';
+import * as recurrence from '../src/logic/eventRecurrence.ts';
 let queries=[], previous=null, missing=false, publishedRows=[];
 const placeId='ce286d35-8973-45ef-b0e8-05636e6d7115';
 const venueId='ce286d35-8973-45ef-b0e8-05636e6d7116';
@@ -20,7 +21,7 @@ const client={release(){queries.push(['release'])},async query(sql,args){
 const pool={connect:async()=>client,query:client.query.bind(client)};
 const module = new vm.SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/data/eventsRepository.ts',import.meta.url),'utf8')));
 await module.link(async specifier=>{
-  const values=specifier.includes('postgres')?{pool}:specifier==='node:crypto'?crypto:logic;
+  const values=specifier.includes('postgres')?{pool}:specifier==='node:crypto'?crypto:specifier.includes('eventRecurrence')?recurrence:logic;
   return new vm.SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value)});
 });
 await module.evaluate();
@@ -46,10 +47,25 @@ await assert.rejects(saveAdminEvent({data,draft,admin:'test'}),/no longer exists
 assert.ok(queries.some(([sql])=>sql==='ROLLBACK'));
 assert.equal(queries.at(-1)[0],'release');
 queries=[];
-publishedRows=[{id:eventId,title:'Test',details:logic.emptyEvent(),status:'published',event_date:'2026-09-26',updated_at:new Date(),venue_name:'Prieto',venue_neighbourhood:'Almadies',venue_area:'Dakar',venue_maps:'https://maps.google.com/?q=Prieto',venue_phone:'123'}];
-const results=await listPublishedEvents('2026-09-23','2026-09-27');
+const today = new Date().toISOString().slice(0,10);
+publishedRows=[{id:eventId,title:'Test',details:logic.emptyEvent(),status:'published',event_date:today,updated_at:new Date(),venue_name:'Prieto',venue_neighbourhood:'Almadies',venue_area:'Dakar',venue_maps:'https://maps.google.com/?q=Prieto',venue_phone:'123'}];
+const results=await listPublishedEvents(today,today);
 assert.equal(results[0].googleMapsUrl,publishedRows[0].venue_maps);
 assert.ok(queries[0][0].includes("e.status='published'"));
 assert.ok(queries[0][0].includes("AT TIME ZONE 'Africa/Dakar'"));
-assert.deepEqual(queries[0][1],['2026-09-23','2026-09-27']);
+assert.deepEqual(queries[0][1],[today,today]);
 console.log('Event persistence: venue saving, inheritance, transaction rollback, retry idempotency and published query checks passed.');
+
+queries=[];
+publishedRows=[{...publishedRows[0],event_date:'2020-01-01',details:{...logic.emptyEvent(),recurrenceFrequency:'weekly',recurrenceWeekday:String(new Date().getUTCDay())}}];
+const recurring=await listPublishedEvents(today,today);
+assert.equal(recurring[0].eventDate,today);
+assert.ok(queries[0][0].includes("e.details->>'recurrenceFrequency' = 'weekly'"));
+assert.ok(queries[0][0].includes("recurrenceUntil"));
+console.log('Recurring event database selection and expansion passed.');
+
+missing=false;queries=[];
+await saveAdminEvent({data:{...data,recurrenceFrequency:'weekly',recurrenceWeekday:'4',recurrenceUntil:'2026-12-31'},draft,admin:'test'});
+const stored=JSON.parse(queries.find(([sql])=>sql.startsWith('INSERT INTO public.events'))[1][3]);
+assert.equal(stored.recurrenceFrequency,'weekly');assert.equal(stored.recurrenceWeekday,'4');assert.equal(stored.recurrenceUntil,'2026-12-31');
+console.log('Weekly schedule persistence passed.');
