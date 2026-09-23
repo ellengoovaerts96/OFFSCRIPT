@@ -315,7 +315,7 @@ export function acceptsBroaderLocationInContext(
 
   const answer = normalizeContextText(message);
   const previousQuestion = normalizeContextText(previousAssistantMessage);
-  const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|ok|okay|yes|sure|absolutely|no problem|oui|bien sur|d accord|ca va|c est bon|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
+  const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|ok|oke|okay|yes|sure|absolutely|no problem|oui|bien sur|d accord|ca va|c est bon|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
   const askedToBroaden = /\b(?:andere buurt|andere wijk|another neighbourhood|another neighborhood|other area|autre quartier|autre zone|anderes viertel|andere gegend)\b/.test(previousQuestion);
 
   return askedToBroaden && (affirmative || acceptsAnyLocation(message));
@@ -721,7 +721,7 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const routeMessage = normalizeContextText(input.message);
   const answersPreviousQuestion =
     Boolean(input.previousAssistantMessage?.includes("?")) &&
-    /^(?:ja|nee|zeker|graag|ok|okay|yes|no|sure|oui|non|d accord|ca va|c est bon|ja gerne|nein)$/.test(routeMessage);
+    /^(?:ja|nee|zeker|graag|ok|oke|okay|yes|no|sure|oui|non|d accord|ca va|c est bon|ja gerne|nein)$/.test(routeMessage);
   const clearDatabaseMessage = Boolean(
     inferredRegion ||
     acceptsBroadLocation ||
