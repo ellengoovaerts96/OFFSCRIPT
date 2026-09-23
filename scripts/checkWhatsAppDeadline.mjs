@@ -6,8 +6,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../src/channels/whatsapp.ts', import.meta.url), 'utf8');
 const result = { reply: 'Padel in Dakar', followUpMessages: [], contactMessages: ['*Contact · 11 Players*\n📞 +221771234567\n💬 WhatsApp: https://wa.me/221771234567'], locationActions: [], imageUrls: [], videoUrls: [], afterMediaMessages: [] };
 async function scenario({ delayedPreparation = false, duplicate = false, fails = false } = {}) {
-  let handler, release, confirmDelivery;
-  const delivery = new Promise(resolve => { confirmDelivery = resolve; });
+  let handler, release;
   const timers = new Map();
   const responses = [], sent = [], logs = [];
   let calls = 0;
@@ -21,7 +20,7 @@ async function scenario({ delayedPreparation = false, duplicate = false, fails =
     express: { Router: () => ({ post(path, middleware, fn) { handler = fn; } }) },
     '../ai/detectLanguage.js': { detectLanguage: () => 'nl' },
     '../data/chatMessagesRepository.js': { createChatMessage: async value => logs.push(value) },
-    '../integrations/twilio.js': { canSendWhatsAppMessage: () => true, sendWhatsAppMessage: async (...args) => { sent.push(args); if (args[5]) await delivery; } },
+    '../integrations/twilio.js': { canSendWhatsAppMessage: () => true, sendWhatsAppMessage: async (...args) => sent.push(args) },
     '../logic/chatbotFlow.js': { handleChatMessage: async () => { calls++; return result; } },
     '../logic/twilioWebhook.js': {
       validateTwilioWebhook() {},
@@ -46,18 +45,12 @@ async function scenario({ delayedPreparation = false, duplicate = false, fails =
     for (let i = 0; i < 30; i++) await Promise.resolve();
     if (duplicate) { assert.equal(sent.length, 0); assert.equal(calls, 0); }
     else if (fails) { assert.match(sent[0][1], /Sorry/); assert.equal(calls, 0); }
-    else { assert.equal(sent[0][1], result.reply); assert.equal(sent.length, 1); assert.equal(calls, 1); }
+    else { assert.equal(sent[0][1], result.reply); assert.equal(sent[1][1], result.contactMessages[0]); assert.equal(calls, 1); }
   } else {
     await pending;
-    assert.match(responses[0], /<Response><\/Response>/);
+    assert.match(responses[0], duplicate ? /<Response><\/Response>/ : /Padel in Dakar/);
     assert.equal(calls, duplicate ? 0 : 1);
-    if (!duplicate) { assert.equal(sent.length, 1); assert.equal(sent[0][1], result.reply); }
-  }
-  if (!duplicate && !fails) {
-    assert.equal(sent[0][5], true, "Wait for information delivery before sending contact");
-    confirmDelivery();
-    for (let i = 0; i < 30; i++) await Promise.resolve();
-    assert.equal(sent[1][1], result.contactMessages[0]);
+    if (!duplicate) assert.match(responses[0], /Padel in Dakar<\/Body><\/Message><Message><Body>\*Contact · 11 Players\*/);
   }
   assert.equal(responses.length, 1);
   assert.equal(timers.size, 0);
