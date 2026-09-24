@@ -45,6 +45,14 @@ for (const message of ['I am looking for a romantic Italian restaurant','Ik zoek
   assert.ok(selectBestPlace(places,local.context));
   const romanticLocal={...places[0],vibeTags:['romantic'],vibe:'romantic'};
   const strongOutside={...places[3],offscriptPriority:100};
+  const popularLocal={...places[1],offscriptPriority:100,offscriptPickLevel:3 as const};
+  assert.equal(selectBestPlace([popularLocal,romanticLocal],local.context)?.place.id,romanticLocal.id,
+    'Explicit romantic atmosphere must outrank a higher editorial score among local Italian options');
+  assert.equal(selectBestPlace([popularLocal,romanticLocal],{...local.context,vibe:undefined,searchProfile:{...local.context.searchProfile!,vibes:[]}})?.place.id,popularLocal.id,
+    'Without a vibe preference, editorial priority still applies');
+  assert.ok(selectBestPlace([popularLocal],local.context),'Missing vibe tags must not hide the only local Italian option');
+  assert.equal(selectBestPlace([popularLocal,romanticLocal],{...local.context,vibe:undefined})?.place.id,romanticLocal.id,
+    'A stored SearchProfile vibe must also affect ranking');
   assert.equal(selectBestPlace([places[1],strongOutside,romanticLocal],local.context)?.place.id,romanticLocal.id);
   const semanticProfile=buildSearchProfile(message,local.context,undefined,{products:['restaurant','italian food','romantic']});
   assert.ok(!semanticProfile.products.includes('restaurant'));

@@ -1,3 +1,4 @@
+import { extractVibeTags } from "./vibeTags.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import {
@@ -85,6 +86,16 @@ function foodStyleFit(place: Place, context: UserContext): number {
   return 1;
 }
 
+function structuredVibeFit(place: Place, context: UserContext): number {
+  const requested = extractVibeTags([context.vibe, ...(context.searchProfile?.vibes ?? [])].filter(Boolean).join(", "));
+  const documented = new Set(extractVibeTags([
+    place.vibe, ...place.vibeTags, ...place.subcategories.map(subcategory => subcategory.name),
+    ...place.occasionTags,
+    ...(place.occasionTags.includes("date_night") ? ["romantic"] : [])
+  ].filter(Boolean).join(", ")));
+  return requested.filter(vibe => documented.has(vibe)).length;
+}
+
 function compareRankedPlaces(
   left: RankedPlace,
   right: RankedPlace,
@@ -123,6 +134,13 @@ function compareRankedPlaces(
     const rightVibeFit = placeMatchesSpecificFocus(right.place, context.vibe) ? 1 : 0;
     if (rightVibeFit !== leftVibeFit) return rightVibeFit - leftVibeFit;
   }
+
+  // A documented match for an explicitly requested atmosphere distinguishes
+  // otherwise eligible options before their general editorial popularity.
+  // Keep this a ranking preference: missing vibe metadata is not an exclusion.
+  const leftAtmosphereFit = structuredVibeFit(left.place, context);
+  const rightAtmosphereFit = structuredVibeFit(right.place, context);
+  if (rightAtmosphereFit !== leftAtmosphereFit) return rightAtmosphereFit - leftAtmosphereFit;
 
   // Hard filters and profile narrowing have already established relevance.
   // Editorial judgement must therefore decide between comparable valid
