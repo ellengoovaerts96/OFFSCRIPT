@@ -50,6 +50,7 @@ try {
   const {rows:[inserted]}=await db.query("INSERT INTO field_research_inbox(source_key,source_row_id,source_type,raw,payload) VALUES('notes:test','test','field_notes',$1,$2) RETURNING id",[JSON.stringify(raw),JSON.stringify(base)]);
   let item=await repo.getResearch(String(inserted.id));
   assert.equal(item.status,'new');
+  assert.deepEqual(item.placeMatches,[]);
   await assert.rejects(repo.approvalPreview(item,'create',null),/In review/);
   const edited=logic.reviewedInput({...base,short_description_en:'Reviewed café description'},base);
   await repo.saveResearch(item.id,0,repo.itemHash(item),edited,'in_review','editor');
@@ -76,6 +77,16 @@ try {
   assert.ok(created.editorial_locked_fields.includes('short_description'));
   assert.deepEqual((await db.query('SELECT raw FROM field_research_inbox')).rows[0].raw,raw);
   assert.equal(await count('field_research_approvals'),1);
+  const linked = await repo.getResearch(item.id);
+  assert.equal(linked.placeMatches[0].confirmed,true);
+  assert.ok(html.renderResearchList([linked],{},null,'csrf').includes('✓ Already in Places'));
+  assert.ok(html.renderResearchDetail(linked,'csrf').includes('/admin/places/'+placeId));
+  const {rows:[possibleRow]}=await db.query("INSERT INTO field_research_inbox(source_key,source_type,raw,payload) VALUES('test:possible','field_notes','{}',$1) RETURNING id",[JSON.stringify({place:'Test Cafe by Prainha'})]);
+  const possible=await repo.getResearch(String(possibleRow.id));
+  assert.equal(possible.placeMatches[0].id,placeId);
+  assert.equal(possible.placeMatches[0].confirmed,false);
+  assert.ok(html.renderResearchDetail(possible,'csrf').includes('Possible match in Places'));
+
   await assert.rejects(repo.approveResearch(preview.plan,[],'editor'),/already approved/);
   // Compare selected fields, preserve existing publication state, phone and image rows.
   await db.query("UPDATE places SET status='active' WHERE id=$1",[placeId]);

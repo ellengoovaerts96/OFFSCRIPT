@@ -14,13 +14,33 @@ export type ResearchItem = {
     snapshot: unknown;
     placeId: string | null;
     error: string | null;
+    placeMatches?: { id: string; name: string; location: string; confirmed: boolean }[];
 };
 const rowItem = (row: Record<string, any>): ResearchItem => ({ id: String(row.id), key: row.source_key, sourceId: row.source_row_id, sourceType: row.source_type, raw: row.raw, payload: row.payload, reviewed: row.reviewed ?? {}, status: row.status ?? 'new', version: row.version ?? 0, snapshot: row.raw_snapshot, placeId: row.approved_place_id, error: row.processing_error });
 const select = `SELECT i.*,r.reviewed,r.status,r.version,r.raw_snapshot,r.approved_place_id FROM field_research_inbox i LEFT JOIN field_research_reviews r USING(source_key)`;
 export const itemHash = (item: ResearchItem) => fingerprint({ raw: item.raw, payload: item.payload });
 export const itemValues = (item: ResearchItem) => ({ ...item.payload, ...item.reviewed });
-export async function listResearch(): Promise<ResearchItem[]> { return (await pool.query(select + ' ORDER BY i.id DESC')).rows.map(rowItem); }
-export async function getResearch(id: string): Promise<ResearchItem | null> { const result = await pool.query(select + ' WHERE i.id=$1', [id]); return result.rows[0] ? rowItem(result.rows[0]) : null; }
+// Fetch once for the whole overview, rather than querying Places for every card.
+async function withPlaceMatches(items: ResearchItem[]): Promise<ResearchItem[]> {
+    if (!items.length) return items;
+    const places = (await pool.query('SELECT id,name,source_row_id,google_maps_url,neighbourhood,region FROM places ORDER BY name')).rows;
+    return items.map(item => {
+        const likely = matchingResearchPlaces({ ...itemValues(item), source_row_id: item.sourceId }, places);
+        const matches = places.filter(place => place.id === item.placeId || likely.includes(place));
+        return { ...item, placeMatches: matches.map(place => ({
+            id: String(place.id), name: String(place.name),
+            location: [place.neighbourhood, place.region].filter(Boolean).join(' · '),
+            confirmed: place.id === item.placeId || Boolean(item.sourceId && place.source_row_id === item.sourceId)
+        })).sort((a,b) => Number(b.confirmed)-Number(a.confirmed)) };
+    });
+}
+export async function listResearch(): Promise<ResearchItem[]> {
+    return withPlaceMatches((await pool.query(select + ' ORDER BY i.id DESC')).rows.map(rowItem));
+}
+export async function getResearch(id: string): Promise<ResearchItem | null> {
+    const result = await pool.query(select + ' WHERE i.id=$1', [id]);
+    return result.rows[0] ? (await withPlaceMatches([rowItem(result.rows[0])]))[0] : null;
+}
 export async function researchSyncState() { return (await pool.query('SELECT * FROM field_research_sync_state WHERE id=1')).rows[0] ?? null; }
 export async function saveResearch(id: string, version: number, hash: string, reviewed: Record<string, string>, status: ResearchStatus, admin: string): Promise<void> {
     const client = await pool.connect();
