@@ -1,3 +1,4 @@
+import { fieldResearchAdminRouter } from "./channels/fieldResearchAdmin.js";
 import express from "express";
 import { eventsAdminRouter } from "./channels/eventsAdmin.js";
 import { inboxRouter } from "./channels/inbox.js";
@@ -30,6 +31,7 @@ app.use("/go", sourceRedirectRouter);
 app.use("/admin/sources", sourcesAdminRouter);
 app.use("/admin/places", placesAdminRouter);
 app.use("/admin/events", eventsAdminRouter);
+app.use("/admin/field-research", fieldResearchAdminRouter);
 app.use("/admin", dashboardRouter);
 app.use(inboxRouter);
 

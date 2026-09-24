@@ -49,7 +49,8 @@
     "event-persistence:check": "node --experimental-vm-modules --import tsx scripts/checkEventPersistence.mjs",
     "event-recurrence:check": "node --import tsx scripts/checkEventRecurrence.ts",
     "event-location:check": "node --import tsx scripts/checkEventLocationLookup.ts && node --experimental-vm-modules --import tsx scripts/checkEventLocationService.mjs",
-    "event-translation:check": "node --experimental-vm-modules --import tsx scripts/checkEventTranslation.mjs"
+    "event-translation:check": "node --experimental-vm-modules --import tsx scripts/checkEventTranslation.mjs",
+    "field-research:check": "node --experimental-vm-modules --import tsx scripts/checkFieldResearch.mjs"
   },
   "keywords": [],
   "author": "",
