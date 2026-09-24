@@ -51,6 +51,9 @@ const INTENT_ACTIVITIES: Partial<Record<UserIntent, SearchActivity>> = {
 };
 
 const NON_PRODUCT_SUBCATEGORIES = new Set([
+  "restaurant",
+  "restaurants",
+  "romantic",
   "beach",
   "working",
   "surfing",
@@ -145,7 +148,9 @@ export function hydrateSearchProfile(
     targetLocation && targetLocation !== "Dakar"
       ? targetLocation
       : storedNeighbourhood;
-  const products = stringArray(profile.products);
+  const products = stringArray(profile.products).filter(value =>
+    !["restaurant", "restaurants", "romantic"].includes(normalized(value))
+  );
   if (
     requestedSubcategory &&
     !NON_PRODUCT_SUBCATEGORIES.has(requestedSubcategory) &&
@@ -172,6 +177,7 @@ export function hydrateSearchProfile(
     ])],
     vibes: [...new Set([
       ...stringArray(profile.vibes),
+      ...stringArray(profile.products).filter(value => normalized(value) === "romantic"),
       ...stringArray(context.vibe),
       ...stringArray(context.requestedStyle)
     ])],

@@ -198,12 +198,13 @@ function withSearchProfile(
     sanitizedCandidate,
     subcategoryTaxonomy
   );
-  const requestedSubcategory =
+  const requestedSubcategory = preventSoftSignalAsHardSubcategory(
     deterministicMatch?.name ??
     taxonomyMatch?.name ??
     validatedCandidate?.name ??
     normalizeActivityIntent(sanitizedCandidate)?.focus ??
-    (subcategoryTaxonomy.length === 0 ? sanitizedCandidate : undefined);
+    (subcategoryTaxonomy.length === 0 ? sanitizedCandidate : undefined)
+  );
   const taxonomyContext: UserContext = {
     ...result.context,
     intent:

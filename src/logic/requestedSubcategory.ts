@@ -44,7 +44,11 @@ export function preventSoftSignalAsHardSubcategory(
   // SearchProfile already retains them as soft location, occasion, and vibe
   // signals. Treating one of them as requestedSubcategory would turn it into a
   // hard filter and remove strong editorial matches before ranking.
+  // "Restaurant" is already represented by the food intent. Old imports may
+  // contain this generic tag, but it must not become a required literal word.
   const softSignals = new Set([
+    "restaurant",
+    "restaurants",
     "beachfront",
     "by the ocean",
     "calm",
