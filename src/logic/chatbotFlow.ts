@@ -703,14 +703,14 @@ function buildRepeatedReply(result: ChatbotFlowResult): string {
   }
 
   if (context.language.startsWith("fr")) {
-    return "Je ne vais pas me copier-coller. Donne-moi juste un repère concret : ton quartier, le moment ou l’ambiance que tu cherches. Là je peux mieux t’aider.";
+    return "Donne-moi juste un repère concret : ton quartier, le moment ou l’ambiance que tu cherches. Là je peux mieux t’aider.";
   }
 
   if (context.language.startsWith("de")) {
-    return "Ich wiederhole mich lieber nicht eins zu eins. Gib mir einen konkreten Reise-Hinweis: Viertel, Zeitpunkt oder gewünschte Stimmung. Dann helfe ich gezielter.";
+    return "Gib mir einen konkreten Reise-Hinweis: Viertel, Zeitpunkt oder gewünschte Stimmung. Dann helfe ich gezielter.";
   }
 
-  return "I will not copy-paste myself. Give me one concrete travel clue: your neighbourhood, timing or the kind of vibe you want. Then I can help properly.";
+  return "Give me one concrete travel clue: your neighbourhood, timing or the kind of vibe you want. Then I can help properly.";
 }
 
 async function avoidRepeatedReply(userPhone: string, result: ChatbotFlowResult): Promise<string> {

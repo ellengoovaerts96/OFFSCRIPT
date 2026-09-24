@@ -54,6 +54,7 @@ export function preventSoftSignalAsHardSubcategory(
     "ocean view",
     "oceanfront",
     "relaxed",
+    "romantic",
     "scenic",
     "sea view",
     "sunset",

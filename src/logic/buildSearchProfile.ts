@@ -16,6 +16,7 @@ export type SearchProfileSignals = {
 };
 
 const PRODUCT_PATTERNS: SignalPattern[] = [
+  ["italian_food", /\b(italian|italiaans|italiaanse|italien|italienne|italienisch|italienisches|italiano|italiana)\b/],
   ["pizza", /\b(pizza|pizzeria)\b/],
   ["thieboudienne", /\b(thieb|thieboudienne|thiebou dienne|thieboudiene|ceebu jen|riz au poisson)\b/],
   ["yassa", /\byassa\b/],

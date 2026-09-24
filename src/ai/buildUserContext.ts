@@ -301,7 +301,7 @@ export function acceptsBroaderLocation(message: string): boolean {
   // A different place is not necessarily a different neighbourhood. Keep
   // generic alternative wording ("andere plek", "autre endroit", etc.) out
   // of this location decision so the user can choose the travel radius first.
-  return /\b(another neighbourhood|another neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|broader|wider|andere buurt|andere wijk|andere regio|elders|breder|ruimer|autre quartier|autre zone|plus largement|elargir|anderes viertel|andere gegend|breiter)\b/.test(
+  return /\b(another (?:dakar )?neighbourhood|another (?:dakar )?neighborhood|another area|another part of dakar|other neighbourhood|other neighborhood|different neighbourhood|different neighborhood|broader|wider|andere buurt|andere wijk|andere regio|elders|breder|ruimer|autre quartier|autre zone|plus largement|elargir|anderes viertel|andere gegend|breiter)\b/.test(
     lower
   );
 }
@@ -316,7 +316,7 @@ export function acceptsBroaderLocationInContext(
   const answer = normalizeContextText(message);
   const previousQuestion = normalizeContextText(previousAssistantMessage);
   const affirmative = /^(?:ja|jazeker|zeker|graag|geen probleem|ok|oke|okay|yes|sure|absolutely|no problem|oui|bien sur|d accord|ca va|c est bon|volontiers|ja gerne|naturlich|kein problem)$/.test(answer);
-  const askedToBroaden = /\b(?:andere buurt|andere wijk|another neighbourhood|another neighborhood|other area|autre quartier|autre zone|anderes viertel|andere gegend)\b/.test(previousQuestion);
+  const askedToBroaden = /\b(?:andere buurt|andere wijk|another (?:dakar )?neighbourhood|another (?:dakar )?neighborhood|other area|autre quartier|autre zone|anderes viertel|andere gegend)\b/.test(previousQuestion);
 
   return askedToBroaden && (affirmative || acceptsAnyLocation(message));
 }
@@ -324,7 +324,7 @@ export function acceptsBroaderLocationInContext(
 function previousQuestionOffersBroaderLocation(previousAssistantMessage?: string | null): boolean {
   if (!previousAssistantMessage) return false;
   const previousQuestion = normalizeContextText(previousAssistantMessage);
-  return /\b(?:andere buurt|andere wijk|breder zoeken|another neighbourhood|another neighborhood|other area|broaden|wider search|autre quartier|autre zone|plus largement|anderes viertel|andere gegend|breiter suchen)\b/.test(previousQuestion);
+  return /\b(?:andere buurt|andere wijk|breder zoeken|another (?:dakar )?neighbourhood|another (?:dakar )?neighborhood|other area|broaden|wider search|autre quartier|autre zone|plus largement|anderes viertel|andere gegend|breiter suchen)\b/.test(previousQuestion);
 }
 
 function isBeachLocationPreference(message: string): boolean {
@@ -603,8 +603,8 @@ export function inferTextVibe(message: string): string | undefined {
 
   if (/\b(rasta|reggae|rastabar)\b/.test(lower)) return "rasta_reggae";
   if (/\b(quick|casual|informal|snelle|snel|informeel|rapide|decontracte|décontracté|locker)\b/.test(lower)) return "quick_casual";
-  if (/\b(good italian|italian restaurant|goed italiaans|italiaans restaurant|bon restaurant italien|restaurant italien|gutes italienisches|italienisches restaurant)\b/.test(lower)) return "italian_restaurant";
   if (/\b(romantic|romantisch|romantique|romantisch)\b/.test(lower)) return "romantic";
+  if (/\b(good italian|italian restaurant|goed italiaans|italiaans restaurant|bon restaurant italien|restaurant italien|gutes italienisches|italienisches restaurant)\b/.test(lower)) return "italian_restaurant";
   if (/\b(lively|gezellig|levendig|ambiance|animé|anime|lebendig)\b/.test(lower)) return "lively";
   if (/\b(calm|quiet|chill|chilled|chillen|rustig|calme|tranquil|tranquille|ruhig)\b/.test(lower)) return "calm";
   if (/\b(creative|artistic|creatief|creatieve|artistiek|artistieke|creatif|creative|artistique|kreativ|kunstlerisch)\b/.test(lower)) return "artistic";
@@ -818,7 +818,10 @@ export async function buildUserContext(input: BuildUserContextInput): Promise<Bu
     acceptsBroaderLocationInContext(input.message, input.previousAssistantMessage);
   const broadTargetRegion = acceptsBroadLocation ? "Dakar" : undefined;
   const messageIsKnownRegionOnly = isKnownRegionOnly(input.message);
-  if (messageIsKnownRegionOnly && input.previousContext?.intent) {
+  // A short acceptance changes the radius while keeping the accumulated request.
+  const locationOnlyAcceptance = acceptsBroadLocation &&
+    !detectIntent(input.message) && !inferRequestedSubcategory(input.message);
+  if ((messageIsKnownRegionOnly || locationOnlyAcceptance) && input.previousContext?.intent) {
     return deterministicFallbackWithProfile(input);
   }
   if (!hasOpenAIKey()) {

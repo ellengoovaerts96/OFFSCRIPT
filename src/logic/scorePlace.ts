@@ -1,4 +1,4 @@
-import { placeOffersPadel } from "./searchProfileMatching.js";
+import { placeOffersPadel, italianCuisineAliases } from "./searchProfileMatching.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
@@ -36,7 +36,7 @@ const VIBE_ALIASES: Record<string, string[]> = {
   rasta_reggae: vibeTagAliases("rasta_reggae"),
   romantic: ["romantic", "romantisch", "romantique", "date", "couple", "sunset", "intimate"],
   quick_casual: ["quick", "casual", "informal", "fast", "takeaway", "take away", "snelle", "snel", "afhalen", "informeel", "rapide", "a emporter", "décontracté"],
-  italian_restaurant: ["italian", "italian restaurant", "italiaans", "restaurant italien", "italienisch"],
+  italian_restaurant: italianCuisineAliases,
   local: ["local", "lokaal", "locale", "lokal", "authentic", "authentiek", "authentique"],
   calm: ["calm", "quiet", "rustig", "calme", "tranquil", "tranquille", "ruhig", "relax", "relaxed"],
   lively: ["lively", "gezellig", "levendig", "ambiance", "anime", "animé", "nightlife"],
@@ -172,7 +172,7 @@ function placeMatchesVibe(place: Place, vibe: string | undefined): boolean {
   if (!vibe) return false;
 
   const normalizedVibe = normalizeValue(vibe);
-  const aliases = VIBE_ALIASES[normalizedVibe] ?? [normalizedVibe];
+  const aliases = VIBE_ALIASES[normalizedVibe.replaceAll(" ", "_")] ?? [normalizedVibe];
   const structuredMatch = placeMatchesSpecificFocus(place, vibe);
 
   if (STRUCTURED_ONLY_VIBES.has(normalizedVibe)) return structuredMatch;
@@ -192,7 +192,7 @@ export function placeMatchesSpecificFocus(place: Place, focus: string | undefine
   const normalizedFocus = normalizeValue(focus);
   if (normalizedFocus === "padel") return placeOffersPadel(place);
   if (normalizedFocus === "working" && place.workFriendly === true) return true;
-  const aliases = VIBE_ALIASES[normalizedFocus] ?? [normalizedFocus];
+  const aliases = VIBE_ALIASES[normalizedFocus.replaceAll(" ", "_")] ?? [normalizedFocus];
   const structuredMatch = (
     textIncludesAny(place.name, aliases) ||
     textIncludesAny(place.area, aliases) ||

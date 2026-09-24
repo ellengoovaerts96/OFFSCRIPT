@@ -16,7 +16,13 @@ const ACTIVITY_INTENTS: Partial<Record<SearchActivity, string[]>> = {
   reservation: []
 };
 
+export const italianCuisineAliases = ["italian", "italiaans", "italiaanse", "italien", "italienne", "italienisch", "italienisches", "italiano", "italiana"];
+
 const TERM_ALIASES: Record<string, string[]> = {
+  italian: italianCuisineAliases,
+  italian_food: italianCuisineAliases,
+  italian_restaurant: italianCuisineAliases,
+  italian_cuisine: italianCuisineAliases,
   cocktails: ["cocktail", "cocktails"],
   coffee: ["coffee", "cafe", "café", "koffie"],
   japanese_food: ["japanese", "japonais", "japans", "sushi"],
