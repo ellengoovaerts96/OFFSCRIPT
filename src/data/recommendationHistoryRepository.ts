@@ -1,3 +1,4 @@
+import { resolveUserIdentity } from "./whatsappUsersRepository.js";
 import { pool } from "../integrations/postgres.js";
 import type { UserContext } from "../types/userContext.js";
 
@@ -21,29 +22,31 @@ export async function recordPlaceRecommendation(input: {
   placeName: string;
   context: UserContext;
 }): Promise<void> {
+  const { userId } = await resolveUserIdentity(input.userPhone);
   try {
     await pool.query(
       `
-        INSERT INTO place_recommendation_history (user_phone, place_id, place_name, context_snapshot)
-        VALUES ($1, $2, $3, $4::jsonb)
+        INSERT INTO place_recommendation_history (user_phone, place_id, place_name, context_snapshot, user_id)
+        VALUES ($1, $2, $3, $4::jsonb, $5)
         ON CONFLICT (user_phone, place_id)
         DO UPDATE SET
+          user_id = EXCLUDED.user_id,
           place_name = EXCLUDED.place_name,
           context_snapshot = EXCLUDED.context_snapshot,
           created_at = NOW()
       `,
-      [input.userPhone, input.placeId, input.placeName, JSON.stringify(input.context)]
+      [input.userPhone, input.placeId, input.placeName, JSON.stringify(input.context), userId]
     );
   } catch (error) {
     if (isUndefinedColumnError(error)) {
       await pool.query(
         `
-          INSERT INTO place_recommendation_history (user_phone, place_id, place_name)
-          VALUES ($1, $2, $3)
+          INSERT INTO place_recommendation_history (user_phone, place_id, place_name, user_id)
+          VALUES ($1, $2, $3, $4)
           ON CONFLICT (user_phone, place_id)
-          DO UPDATE SET place_name = EXCLUDED.place_name, created_at = NOW()
+          DO UPDATE SET user_id = EXCLUDED.user_id, place_name = EXCLUDED.place_name, created_at = NOW()
         `,
-        [input.userPhone, input.placeId, input.placeName]
+        [input.userPhone, input.placeId, input.placeName, userId]
       );
       return;
     }

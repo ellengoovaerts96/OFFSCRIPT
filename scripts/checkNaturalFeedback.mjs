@@ -85,7 +85,7 @@ console.log('Feedback interpretation validation checks passed.');
 const repositorySource = stripTypeScriptTypes(readFileSync(new URL('../src/data/recommendationFeedbackRepository.ts', import.meta.url), 'utf8'));
 let stored;
 const repository = new vm.SourceTextModule(repositorySource, { context: sandbox });
-await repository.link(() => new vm.SyntheticModule(['pool'], function () {
+await repository.link(specifier => specifier.includes('whatsappUsersRepository') ? new vm.SyntheticModule(['resolveUserIdentity'], function () { this.setExport('resolveUserIdentity', async () => ({ userId: 'fixture-id' })); }, { context: sandbox }) : new vm.SyntheticModule(['pool'], function () {
   this.setExport('pool', { query: async (sql, parameters) => { stored = { sql, parameters }; return { rows: [] }; } });
 }, { context: sandbox }));
 await repository.evaluate();

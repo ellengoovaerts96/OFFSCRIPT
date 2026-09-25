@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { runChatbotFlow } from "../logic/chatbotFlow.js";
+import { resolveUserIdentity } from "../data/whatsappUsersRepository.js";
 import { stagingChatAccess } from "../middleware/stagingChat.js";
 
 export const webchatRouter = Router();
@@ -13,6 +14,7 @@ webchatRouter.post("/", ...stagingChatAccess, async (req, res) => {
     return;
   }
 
+  await resolveUserIdentity(userPhone);
   const result = await runChatbotFlow(userPhone, message);
   res.json(result);
 });

@@ -20,8 +20,9 @@ async function load(path) {
   const module = new vm.SourceTextModule(stripTypeScriptTypes(await readFile(new URL(path, import.meta.url), 'utf8')), { context });
   await module.link(async specifier => {
     if (specifier === 'express') return mock({ default: express, Router: express.Router });
+    if (specifier.endsWith('/whatsappUsersRepository.js')) return mock({ resolveUserIdentity: async (...args) => { calls.push({ name: 'identity', args }); return { userId: 'test' }; } });
     if (specifier.endsWith('/stagingChat.js')) return mock(security);
-    if (specifier.endsWith('/chatbotFlow.js')) return mock(Object.fromEntries(['handleChatMessage', 'runChatbotFlow'].map(name => [name, async (...args) => { calls.push({ name, args }); return { reply: 'test' }; }])));
+    if (specifier.endsWith('/chatbotFlow.js')) return mock(Object.fromEntries(['handleChatMessage', 'runChatbotFlow'].map(name => [name, async (...args) => { assert.equal(calls.at(-1)?.name, 'identity'); assert.equal(calls.at(-1).args[0], name === 'handleChatMessage' ? args[0].userPhone : args[0]); calls.push({ name, args }); return { reply: 'test' }; }])));
     if (specifier.endsWith('/webchat.js')) return load('../src/channels/webchat.ts');
     const name = specifier.split('/').pop().replace('.js', 'Router');
     return mock({ [name]: express.Router() });

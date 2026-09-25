@@ -1,3 +1,4 @@
+import { resolveUserIdentity } from "./whatsappUsersRepository.js";
 import { pool } from "../integrations/postgres.js";
 import type { UserContext, UserIntent, TravellerType } from "../types/userContext.js";
 import type { SearchProfile } from "../types/searchProfile.js";
@@ -58,7 +59,15 @@ function mapContext(row: ConversationContextRow): UserContext {
   };
 }
 
+// Transitional external lookup; the context relationship itself is now read by UUID.
 export async function getConversationContext(userPhone: string): Promise<UserContext | null> {
+  const user = await pool.query<{ user_id: string }>(
+    "SELECT user_id FROM public.whatsapp_users WHERE user_phone = $1", [userPhone]
+  );
+  return user.rows[0] ? getConversationContextByUserId(user.rows[0].user_id) : null;
+}
+
+export async function getConversationContextByUserId(userId: string): Promise<UserContext | null> {
   const result = await pool.query<ConversationContextRow>(
     `
       SELECT language, current_location, target_region, traveller_type, has_children,
@@ -66,10 +75,10 @@ export async function getConversationContext(userPhone: string): Promise<UserCon
              excluded_categories, excluded_subcategories, dietary_exclusions, avoid_audience_tags,
              maximum_price_level, alcohol_allowed, clarification_count, search_profile
       FROM conversation_context
-      WHERE user_phone = $1
+      WHERE user_id = $1
       LIMIT 1
     `,
-    [userPhone]
+    [userId]
   );
 
   return result.rows[0] ? mapContext(result.rows[0]) : null;
@@ -86,6 +95,7 @@ export async function deleteConversationContext(userPhone: string): Promise<void
 }
 
 export async function upsertConversationContext(userPhone: string, context: UserContext): Promise<void> {
+  const { userId } = await resolveUserIdentity(userPhone);
   await pool.query(
     `
       INSERT INTO conversation_context (
@@ -112,10 +122,12 @@ export async function upsertConversationContext(userPhone: string, context: User
         safety_concern,
         clarification_count,
         search_profile,
+        user_id,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb, $24, NOW())
       ON CONFLICT (user_phone) DO UPDATE SET
+        user_id = EXCLUDED.user_id,
         language = EXCLUDED.language,
         current_location = EXCLUDED.current_location,
         target_region = EXCLUDED.target_region,
@@ -163,14 +175,16 @@ export async function upsertConversationContext(userPhone: string, context: User
       context.alcoholAllowed ?? null,
       context.safetyConcern ?? null,
       context.clarificationCount ?? 0,
-      context.searchProfile ? JSON.stringify(context.searchProfile) : null
+      context.searchProfile ? JSON.stringify(context.searchProfile) : null,
+      userId
     ]
   );
 }
 
 /** Update language without replacing the user's existing search preferences. */
 export async function upsertConversationLanguage(userPhone: string, language: string): Promise<void> {
-  await pool.query(`INSERT INTO conversation_context(user_phone, language, updated_at)
-    VALUES ($1, $2, NOW()) ON CONFLICT(user_phone) DO UPDATE
-    SET language=EXCLUDED.language, updated_at=NOW()`, [userPhone, language]);
+  const { userId } = await resolveUserIdentity(userPhone);
+  await pool.query(`INSERT INTO conversation_context(user_phone, language, user_id, updated_at)
+    VALUES ($1, $2, $3, NOW()) ON CONFLICT(user_phone) DO UPDATE
+    SET language=EXCLUDED.language, user_id=EXCLUDED.user_id, updated_at=NOW()`, [userPhone, language, userId]);
 }

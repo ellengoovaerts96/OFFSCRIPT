@@ -9,6 +9,7 @@ import { sourcesAdminRouter } from "./channels/sourcesAdmin.js";
 import { dashboardRouter } from "./channels/dashboard.js";
 import { placesAdminRouter } from "./channels/placesAdmin.js";
 import { handleChatMessage } from "./logic/chatbotFlow.js";
+import { resolveUserIdentity } from "./data/whatsappUsersRepository.js";
 import { stagingChatAccess } from "./middleware/stagingChat.js";
 
 export const app = express();
@@ -45,6 +46,7 @@ app.post("/chat/test", ...stagingChatAccess, async (req, res) => {
     return;
   }
 
+  await resolveUserIdentity(userPhone);
   const result = await handleChatMessage({ userPhone, message });
   res.json(result);
 });

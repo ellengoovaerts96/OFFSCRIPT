@@ -11,9 +11,9 @@ async function load(path,resolve){
  await module.evaluate();return module.namespace;
 }
 try {
- await db.exec(`CREATE TABLE conversation_context(user_phone TEXT PRIMARY KEY, language TEXT, current_location TEXT, budget TEXT, clarification_count INT DEFAULT 0, updated_at TIMESTAMP DEFAULT NOW());
+ await db.exec(`CREATE TABLE conversation_context(user_phone TEXT PRIMARY KEY, user_id UUID, language TEXT, current_location TEXT, budget TEXT, clarification_count INT DEFAULT 0, updated_at TIMESTAMP DEFAULT NOW());
  INSERT INTO conversation_context(user_phone,language,current_location,budget,clarification_count) VALUES('test','fr','Yoff','low',2);`);
- const repository=await load('../src/data/conversationContextRepository.ts',name=>name.includes('postgres')?{pool:{query:(sql,params)=>db.query(sql,params)}}:{hydrateSearchProfile:()=>({})});
+ const repository=await load('../src/data/conversationContextRepository.ts',name=>name.includes('whatsappUsersRepository')?{resolveUserIdentity:async()=>({userId:'00000000-0000-4000-8000-000000000001'})}:name.includes('postgres')?{pool:{query:(sql,params)=>db.query(sql,params)}}:{hydrateSearchProfile:()=>({})});
  const getContext=async phone=>(await db.query('SELECT * FROM conversation_context WHERE user_phone=$1',[phone])).rows[0] ?? null;
  const helper=await load('../src/logic/eventConversationLanguage.ts',name=>name.includes('detectLanguage')?language:{getConversationContext:getContext,upsertConversationLanguage:repository.upsertConversationLanguage});
  assert.equal(await helper.rememberEventLanguage('test','Wat is er te doen deze week in Dakar?'),'nl');

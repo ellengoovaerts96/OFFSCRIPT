@@ -1,3 +1,4 @@
+import { resolveUserIdentity } from "./whatsappUsersRepository.js";
 import { pool } from "../integrations/postgres.js";
 import type { ChatDirection, InboxItem } from "../types/chatMessage.js";
 
@@ -15,12 +16,13 @@ export async function createChatMessage(input: {
   direction: ChatDirection;
   message: string;
 }): Promise<void> {
+  const { userId } = await resolveUserIdentity(input.userPhone);
   await pool.query(
     `
-      INSERT INTO chat_messages (user_phone, direction, message)
-      VALUES ($1, $2, $3)
+      INSERT INTO chat_messages (user_phone, direction, message, user_id)
+      VALUES ($1, $2, $3, $4)
     `,
-    [input.userPhone, input.direction, input.message]
+    [input.userPhone, input.direction, input.message, userId]
   );
 }
 

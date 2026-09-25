@@ -51,7 +51,10 @@
     "event-location:check": "node --import tsx scripts/checkEventLocationLookup.ts && node --experimental-vm-modules --import tsx scripts/checkEventLocationService.mjs",
     "event-translation:check": "node --experimental-vm-modules --import tsx scripts/checkEventTranslation.mjs",
     "field-research:check": "node --experimental-vm-modules --import tsx scripts/checkFieldResearch.mjs",
-    "italian-restaurant:check": "node --import tsx scripts/checkItalianRestaurantSearch.ts"
+    "italian-restaurant:check": "node --import tsx scripts/checkItalianRestaurantSearch.ts",
+    "identity:check": "node scripts/checkUserIdentityIntegrity.mjs",
+    "identity:test": "node --experimental-vm-modules --import tsx scripts/checkInternalUserIdentity.mjs",
+    "chat-security:check": "node --experimental-vm-modules --import tsx scripts/checkChatRouteSecurity.mjs"
   },
   "keywords": [],
   "author": "",
@@ -70,6 +73,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^25.8.0",

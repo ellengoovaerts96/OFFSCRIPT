@@ -1,3 +1,4 @@
+import { resolveUserIdentity } from "./whatsappUsersRepository.js";
 import { pool } from "../integrations/postgres.js";
 import type { UserContext } from "../types/userContext.js";
 import type { RecommendationFeedbackRating, RecommendationFeedbackReason } from "../logic/recommendationFeedback.js";
@@ -20,15 +21,16 @@ export async function createRecommendationFeedback(input: {
   reason?: RecommendationFeedbackReason;
   complete?: boolean;
 }): Promise<void> {
+  const { userId } = await resolveUserIdentity(input.userPhone);
   await pool.query(
     `INSERT INTO public.recommendation_feedback (
        user_phone, place_id, place_name, rating, traveller_type, requested_vibe,
-       context_snapshot, acquisition_source_id, free_text, awaiting_positive_detail, reason
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11)`,
+       context_snapshot, acquisition_source_id, free_text, awaiting_positive_detail, reason, user_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12)`,
     [input.userPhone, input.placeId, input.placeName, input.rating,
       input.context.travellerType ?? null, input.context.vibe ?? input.context.requestedStyle ?? null,
       JSON.stringify(input.context), input.acquisitionSourceId ?? null, input.freeText ?? null,
-      input.rating === "loved" && !input.complete, input.reason ?? null]
+      input.rating === "loved" && !input.complete, input.reason ?? null, userId]
   );
 }
 

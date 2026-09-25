@@ -74,6 +74,7 @@ const preparationDependencies = {
     return true;
   },
   ensureUser: async () => undefined,
+  linkMessage: async () => undefined,
   preprocessMessage: async (_phone: string, message: string) => {
     chatbotPreparations += 1;
     return { message };

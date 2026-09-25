@@ -1,11 +1,12 @@
 import type { NextFunction, Request, Response } from "express";
 import { validateRequest } from "twilio/lib/webhooks/webhooks.js";
-import { claimTwilioMessage } from "../data/processedTwilioMessagesRepository.js";
+import { claimTwilioMessage, linkClaimedTwilioMessage } from "../data/processedTwilioMessagesRepository.js";
 import { getOrCreateWhatsAppUser } from "../data/whatsappUsersRepository.js";
 import { preprocessSourceMessage } from "./sourceToken.js";
 
 type InboundPreparationDependencies = {
   claimMessage?: (messageSid: string, userPhone?: string) => Promise<boolean>;
+  linkMessage?: (messageSid: string, userPhone: string) => Promise<void>;
   ensureUser?: (userPhone: string) => Promise<unknown>;
   preprocessMessage?: (userPhone: string, message: string) => Promise<{ message: string }>;
 };
@@ -16,12 +17,14 @@ export async function prepareInboundWhatsAppMessage(
 ): Promise<{ duplicate: boolean; message: string }> {
   const claimMessage = dependencies.claimMessage ?? claimTwilioMessage;
   const ensureUser = dependencies.ensureUser ?? getOrCreateWhatsAppUser;
+  const linkMessage = dependencies.linkMessage ?? linkClaimedTwilioMessage;
   const preprocessMessage = dependencies.preprocessMessage ?? preprocessSourceMessage;
 
   const claimed = await claimMessage(input.messageSid, input.userPhone);
   if (!claimed) return { duplicate: true, message: input.message };
 
   await ensureUser(input.userPhone);
+  await linkMessage(input.messageSid, input.userPhone);
   const preprocessed = await preprocessMessage(input.userPhone, input.message);
   return { duplicate: false, message: preprocessed.message };
 }
