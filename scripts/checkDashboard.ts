@@ -43,7 +43,7 @@ assert.match(testHtml, /STAGING/);
 assert.match(testHtml, /class="mobile-back"/);
 assert.match(testHtml, /history\.back\(\)/);
 assert.match(testHtml, /fetch\('\/chat\/test'/);
-assert.match(testHtml, /Nothing here reaches production/);
+assert.match(testHtml, /Use fictional test details only/);
 
 const manifest = JSON.parse(await readFile(new URL("../public/admin-assets/manifest.webmanifest", import.meta.url), "utf8"));
 assert.equal(manifest.name, "TUUTI Dashboard");

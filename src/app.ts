@@ -9,6 +9,7 @@ import { sourcesAdminRouter } from "./channels/sourcesAdmin.js";
 import { dashboardRouter } from "./channels/dashboard.js";
 import { placesAdminRouter } from "./channels/placesAdmin.js";
 import { handleChatMessage } from "./logic/chatbotFlow.js";
+import { stagingChatAccess } from "./middleware/stagingChat.js";
 
 export const app = express();
 
@@ -35,9 +36,9 @@ app.use("/admin/field-research", fieldResearchAdminRouter);
 app.use("/admin", dashboardRouter);
 app.use(inboxRouter);
 
-app.post("/chat/test", async (req, res) => {
+app.post("/chat/test", ...stagingChatAccess, async (req, res) => {
   const message = String(req.body.message ?? "").trim();
-  const userPhone = String(req.body.userPhone ?? "chat:test");
+  const userPhone = String(res.locals.testUserPhone);
 
   if (!message) {
     res.status(400).json({ reply: "Send a message to start." });

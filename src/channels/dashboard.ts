@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { requireAdminBasicAuth } from "../middleware/adminBasicAuth.js";
+import { adminCsrfToken, requireAdminBasicAuth } from "../middleware/adminBasicAuth.js";
+import { requireStaging } from "../middleware/stagingChat.js";
 import { dashboardConfig } from "../logic/dashboardConfig.js";
 import { renderDashboard, renderStagingTest } from "../logic/dashboardHtml.js";
 
@@ -8,6 +9,6 @@ dashboardRouter.use(requireAdminBasicAuth);
 dashboardRouter.get("/", (_req, res) => {
   res.type("html").send(renderDashboard(dashboardConfig()));
 });
-dashboardRouter.get("/test", (_req, res) => {
-  res.type("html").send(renderStagingTest());
+dashboardRouter.get("/test", requireStaging, (_req, res) => {
+  res.type("html").send(renderStagingTest(adminCsrfToken()));
 });

@@ -332,3 +332,21 @@ linked response Sheet differs from `GOOGLE_FIELD_NOTES_SPREADSHEET_ID`.
 explicit assessment selections without calling OpenAI or writing to Google
 Sheets. The command without `--dry-run` performs AI structuring and updates the
 source status.
+
+### Staging chat access
+
+`POST /chat/test` and `POST /webchat` are admin-only staging test routes.
+At least one of `TUUTI_ENVIRONMENT` / `RAILWAY_ENVIRONMENT_NAME` must be set,
+and every configured value must be `staging`; conflicting or unknown values
+fail closed with 404. Requests require the existing admin Basic Auth and CSRF
+form token. The dashboard supplies that token automatically. Chat identity is
+server-generated, stored in an HttpOnly signed cookie for eight hours, and always
+uses the `dashboard:test:` namespace. Client-supplied `userPhone` is rejected.
+Public webchat requires a separately designed authentication/session flow.
+
+Use fictional users and fictional personal details on staging. Never copy real
+user conversations or production user tables into staging. This route restriction
+does not verify database isolation or remove any existing staging records.
+
+Run the isolated route checks (no database or provider calls):
+`node --experimental-vm-modules --import tsx scripts/checkChatRouteSecurity.mjs`.
