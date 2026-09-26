@@ -23,6 +23,7 @@ async function scenario({ delayedPreparation = false, duplicate = false, fails =
     '../data/chatMessagesRepository.js': { createChatMessage: async value => logs.push(value) },
     '../integrations/twilio.js': { canSendWhatsAppMessage: () => true, sendWhatsAppMessage: async (...args) => { sent.push(args); if (args[5]) await delivery; } },
     '../logic/chatbotFlow.js': { handleChatMessage: async () => { calls++; return result; } },
+    '../logic/recommendationLinks.js': { locationActionLabel: action => action.split('|', 2)[1] || 'Locatie' },
     '../logic/twilioWebhook.js': {
       validateTwilioWebhook() {},
       prepareInboundWhatsAppMessage: async () => { await preparation; if (fails) throw Error('database unavailable'); return { duplicate, message: 'oké' }; }

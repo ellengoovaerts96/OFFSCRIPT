@@ -78,6 +78,7 @@ import {
 } from "./recommendationFeedback.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { buildWhatsAppVideoUrl } from "./whatsappMedia.js";
+import { buildLocationAction, formatMapsLink, formatSocialLink } from "./recommendationLinks.js";
 import { findKnownRegion, normalizeRegion } from "../utils/normalizeRegion.js";
 import {
   buildFrustrationRecovery,
@@ -100,6 +101,8 @@ export type ChatbotFlowResult =
       placeName: string;
       reservationPhone?: string;
       googleMapsUrl: string;
+      latitude?: number;
+      longitude?: number;
       shortDescription: string;
       offscriptReason?: string;
       personalTip?: string;
@@ -804,6 +807,8 @@ function recommendationResult(
     placeName: place.name,
     reservationPhone: place.reservationPhone,
     googleMapsUrl: place.googleMapsUrl,
+    latitude: place.latitude,
+    longitude: place.longitude,
     shortDescription: place.shortDescription,
     offscriptReason: place.offscriptReason,
     personalTip: place.personalTip,
@@ -1462,12 +1467,18 @@ export async function handleChatMessage(input: {
           localizedRecommendation.shortDescription,
           localizedRecommendation.personalTip,
           localizedRecommendation.practicalInfo,
-          result.socialUrl,
-          result.googleMapsUrl
+          result.socialUrl ? formatSocialLink(result.socialUrl) : undefined,
+          result.latitude === undefined || result.longitude === undefined
+            ? formatMapsLink(result.googleMapsUrl)
+            : undefined
         ].filter(
           (message): message is string => Boolean(message)
         )
       : [];
+  if (result.type === "recommendation") {
+    const locationAction = buildLocationAction(result);
+    if (locationAction) locationActions.push(locationAction);
+  }
   const contactMessages = localizedRecommendation
     ? [phoneMessage ?? whatsAppContactLine].filter((message): message is string => Boolean(message))
     : [];

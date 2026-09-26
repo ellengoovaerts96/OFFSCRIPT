@@ -7,6 +7,7 @@ import {
   prepareInboundWhatsAppMessage,
   validateTwilioWebhook
 } from "../logic/twilioWebhook.js";
+import { locationActionLabel } from "../logic/recommendationLinks.js";
 
 export const whatsappRouter = Router();
 const WEBHOOK_RESPONSE_DEADLINE_MS = 10_000;
@@ -65,7 +66,7 @@ whatsappRouter.post("/", validateTwilioWebhook, async (req, res) => {
       return;
     }
 
-    if (result.result.contactMessages?.length && canSendWhatsAppMessage(twilioTo)) {
+    if ((result.result.contactMessages?.length || result.result.locationActions.length) && canSendWhatsAppMessage(twilioTo)) {
       // A single TwiML response queues all messages together. Use the REST
       // delivery path so information is delivered before contact details.
       sendTwilioMessages(res, []);
@@ -286,7 +287,7 @@ async function sendRecommendationFollowUps(
 
   for (const locationAction of locationActions) {
     try {
-      await sendWhatsAppMessage(to, undefined, undefined, fromOverride, [locationAction]);
+      await sendWhatsAppMessage(to, locationActionLabel(locationAction), undefined, fromOverride, [locationAction]);
       await wait(800);
     } catch (error) {
       console.error("Could not send delayed WhatsApp location", error);
