@@ -3,6 +3,7 @@ import {
   buildFeedbackRatingQuestion,
   buildPositiveFeedbackQuestion,
   isFeedbackRatingQuestion,
+  isRecommendationSearchRequest,
   isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating,
   parseRecommendationFeedbackReason
@@ -79,6 +80,12 @@ if (!buildFeedbackPrompt("fr").includes("🚫")) {
 }
 if (!buildPositiveFeedbackQuestion("fr").includes("rapport qualité-prix")) {
   throw new Error("Positive feedback must get one natural, useful follow-up question.");
+}
+for (const request of ["Een goede padelclub", "Ik zoek een kunstgalerie", "Where can I play padel?", "Je cherche un bon restaurant"]) {
+  if (!isRecommendationSearchRequest(request)) throw new Error(`${request} must bypass feedback interpretation.`);
+}
+for (const review of ["Pizzammore was echt geweldig!", "De pizza was fantastisch", "Het viel tegen"]) {
+  if (isRecommendationSearchRequest(review)) throw new Error(`${review} must remain eligible for feedback interpretation.`);
 }
 
 console.log("Recommendation feedback checks passed.");

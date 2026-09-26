@@ -67,6 +67,7 @@ import {
   buildSavedFeedbackThanks,
   hasFeedbackDetail,
   isFeedbackDeparture,
+  isRecommendationSearchRequest,
   isFeedbackRatingQuestion,
   isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating
@@ -902,7 +903,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return [];
   });
   const pendingFeedback = await getPendingRecommendationFeedback(userPhone);
-  const naturalFeedback = await interpretPlaceFeedback({
+  const bareKnownPlace = findExplicitPlaceRequest(message, feedbackPlaces.map(place => ({ name: place.name } as Place)));
+  const clearSearchRequest = isRecommendationSearchRequest(message);
+  const naturalFeedback = bareKnownPlace || clearSearchRequest ? null : await interpretPlaceFeedback({
     message,
     places: feedbackPlaces,
     pendingRating: pendingFeedback?.rating,
@@ -911,7 +914,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   if (pendingFeedback) {
     const detail = naturalFeedback?.feedback.find(item => item.placeId === pendingFeedback.placeId);
     const otherPlace = naturalFeedback?.ambiguousPlace || naturalFeedback?.feedback.some(item => item.placeId !== pendingFeedback.placeId);
-    const departing = naturalFeedback?.followUpAction === "new_request" || (!detail && naturalFeedback?.followUpAction !== "detail" && isFeedbackDeparture(message));
+    const departing = Boolean(bareKnownPlace || clearSearchRequest) || naturalFeedback?.followUpAction === "new_request" || (!detail && naturalFeedback?.followUpAction !== "detail" && isFeedbackDeparture(message));
     const answering = !otherPlace && !departing && (
       detail || naturalFeedback?.followUpAction === "detail" || naturalFeedback?.followUpAction === "skip" ||
       !startsNewSearch(message, previousContext) || hasFeedbackDetail(message, pendingFeedback.placeName)
@@ -935,12 +938,15 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     for (const feedback of naturalFeedback.feedback) {
       const place = feedbackPlaces.find(candidate => candidate.id === feedback.placeId);
       if (!place) continue;
-      const needsDetail = feedback.rating !== "did_not_go" && !feedback.detailEvidence && !(feedback.aspects?.length) && !hasFeedbackDetail(feedback.evidence || message, place.name);
+      // The model may call emphasis such as "echt geweldig" detail. Only
+      // concrete wording or a grounded aspect is enough to skip our one question.
+      const hasConcreteDetail = Boolean(feedback.aspects?.length) || hasFeedbackDetail(message, place.name);
+      const needsDetail = feedback.rating !== "did_not_go" && !hasConcreteDetail;
       const ask = needsDetail && !followUp;
       if (ask && feedback.rating !== "did_not_go") followUp = { name: place.name, rating: feedback.rating };
       await createRecommendationFeedback({
         userPhone, placeId: place.id, placeName: place.name,
-        rating: feedback.rating, reason: feedback.detailEvidence ? feedback.reason : undefined, complete: !ask, aspects: feedbackAspects(feedback),
+        rating: feedback.rating, reason: hasConcreteDetail ? feedback.reason : undefined, complete: !ask, aspects: feedbackAspects(feedback),
         context, acquisitionSourceId: whatsappUser?.acquisitionSourceId,
         freeText: message.trim()
       });

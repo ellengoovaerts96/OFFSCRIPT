@@ -1156,6 +1156,10 @@ assert(
   "A natural story question containing a known place name must resolve that place."
 );
 assert(
+  findExplicitPlaceRequest("11 players", [{ name: "11 Players" }])?.name === "11 Players",
+  "A bare database place with a numeric name must resolve as a place, not a group size."
+);
+assert(
   isPlaceInformationFollowUp("Wat is het verhaal achter Chez Iso Dakar?"),
   "A place story question must use the place-information answer path."
 );

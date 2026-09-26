@@ -27,7 +27,7 @@ export function isFrustratedReply(message: string): boolean {
   );
 }
 
-export function findExplicitPlaceRequest(message: string, places: Place[]): Place | undefined {
+export function findExplicitPlaceRequest<T extends Pick<Place, "name">>(message: string, places: T[]): T | undefined {
   const text = normalize(message)
     .replace(/^(?:et|en|and|what about|wat met|que penses tu de)\s+/, "")
     .trim();

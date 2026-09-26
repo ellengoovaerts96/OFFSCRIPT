@@ -13,7 +13,7 @@ async function scenario(rating,initial,hasDetail=false,{offline=false,followup='
     getConversationContext:async()=>savedContext,getLastOutgoingMessage:async()=>last,
     getLastRecommendedPlace:async()=>({placeId:'p',placeName:'Pizzammore'}),getWhatsAppUser:async()=>null,
     isOffscriptStartMessage:()=>false,isResetCommand:()=>false,
-    listFeedbackPlaces:async()=>[{id:'p',name:'Pizzammore'}],getPendingRecommendationFeedback:async()=>pending,
+    listFeedbackPlaces:async()=>[{id:'p',name:'Pizzammore'},{id:'11',name:'11 Players'}],getPendingRecommendationFeedback:async()=>pending,
     resolveConversationLanguage:()=> 'nl',upsertConversationContext:async(_,context)=>{savedContext=context},
     interpretPlaceFeedback:async input=>{
       if(offline)return null;
@@ -48,6 +48,8 @@ await scenario('loved','Pizzammore was geweldig, supergoede pizza en heel gezell
 await scenario('did_not_go','Niet geweest');
 await scenario('loved','Pizzammore was geweldig',false,{skip:true,followup:'Geen idee, gewoon alles!'});
 await scenario('loved','Pizzammore was geweldig',false,{departure:true,followup:'Ik wil nu padel spelen'});
+await scenario('loved','Pizzammore was geweldig',false,{departure:true,followup:'Een goede padelclub'});
+await scenario('loved','Pizzammore was geweldig',false,{departure:true,followup:'11 players'});
 await scenario('loved','Ik vond het geweldig',false,{offline:true});
 await scenario('loved','Ik vond het geweldig',false,{offline:true,departure:true,followup:'padel'});
 console.log('Feedback follow-up: generic positive/neutral/negative, detailed review, one question, same record, structured aspects, skip, changed topic and offline fallback passed.');

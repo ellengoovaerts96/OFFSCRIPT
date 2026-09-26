@@ -129,6 +129,15 @@ export function hasFeedbackDetail(message: string, placeName = ""): boolean {
   return /\b(?:omdat|because|parce que|weil|pizza|eten|food|nourriture|essen|sfeer|ambiance|atmosphere|stimmung|service|bediening|personnel|prijs|price|prix|preis|duur|expensive|cher|teuer|gezellig|cosy|cozy|buiten|outside|terrasse|terras|spicy|pikant|piment|toeristisch|touristy|touristique)\b/.test(value);
 }
 
+/** Clear discovery wording must never be routed into the feedback flow. */
+export function isRecommendationSearchRequest(message: string): boolean {
+  const value = normalize(message);
+  const asksForPlace = /\b(?:goede|leuke|beste|good|great|best|bon|bonne|meilleur|gute|guter|beste)\b/.test(value) &&
+    /\b(?:club|padelclub|sportclub|restaurant|bar|cafe|plek|plaats|place|adresse|endroit|ort|galerie|gallery|museum|strand|beach)\b/.test(value);
+  const explicitSearch = /\b(?:ik zoek|ik wil|waar (?:kan|vind)|we zoeken|i (?:am looking|want)|where (?:can|do)|je cherche|je veux|ou (?:puis|trouve)|ich suche|ich will|wo (?:kann|finde))\b/.test(value);
+  return asksForPlace || explicitSearch;
+}
+
 export function isFeedbackDeparture(message: string): boolean {
   const value = normalize(message);
   return message.includes("?") || /\b(?:ik (?:wil|zoek)|we (?:willen|zoeken)|i (?:want|need)|we (?:want|need)|je (?:veux|cherche)|ich (?:will|suche)|waar kan|where can|ou puis|wo kann)\b/.test(value);
