@@ -1,4 +1,5 @@
 import type {
+  LocationPolicy,
   SearchActivity,
   SearchMobility,
   SearchRecommendationType,
@@ -166,7 +167,16 @@ export function hydrateSearchProfile(
     locationFeatures.push("beachfront");
   }
 
+  const rawLocation = record(profile.locationPolicy);
+  const locationPolicy: LocationPolicy | undefined = Object.keys(rawLocation).length ? {
+    currentRegion: typeof rawLocation.currentRegion === "string" ? rawLocation.currentRegion : undefined,
+    preferredRegion: typeof rawLocation.preferredRegion === "string" ? rawLocation.preferredRegion : undefined,
+    requiredRegion: typeof rawLocation.requiredRegion === "string" ? rawLocation.requiredRegion : undefined,
+    willingToTravel: rawLocation.willingToTravel === "yes" || rawLocation.willingToTravel === "no" ? rawLocation.willingToTravel : "unknown",
+    proximityRequired: rawLocation.proximityRequired === true
+  } : undefined;
   return {
+    locationPolicy,
     recommendationType: recommendationType(profile.recommendationType),
     activity: activity(profile.activity, context.intent),
     products,
@@ -182,7 +192,7 @@ export function hydrateSearchProfile(
       ...stringArray(context.requestedStyle)
     ])],
     neighbourhood,
-    mobility: targetLocation === "Dakar"
+    mobility: locationPolicy ? (locationPolicy.requiredRegion || locationPolicy.proximityRequired ? "nearby" : "dakar_wide") : targetLocation === "Dakar"
       ? "dakar_wide"
       : neighbourhood
         ? "nearby"

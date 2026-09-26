@@ -41,7 +41,7 @@ for (const message of ['I am looking for a romantic Italian restaurant','Ik zoek
   assert.ok(initial.context.searchProfile?.products.includes('italian_food'));
   assert.ok(initial.context.searchProfile?.vibes.includes('romantic'));
   const local=await buildUserContext({message:'Yoff',previousContext:initial.context,previousAssistantMessage:'Which neighbourhood are you in right now?',subcategoryTaxonomy:taxonomy});
-  assert.deepEqual(findMatchingCandidates(places,local.context).map(p=>p.id).sort(),['Italian A','Italian B']);
+  assert.deepEqual(findMatchingCandidates(places,local.context).map(p=>p.id).sort(),['Italian A','Italian B','Outside Yoff']);
   assert.ok(selectBestPlace(places,local.context));
   const romanticLocal={...places[0],vibeTags:['romantic'],vibe:'romantic'};
   const strongOutside={...places[3],offscriptPriority:100};

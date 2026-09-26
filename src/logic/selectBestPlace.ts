@@ -1,3 +1,4 @@
+import { locationPolicy } from "./locationPolicy.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import {
@@ -58,20 +59,11 @@ function filterCandidates(places: Place[], context: UserContext): Place[] {
   );
 }
 
-function targetLocationForContext(context: UserContext): string | undefined {
-  return context.targetRegion ?? context.currentLocation;
-}
-
 function localCandidatesForContext(places: Place[], context: UserContext): Place[] {
-  const targetLocation = targetLocationForContext(context);
-  if (!targetLocation || targetLocation === "Dakar") return places;
-
-  const localCandidates = places.filter((place) => placeMatchesLocation(place, targetLocation));
-
-  // A named neighbourhood is a hard boundary until the user explicitly says
-  // that another area is acceptable. Never silently recommend a place from a
-  // different neighbourhood merely because its content score is high.
-  return localCandidates;
+  const policy = locationPolicy(context);
+  if (policy.proximityRequired && !policy.requiredRegion) return [];
+  if (!policy.requiredRegion || policy.requiredRegion === "Dakar") return places;
+  return places.filter(place => placeMatchesLocation(place, policy.requiredRegion));
 }
 
 function focusCandidatesForContext(places: Place[], context: UserContext): Place[] {
@@ -133,6 +125,7 @@ export function selectBestPlace(places: Place[], context: UserContext): PlaceSel
 }
 
 export function selectBestAlternativePlace(places: Place[], context: UserContext): PlaceSelection | null {
+  if (locationPolicy(context).requiredRegion || locationPolicy(context).proximityRequired) return null;
   if (!context.targetRegion && !context.currentLocation) return null;
   if (
     context.targetRegion !== "Dakar" &&

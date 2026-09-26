@@ -129,8 +129,8 @@ const americanBreakfastContext: UserContext = {
 };
 assert.equal(
   needsClarification(americanBreakfastContext, []),
-  "location",
-  "American breakfast is already specific; only the missing neighbourhood may be requested."
+  null,
+  "An exact dish with no candidates should not trigger an unnecessary location question."
 );
 assert.notEqual(
   needsClarification({ ...americanBreakfastContext, targetRegion: "Yoff" }, []),

@@ -1,3 +1,4 @@
+import { applyLocationPolicy, locationPolicy } from "../logic/locationPolicy.js";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getOpenAIClient, hasOpenAIKey, openaiModel } from "../integrations/openai.js";
@@ -677,6 +678,7 @@ function mergeTravellerType(message: string, previousTravellerType?: TravellerTy
 function stableTravellerContext(previous: UserContext | null | undefined, language: string): UserContext {
   return {
     language,
+    currentLocation: previous ? locationPolicy(previous).currentRegion : undefined,
     travellerType: previous?.travellerType,
     hasChildren: previous?.hasChildren,
     childrenAges: previous?.childrenAges,
@@ -691,7 +693,8 @@ function fallbackBuildUserContext(input: BuildUserContextInput): BuildUserContex
   const language = resolveConversationLanguage(input.message, input.previousContext?.language);
   const fallbackNewSearch = Boolean(
     input.previousContext &&
-    isDirectRecommendationRequest(input.message) &&
+    (isDirectRecommendationRequest(input.message) ||
+      (detectIntent(input.message) && detectIntent(input.message) !== input.previousContext.intent)) &&
     (
       detectIntent(input.message) ||
       inferRequestedSubcategory(input.message) ||
@@ -812,7 +815,7 @@ function deterministicFallbackWithProfile(input: BuildUserContextInput): BuildUs
   );
 }
 
-export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
+async function interpretUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const explicitRegion = findKnownRegion(input.message);
   const acceptsBroadLocation =
     acceptsAnyLocation(input.message) ||
@@ -870,6 +873,7 @@ Routing rules:
 - Use conversation for greetings, thanks, laughter, banter, nonsense, comments about TUUTI, or requests outside TUUTI's Senegal travel purpose.
 - For conversation, write conversationReply in the exact requiredReplyLanguage supplied in the input. Sound like a close, relaxed friend: be brief, use informal address (tu in French), and avoid customer-service phrases such as "n’hésitez pas", "si vous avez besoin" or "je reste à votre disposition". Acknowledge the newest message's actual meaning warmly, explain TUUTI's focus only when useful, and invite a relevant Senegal preference. Never output a standardised category list. Do not mention or imply the user's stored accommodation neighbourhood unless the newest message is actually asking for travel or place help.
 - A standalone greeting is always conversation. Never answer a greeting by asking for traveller type, budget, timing or location.
+- Preserve currentLocation when the user switches activities. It is where they are based, not a mandatory search boundary. Never ask their neighbourhood again if it is known. Do not invent travel times or distances.
 - When location is the useful next detail, ask where the user is or whether anywhere in Dakar is fine. Do not repeat the complete list of five neighbourhoods; it is already stated in the welcome message. Never ask for a city or neighbourhood elsewhere in Senegal.
 - If the user requests a place outside the current Dakar scope, explain the current scope naturally instead of pretending TUUTI can search there.
 - Never recommend or name a place yourself. The application queries verified places only after place_lookup.
@@ -1141,4 +1145,13 @@ Also extract searchProfileSignals independently from the legacy context:
         ...parsed.searchProfileSignals,
         activity: nullToUndefined(parsed.searchProfileSignals.activity)
       }, input.subcategoryTaxonomy);
+}
+
+/** Enforce location provenance after either AI interpretation or deterministic fallback. */
+export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
+  const result = await interpretUserContext(input);
+  return { ...result, context: applyLocationPolicy(
+    input.message, result.context, input.previousContext, input.previousAssistantMessage,
+    result.recommendationAction === "new_search"
+  ) };
 }

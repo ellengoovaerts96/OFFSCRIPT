@@ -1,3 +1,4 @@
+import { locationPolicy } from "./locationPolicy.js";
 import type { UserContext } from "../types/userContext.js";
 import type { Place } from "../types/place.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
@@ -40,6 +41,7 @@ function hasSpecificDishProduct(context: UserContext): boolean {
 function hasSpecificLocation(context: UserContext): boolean {
   const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
 
+  if (locationPolicy(context).currentRegion) return true;
   if (!location) return false;
   if (location !== "Dakar") return true;
 
@@ -222,11 +224,9 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (places) {
     const candidates = findClarificationCandidates(places, context);
 
-    // Location is required before a concrete recommendation, including when
-    // filtering currently yields zero or one candidate. Otherwise an empty
-    // local result can incorrectly become a generic "no data" response.
-    // A QR-provided accommodation neighbourhood already satisfies this.
-    if (!hasSpecificLocation(context)) return "location";
+    // Ask for location when it separates options or the user requires proximity.
+    // A single clear match can be recommended without collecting an address.
+    if (!hasSpecificLocation(context) && (candidates.length > 1 || locationPolicy(context).proximityRequired)) return "location";
 
     // Once mobility is known, ask only about a field that actually separates
     // the remaining database candidates.

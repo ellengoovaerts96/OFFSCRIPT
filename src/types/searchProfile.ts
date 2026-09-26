@@ -16,7 +16,16 @@ export type SearchActivity =
 export type SearchMobility = "nearby" | "dakar_wide";
 export type SearchRecommendationType = "place" | "activity" | "route";
 
+export type LocationPolicy = {
+  currentRegion?: string;
+  preferredRegion?: string;
+  requiredRegion?: string;
+  willingToTravel: "unknown" | "yes" | "no";
+  proximityRequired?: boolean;
+};
+
 export type SearchProfile = {
+  locationPolicy?: LocationPolicy;
   recommendationType?: SearchRecommendationType;
   activity?: SearchActivity;
   products: string[];

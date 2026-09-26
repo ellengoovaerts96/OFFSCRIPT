@@ -1,10 +1,12 @@
+import { locationPolicy } from "./locationPolicy.js";
 import { extractVibeTags } from "./vibeTags.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
 import {
   isSpecificFocus,
   placeMatchesSpecificFocus,
-  scorePlace
+  scorePlace,
+  placeMatchesLocation
 } from "./scorePlace.js";
 import {
   countStructuredOccasionMatches,
@@ -151,6 +153,10 @@ function compareRankedPlaces(
   if (right.place.offscriptPriority !== left.place.offscriptPriority) {
     return right.place.offscriptPriority - left.place.offscriptPriority;
   }
+
+  const preferredRegion = locationPolicy(context).preferredRegion;
+  const proximityDifference = Number(placeMatchesLocation(right.place, preferredRegion)) - Number(placeMatchesLocation(left.place, preferredRegion));
+  if (preferredRegion && proximityDifference) return proximityDifference;
 
   const leftUserMatch = left.matchScore + left.preferenceScore;
   const rightUserMatch = right.matchScore + right.preferenceScore;

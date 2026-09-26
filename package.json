@@ -22,6 +22,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:check": "tsx scripts/checkRepositories.ts",
     "logic:check": "tsx scripts/checkLogic.ts",
+    "location-context:check": "node --import tsx scripts/checkLocationContext.ts",
     "search-profile:check": "tsx scripts/checkSearchProfile.ts",
     "activity-intent:check": "node --import tsx scripts/checkActivityIntent.ts",
     "live-music-intent:check": "node --import tsx scripts/checkLiveMusicIntent.ts",

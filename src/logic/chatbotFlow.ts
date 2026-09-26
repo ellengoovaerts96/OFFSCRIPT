@@ -1,3 +1,5 @@
+import { locationPolicy, outsideLocationNotice } from "./locationPolicy.js";
+import { placeMatchesLocation } from "./scorePlace.js";
 import { rememberEventLanguage } from "./eventConversationLanguage.js";
 import { localizeEventText } from "../ai/localizeEventText.js";
 import { listPublishedEvents } from "../data/eventsRepository.js";
@@ -126,7 +128,7 @@ export type ChatbotFlowResult =
     };
 
 function buildNoMatchResponse(context: UserContext): string {
-  const location = context.targetRegion ?? context.currentLocation;
+  const location = locationPolicy(context).requiredRegion;
   const hasSpecificLocation = Boolean(location && normalizeRegion(location) !== "Dakar");
   const focus = context.requestedSubcategory;
   const recommendationType = context.searchProfile?.recommendationType;
@@ -839,7 +841,12 @@ function recommendationResult(
     priceLevel: place.priceLevel,
     offscriptPickLevel: place.offscriptPickLevel,
     score,
-    message: recommendationTitle(place),
+    message: [
+      !placeMatchesLocation(place, locationPolicy(context).currentRegion)
+        ? outsideLocationNotice(context, place.neighbourhood ?? place.area ?? place.region)
+        : undefined,
+      recommendationTitle(place)
+    ].filter(Boolean).join("\n\n"),
     imageUrls: selectRecommendationImages(place, message),
     videoUrl: place.videoUrl ? buildWhatsAppVideoUrl(place.videoUrl) : undefined
   };
@@ -1125,6 +1132,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   if (
     activeRecommendation &&
     activeNeighbourhood &&
+    Boolean(locationPolicy(context).requiredRegion) &&
     normalizeRegion(activeNeighbourhood) !== "Dakar" &&
     interpretation.recommendationAction === "find_alternative" &&
     !continuesProposedSearch &&

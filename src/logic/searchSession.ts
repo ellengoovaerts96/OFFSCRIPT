@@ -1,3 +1,4 @@
+import { locationPolicy } from "./locationPolicy.js";
 import { detectIntent } from "../ai/detectIntent.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
@@ -93,6 +94,7 @@ export function contextForNewSearch(
 ): UserContext {
   return {
     language,
+    currentLocation: previousContext ? locationPolicy(previousContext).currentRegion : undefined,
     travellerType: previousContext?.travellerType,
     hasChildren: previousContext?.hasChildren,
     childrenAges: previousContext?.childrenAges,
