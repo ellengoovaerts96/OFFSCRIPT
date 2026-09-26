@@ -117,3 +117,33 @@ export function buildFreeTextPrompt(language: string): string {
   if (language.startsWith("de")) return "Erzähl kurz — selbst ein Satz hilft.";
   return "Dis-moi — même une seule phrase m’aide.";
 }
+
+export type FeedbackAspect = "food" | "atmosphere" | "service" | "value";
+export type FeedbackSentiment = "positive" | "negative" | "mixed" | "unknown";
+export type FeedbackAspects = Record<FeedbackAspect, FeedbackSentiment>;
+export const emptyFeedbackAspects = (): FeedbackAspects => ({ food: "unknown", atmosphere: "unknown", service: "unknown", value: "unknown" });
+
+/** Conservative fallback when semantic interpretation is unavailable. */
+export function hasFeedbackDetail(message: string, placeName = ""): boolean {
+  const value = normalize(message).replace(normalize(placeName) || /^$/, "");
+  return /\b(?:omdat|because|parce que|weil|pizza|eten|food|nourriture|essen|sfeer|ambiance|atmosphere|stimmung|service|bediening|personnel|prijs|price|prix|preis|duur|expensive|cher|teuer|gezellig|cosy|cozy|buiten|outside|terrasse|terras|spicy|pikant|piment|toeristisch|touristy|touristique)\b/.test(value);
+}
+
+export function isFeedbackDeparture(message: string): boolean {
+  const value = normalize(message);
+  return message.includes("?") || /\b(?:ik (?:wil|zoek)|we (?:willen|zoeken)|i (?:want|need)|we (?:want|need)|je (?:veux|cherche)|ich (?:will|suche)|waar kan|where can|ou puis|wo kann)\b/.test(value);
+}
+
+export function buildFeedbackDetailQuestion(language: string, rating: RecommendationFeedbackRating, placeName: string): string {
+  if (language.startsWith("nl")) return rating === "loved" ? `Ah top! 😍 Wat maakte ${placeName} zo goed voor jou?` : rating === "okay" ? `Wat vond je van ${placeName} — wat beviel je en wat kon beter?` : `Jammer om te horen. Wat viel je tegen bij ${placeName}?`;
+  if (language.startsWith("en")) return rating === "loved" ? `Ah, great! 😍 What made ${placeName} so good for you?` : rating === "okay" ? `What did you like about ${placeName}, and what could have been better?` : `Sorry to hear that. What disappointed you about ${placeName}?`;
+  if (language.startsWith("de")) return rating === "loved" ? `Wie schön! 😍 Was hat dir an ${placeName} besonders gefallen?` : rating === "okay" ? `Was hat dir an ${placeName} gefallen, und was könnte besser sein?` : `Schade. Was hat dich bei ${placeName} enttäuscht?`;
+  return rating === "loved" ? `Ah super ! 😍 Qu’est-ce qui t’a autant plu chez ${placeName} ?` : rating === "okay" ? `Qu’est-ce qui t’a plu chez ${placeName}, et qu’est-ce qui pourrait être mieux ?` : `Dommage. Qu’est-ce qui t’a déçu chez ${placeName} ?`;
+}
+
+export function buildSavedFeedbackThanks(language: string, placeName: string): string {
+  if (language.startsWith("nl")) return `Dank je! Ik heb je feedback over ${placeName} bewaard 🙌`;
+  if (language.startsWith("en")) return `Thanks! I’ve saved your feedback about ${placeName} 🙌`;
+  if (language.startsWith("de")) return `Danke! Ich habe deine Rückmeldung zu ${placeName} gespeichert 🙌`;
+  return `Merci ! J’ai enregistré ton retour sur ${placeName} 🙌`;
+}

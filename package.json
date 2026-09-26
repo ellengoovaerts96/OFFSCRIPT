@@ -30,6 +30,8 @@
     "breakfast-matching:check": "node --import tsx scripts/checkBreakfastMatching.ts",
     "meal-clarification:check": "node --import tsx scripts/checkMealClarification.ts",
     "social-link:check": "node --import tsx scripts/checkSocialLink.ts",
+    "feedback-follow-up:check": "node --experimental-vm-modules --import tsx scripts/checkFeedbackFollowUp.mjs",
+    "feedback-persistence:check": "node --experimental-vm-modules --import tsx scripts/checkFeedbackPersistence.mjs",
     "recommendation-feedback:check": "node --import tsx scripts/checkRecommendationFeedback.ts",
     "conversation:check": "tsx scripts/checkRealConversations.ts",
     "whatsapp-deadline:check": "node --experimental-vm-modules scripts/checkWhatsAppDeadline.mjs",

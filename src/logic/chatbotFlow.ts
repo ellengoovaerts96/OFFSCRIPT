@@ -5,7 +5,7 @@ import { localizeEventText } from "../ai/localizeEventText.js";
 import { listPublishedEvents } from "../data/eventsRepository.js";
 import { isStoredEventRequest, selectPublishedEvents, formatPublishedEventMessages } from "./publishedEvents.js";
 import { currentEventDateRange } from "../ai/findCurrentEvent.js";
-import { interpretPlaceFeedback } from "../ai/interpretPlaceFeedback.js";
+import { interpretPlaceFeedback, feedbackAspects } from "../ai/interpretPlaceFeedback.js";
 import { placePhoneMessage } from "./placePhone.js";
 import {
   buildUserContext,
@@ -36,9 +36,7 @@ import {
   closePendingFeedbackConversation,
   listFeedbackPlaces,
   getPendingRecommendationFeedback,
-  setPositiveRecommendationFeedbackDetail,
-  setRecommendationFeedbackFreeText,
-  setRecommendationFeedbackReason
+  completeRecommendationFeedback
 } from "../data/recommendationFeedbackRepository.js";
 import {
   deleteRecommendationHistoryForUser,
@@ -65,14 +63,13 @@ import { isPlaceInformationFollowUp } from "./placeFollowUp.js";
 import { preferredSocialUrl } from "./preferredSocialUrl.js";
 import {
   buildFeedbackRatingQuestion,
-  buildFeedbackReasonQuestion,
-  buildFeedbackThanks,
-  buildFreeTextPrompt,
-  buildPositiveFeedbackQuestion,
+  buildFeedbackDetailQuestion,
+  buildSavedFeedbackThanks,
+  hasFeedbackDetail,
+  isFeedbackDeparture,
   isFeedbackRatingQuestion,
   isRecommendationExperienceSignal,
-  parseRecommendationFeedbackRating,
-  parseRecommendationFeedbackReason
+  parseRecommendationFeedbackRating
 } from "./recommendationFeedback.js";
 import { buildSubcategoryTaxonomy } from "./subcategoryTaxonomy.js";
 import { buildWhatsAppVideoUrl } from "./whatsappMedia.js";
@@ -904,39 +901,56 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     console.error("Could not load places for feedback interpretation", error);
     return [];
   });
+  const pendingFeedback = await getPendingRecommendationFeedback(userPhone);
   const naturalFeedback = await interpretPlaceFeedback({
     message,
     places: feedbackPlaces,
-    activePlace: activeRecommendation?.placeId ? { id: activeRecommendation.placeId, name: activeRecommendation.placeName } : undefined
+    pendingRating: pendingFeedback?.rating,
+    activePlace: pendingFeedback?.placeId ? { id: pendingFeedback.placeId, name: pendingFeedback.placeName } : activeRecommendation?.placeId ? { id: activeRecommendation.placeId, name: activeRecommendation.placeName } : undefined
   });
+  if (pendingFeedback) {
+    const detail = naturalFeedback?.feedback.find(item => item.placeId === pendingFeedback.placeId);
+    const otherPlace = naturalFeedback?.ambiguousPlace || naturalFeedback?.feedback.some(item => item.placeId !== pendingFeedback.placeId);
+    const departing = naturalFeedback?.followUpAction === "new_request" || (!detail && naturalFeedback?.followUpAction !== "detail" && isFeedbackDeparture(message));
+    const answering = !otherPlace && !departing && (
+      detail || naturalFeedback?.followUpAction === "detail" || naturalFeedback?.followUpAction === "skip" ||
+      !startsNewSearch(message, previousContext) || hasFeedbackDetail(message, pendingFeedback.placeName)
+    );
+    if (answering) {
+      const context: UserContext = { ...(previousContext ?? { clarificationCount: 0 }), language: resolveConversationLanguage(message, previousContext?.language, "fr") };
+      await completeRecommendationFeedback(pendingFeedback.id, message.trim(), detail ? feedbackAspects(detail) : undefined);
+      await upsertConversationContext(userPhone, context);
+      return { type: "clarification", context, message: buildSavedFeedbackThanks(context.language, pendingFeedback.placeName) };
+    }
+    // A changed topic ends the pending question without consuming the new request.
+    await closePendingFeedbackConversation(userPhone);
+  }
   if (naturalFeedback?.feedback.length && !naturalFeedback.ambiguousPlace) {
     const context: UserContext = {
       ...(previousContext ?? { clarificationCount: 0 }),
       language: resolveConversationLanguage(message, previousContext?.language, "fr")
     };
     const names: string[] = [];
+    let followUp: { name: string; rating: "loved" | "okay" | "disliked" } | undefined;
     for (const feedback of naturalFeedback.feedback) {
       const place = feedbackPlaces.find(candidate => candidate.id === feedback.placeId);
       if (!place) continue;
+      const needsDetail = feedback.rating !== "did_not_go" && !feedback.detailEvidence && !(feedback.aspects?.length) && !hasFeedbackDetail(feedback.evidence || message, place.name);
+      const ask = needsDetail && !followUp;
+      if (ask && feedback.rating !== "did_not_go") followUp = { name: place.name, rating: feedback.rating };
       await createRecommendationFeedback({
         userPhone, placeId: place.id, placeName: place.name,
-        rating: feedback.rating, reason: feedback.reason, complete: true,
+        rating: feedback.rating, reason: feedback.detailEvidence ? feedback.reason : undefined, complete: !ask, aspects: feedbackAspects(feedback),
         context, acquisitionSourceId: whatsappUser?.acquisitionSourceId,
         freeText: message.trim()
       });
       names.push(place.name);
     }
     if (names.length) {
-      const language = context.language;
-      const places = names.join(", ");
-      const reply = language.startsWith("nl")
-        ? `Dank je! Ik heb je feedback over ${places} bewaard: “${message.trim()}”`
-        : language.startsWith("fr")
-          ? `Merci ! J’ai enregistré ton retour sur ${places} : « ${message.trim()} »`
-          : language.startsWith("de")
-            ? `Danke! Ich habe deine Rückmeldung zu ${places} gespeichert: „${message.trim()}“`
-            : `Thanks! I’ve saved your feedback about ${places}: “${message.trim()}”`;
-      return { type: "clarification", context, message: reply };
+      await upsertConversationContext(userPhone, context);
+      return { type: "clarification", context, message: followUp
+        ? buildFeedbackDetailQuestion(context.language, followUp.rating, followUp.name)
+        : buildSavedFeedbackThanks(context.language, names.join(", ")) };
     }
   }
   if (naturalFeedback?.ambiguousPlace) {
@@ -956,7 +970,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       language: "fr",
       clarificationCount: 0
     };
+    const complete = feedbackRating === "did_not_go" || hasFeedbackDetail(message, activeRecommendation.placeName);
     await createRecommendationFeedback({
+      complete,
       userPhone,
       placeId: activeRecommendation.placeId,
       placeName: activeRecommendation.placeName,
@@ -969,11 +985,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     return {
       type: "clarification",
       context,
-      message: feedbackRating === "loved"
-        ? buildPositiveFeedbackQuestion(context.language)
-        : feedbackRating === "okay" || feedbackRating === "disliked"
-          ? buildFeedbackReasonQuestion(context.language)
-          : buildFeedbackThanks(context.language, feedbackRating)
+      message: complete
+        ? buildSavedFeedbackThanks(context.language, activeRecommendation.placeName)
+        : buildFeedbackDetailQuestion(context.language, feedbackRating, activeRecommendation.placeName)
     };
   }
 
@@ -988,42 +1002,6 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       context,
       message: buildFeedbackRatingQuestion(context.language)
     };
-  }
-
-  const pendingFeedback = await getPendingRecommendationFeedback(userPhone);
-  if (pendingFeedback) {
-    const context = previousContext ?? { language: "fr", clarificationCount: 0 };
-    if (pendingFeedback.awaitingPositiveDetail && !startsNewSearch(message, previousContext)) {
-      await setPositiveRecommendationFeedbackDetail(pendingFeedback.id, message.trim());
-      await upsertConversationContext(userPhone, context);
-      return {
-        type: "clarification",
-        context,
-        message: buildFeedbackThanks(context.language, pendingFeedback.rating)
-      };
-    }
-    if (pendingFeedback.reason === "something_else" && !startsNewSearch(message, previousContext)) {
-      await setRecommendationFeedbackFreeText(pendingFeedback.id, message.trim());
-      await upsertConversationContext(userPhone, context);
-      return {
-        type: "clarification",
-        context,
-        message: buildFeedbackThanks(context.language, pendingFeedback.rating)
-      };
-    }
-
-    const feedbackReason = parseRecommendationFeedbackReason(message);
-    if (feedbackReason) {
-      await setRecommendationFeedbackReason(pendingFeedback.id, feedbackReason);
-      await upsertConversationContext(userPhone, context);
-      return {
-        type: "clarification",
-        context,
-        message: feedbackReason === "something_else"
-          ? buildFreeTextPrompt(context.language)
-          : buildFeedbackThanks(context.language, pendingFeedback.rating)
-      };
-    }
   }
 
   const requestedLanguage = detectRequestedLanguage(message);

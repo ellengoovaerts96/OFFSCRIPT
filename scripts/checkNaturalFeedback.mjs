@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
+import * as feedbackLogic from '../src/logic/recommendationFeedback.ts';
+import { feedbackAspects } from '../src/ai/interpretPlaceFeedback.ts';
 
 const source = stripTypeScriptTypes(readFileSync(new URL('../src/logic/chatbotFlow.ts', import.meta.url), 'utf8'));
 async function check({ ambiguous = false, fails = false, named = false, reset = false } = {}) {
@@ -10,6 +12,8 @@ async function check({ ambiguous = false, fails = false, named = false, reset = 
   const message = reset ? 'reset' : named ? 'Chez Mami was lekker, maar bij B was de bediening slecht.' : 'Lekker maar iets te pikant!';
   const context = vm.createContext({ console: { error() {} }, setTimeout, clearTimeout });
   const mocks = {
+    ...feedbackLogic, feedbackAspects,
+    getPendingRecommendationFeedback: async () => null,
     deleteConversationContext: async () => cleared.push('context'),
     deleteRecommendationHistoryForUser: async () => cleared.push('history'),
     closePendingFeedbackConversation: async () => cleared.push('pending-feedback'),
@@ -23,9 +27,9 @@ async function check({ ambiguous = false, fails = false, named = false, reset = 
     isResetCommand: () => false,
     listFeedbackPlaces: async () => [{ id: 'a', name: 'Chez Mami' }, { id: 'b', name: 'B' }],
     interpretPlaceFeedback: async () => ({ ambiguousPlace: ambiguous, feedback: ambiguous ? [] : named ? [
-      { placeId: 'a', rating: 'loved', reason: 'food_drinks' },
-      { placeId: 'b', rating: 'disliked', reason: 'something_else' }
-    ] : [{ placeId: 'a', rating: 'okay', reason: 'food_drinks' }] }),
+      { placeId: 'a', rating: 'loved', reason: 'food_drinks', detailEvidence: 'lekker' },
+      { placeId: 'b', rating: 'disliked', reason: 'something_else', detailEvidence: 'bediening slecht' }
+    ] : [{ placeId: 'a', rating: 'okay', reason: 'food_drinks', detailEvidence: 'te pikant' }] }),
     resolveConversationLanguage: () => 'nl',
     createRecommendationFeedback: async value => { if (fails) throw Error('database failed'); writes.push(value); }
   };
@@ -70,7 +74,7 @@ let parsed = { isFeedback: true, ambiguityEvidence: '', ambiguousPlace: false, f
 ] };
 const interpreter = new vm.SourceTextModule(interpreterSource, { context: sandbox });
 await interpreter.link(specifier => {
-  const values = specifier === 'zod' ? { z: { object: () => ({}), boolean: () => ({}), array: () => ({}), string: () => ({}), enum: () => ({}) } }
+  const values = specifier.includes('recommendationFeedback') ? feedbackLogic : specifier === 'zod' ? { z: { object: () => ({}), boolean: () => ({}), array: () => ({}), string: () => ({}), enum: () => ({}) } }
     : specifier === 'openai/helpers/zod' ? { zodTextFormat: () => ({}) }
     : { hasOpenAIKey: () => true, openaiModel: 'test', getOpenAIClient: () => ({ responses: { parse: async () => ({ output_parsed: parsed }) } }) };
   return new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context: sandbox });
@@ -85,7 +89,7 @@ console.log('Feedback interpretation validation checks passed.');
 const repositorySource = stripTypeScriptTypes(readFileSync(new URL('../src/data/recommendationFeedbackRepository.ts', import.meta.url), 'utf8'));
 let stored;
 const repository = new vm.SourceTextModule(repositorySource, { context: sandbox });
-await repository.link(specifier => specifier.includes('whatsappUsersRepository') ? new vm.SyntheticModule(['resolveUserIdentity'], function () { this.setExport('resolveUserIdentity', async () => ({ userId: 'fixture-id' })); }, { context: sandbox }) : new vm.SyntheticModule(['pool'], function () {
+await repository.link(specifier => specifier.includes('logic/recommendationFeedback') ? new vm.SyntheticModule(Object.keys(feedbackLogic), function () { for (const [key, value] of Object.entries(feedbackLogic)) this.setExport(key, value); }, { context: sandbox }) : specifier.includes('whatsappUsersRepository') ? new vm.SyntheticModule(['resolveUserIdentity'], function () { this.setExport('resolveUserIdentity', async () => ({ userId: 'fixture-id' })); }, { context: sandbox }) : new vm.SyntheticModule(['pool'], function () {
   this.setExport('pool', { query: async (sql, parameters) => { stored = { sql, parameters }; return { rows: [] }; } });
 }, { context: sandbox }));
 await repository.evaluate();
@@ -109,3 +113,13 @@ assert.doesNotMatch(stored.sql, /DELETE/);
 await repository.namespace.getPendingRecommendationFeedback('test');
 assert.match(stored.sql, /conversation_closed = false/);
 console.log('Search intent and feedback reset checks passed.');
+
+parsed={isFeedback:true,followUpAction:'none',ambiguityEvidence:'',ambiguousPlace:false,feedback:[{
+  placeId:'a',rating:'loved',reason:'food_drinks',evidence:'De pizza was fantastisch en het terras was gezellig.',detailEvidence:'pizza was fantastisch',
+  aspects:[{aspect:'food',sentiment:'positive',evidence:'pizza was fantastisch'},{aspect:'atmosphere',sentiment:'positive',evidence:'terras was gezellig'},{aspect:'service',sentiment:'positive',evidence:'vriendelijke bediening'}]
+}]};
+const detailed=await interpreter.namespace.interpretPlaceFeedback({message:parsed.feedback[0].evidence,places:[{id:'a',name:'Pizzammore'}]});
+assert.equal(detailed.feedback[0].detailEvidence,'pizza was fantastisch');
+assert.equal(detailed.feedback[0].aspects.length,2,'Invented aspect evidence is rejected');
+assert.deepEqual({...interpreter.namespace.feedbackAspects(detailed.feedback[0])},{food:'positive',atmosphere:'positive',service:'unknown',value:'unknown'});
+console.log('Aspect evidence validation: explicit positive details retained, unmentioned service/value unknown.');

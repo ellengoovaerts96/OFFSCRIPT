@@ -59,7 +59,7 @@ async function load(relative) {
           recommendationAction: message === 'Tell me more' ? 'ask_about_place' : 'new_search',
           context: { ...previousContext, language: 'en', currentLocation: 'Yoff', targetRegion: 'Yoff', intent: 'food', requestedSubcategory: 'Italian food' }
         }), acceptsBroaderLocation: () => false, inferRequestedStyle: () => undefined, isLocalSenegaleseDishRequest: () => false },
-        interpretPlaceFeedback: { interpretPlaceFeedback: async () => ({ isFeedback: false, feedback: [], ambiguousPlace: false }) },
+        interpretPlaceFeedback: { feedbackAspects: () => ({food:"unknown",atmosphere:"unknown",service:"unknown",value:"unknown"}), interpretPlaceFeedback: async () => ({ isFeedback: false, feedback: [], ambiguousPlace: false }) },
         findCurrentEvent: { isCurrentEventRequest: () => false, findCurrentEvent: async () => null, currentEventDateRange: () => ({}) },
         generatePlaceFollowUpReply: { generatePlaceFollowUpReply: async ({ place, needs }) => { assert.equal(place.id, fixturePlace.id); assert.equal(needs.currentLocation, 'Yoff'); return 'Fictional follow-up'; } },
         generateClarifyingQuestion: { generateClarifyingQuestion: async () => 'Fictional clarification' },
@@ -98,7 +98,7 @@ try {
     '038_conversation_clarification_count.sql', '041_conversation_semantic_preferences.sql',
     '045_conversation_search_profile.sql', '048_sources_whatsapp_acquisition.sql',
     '049_recommendation_context_snapshot.sql', '050_recommendation_feedback.sql',
-    '051_positive_feedback_detail.sql', '059_feedback_conversation_reset.sql'];
+    '051_positive_feedback_detail.sql', '059_feedback_conversation_reset.sql', '064_feedback_detail_aspects.sql'];
   if (!staging) {
     for (const file of migrations) {
       const sql = (await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8'))
