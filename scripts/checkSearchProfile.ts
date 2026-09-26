@@ -1,12 +1,17 @@
 import { buildSearchProfile } from "../src/logic/buildSearchProfile.js";
 import { hydrateSearchProfile } from "../src/logic/searchProfileCompatibility.js";
 import {
+  placePassesSearchProfileHardConstraints,
+  placeSupportsDirectArtistPurchase,
+} from "../src/logic/searchProfileMatching.js";
+import {
   compatibleAmenities,
   compatibleAudienceTags,
   compatibleCategories,
   compatibleTravellerTypes
 } from "../src/logic/placeCompatibility.js";
 import type { UserContext } from "../src/types/userContext.js";
+import type { Place } from "../src/types/place.js";
 
 function profile(message: string, context: Omit<UserContext, "language">) {
   return buildSearchProfile(message, { language: "nl", ...context });
@@ -63,6 +68,34 @@ if (
   throw new Error(
     `Generic sunset drink became an over-specific product: ${JSON.stringify(genericSunsetDrink)}`
   );
+}
+
+const directArtistProfile = profile(
+  "Ik zou graag van de kunstenaar zelf kunnen kopen",
+  { intent: "shopping", requestedSubcategory: "artworks" }
+);
+if (!directArtistProfile.products.includes("direct_from_artist")) {
+  throw new Error(`Direct artist purchase was not retained as a hard product: ${JSON.stringify(directArtistProfile)}`);
+}
+const artPlace = (name: string, shortDescription: string): Place => ({
+  id: name.toLowerCase().replaceAll(" ", "-"), name, country: "Senegal", region: "Dakar",
+  categories: ["culture"], subcategories: [{ id: "gallery", name: "Art Gallery", displayOrder: 1, images: [] }],
+  shortDescription, vibeTags: [], audienceTags: [], occasionTags: [], dietaryTags: [], amenities: [],
+  bestFor: [], notIdealFor: [], travellerTypes: [], childFriendly: true, bestTiming: [], closedDays: [],
+  reservationNeeded: false, googleMapsUrl: "https://maps.example.test", guideAvailable: false,
+  guideLanguages: [], images: [], status: "ready", offscriptPickLevel: 3, offscriptPriority: 95
+});
+const villageDesArts = artPlace(
+  "Village des Arts",
+  "Enter the studios and talk with the artists. If you find a work you like, buy it directly from the artist."
+);
+const genericGallery = artPlace("Loman Art House", "Local and international artists exhibit and create here.");
+if (
+  !placeSupportsDirectArtistPurchase(villageDesArts) ||
+  !placePassesSearchProfileHardConstraints(villageDesArts, directArtistProfile) ||
+  placePassesSearchProfileHardConstraints(genericGallery, directArtistProfile)
+) {
+  throw new Error("Only places that explicitly document direct artist purchases may satisfy this request.");
 }
 
 const vegetarianDinner = buildSearchProfile(

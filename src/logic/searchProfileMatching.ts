@@ -48,6 +48,7 @@ const TERM_ALIASES: Record<string, string[]> = {
   continental_breakfast: ["continental breakfast", "continentaal ontbijt", "petit déjeuner continental"],
   american_breakfast: ["american breakfast", "amerikaans ontbijt", "petit déjeuner américain"],
   grilled_prawns: ["grilled prawns", "grilled shrimp", "gegrilde gamba's", "gegrilde garnalen", "gambas grillées", "crevettes grillées"],
+  artworks: ["art", "arts", "artwork", "artworks", "kunst", "kunstwerk", "kunstwerken", "oeuvre", "oeuvres"],
   jewellery: ["jewellery", "jewelry", "bijoux", "juwelen", "sieraden"],
   beachfront: ["beach", "beachfront", "oceanfront", "ocean", "sea", "oceaan", "zee", "plage", "strand", "bord de mer"],
   ocean_view: [
@@ -65,6 +66,8 @@ const TERM_ALIASES: Record<string, string[]> = {
   drinks: ["drink", "drinks", "cocktail", "bar"],
   working: ["working", "work friendly", "remote work", "coworking", "laptop"]
 };
+
+const DIRECT_FROM_ARTIST_PATTERN = /\b(buy (?:it |art |artwork )?direct(?:ly)? from (?:the )?artist|buy from (?:the )?artist|purchase (?:it |art |artwork )?direct(?:ly)? from (?:the )?artist|rechtstreeks (?:bij|van) de kunstenaar kopen|direct (?:bij|van) de kunstenaar kopen|van de kunstenaar zelf kopen|achet(?:ez|er) (?:la |le |une oeuvre |des oeuvres )?directement (?:a|aupres de|chez) l artiste|directement de l artiste|direkt (?:beim|vom) kunstler kaufen|vom kunstler selbst kaufen)\b/;
 
 function normalize(value: string): string {
   return value
@@ -197,8 +200,13 @@ export function placeOffersPadel(place: Place): boolean {
     .some((value) => /\bpadel\b/.test(normalize(value)));
 }
 
+export function placeSupportsDirectArtistPurchase(place: Place): boolean {
+  return placeSearchValues(place).some((value) => DIRECT_FROM_ARTIST_PATTERN.test(value));
+}
+
 export function searchTermMatchStrength(place: Place, term: string): number {
   if (normalize(term) === "padel") return placeOffersPadel(place) ? 1 : 0;
+  if (normalize(term) === "direct from artist") return placeSupportsDirectArtistPurchase(place) ? 3 : 0;
   if (normalize(term) === "coffee") return placeServesCoffee(place) ? 1 : 0;
   if (normalize(term) === "breakfast") return placeServesBreakfast(place) ? 1 : 0;
   const dishStrength = structuredDishMatchStrength(place, term);

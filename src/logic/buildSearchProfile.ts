@@ -17,6 +17,7 @@ export type SearchProfileSignals = {
 };
 
 const PRODUCT_PATTERNS: SignalPattern[] = [
+  ["direct_from_artist", /\b(direct(?:ly)? from (?:the )?artist|buy from (?:the )?artist|from the artist themsel(?:f|ves)|rechtstreeks (?:bij|van) de kunstenaar|direct (?:bij|van) de kunstenaar|van de kunstenaar zelf|directement (?:a|aupres de|chez|de) l artiste|acheter (?:directement )?(?:a|aupres de|chez) l artiste|direkt (?:beim|vom) kunstler|vom kunstler selbst)\b/],
   ["italian_food", /\b(italian|italiaans|italiaanse|italien|italienne|italienisch|italienisches|italiano|italiana)\b/],
   ["pizza", /\b(pizza|pizzeria)\b/],
   ["thieboudienne", /\b(thieb|thieboudienne|thiebou dienne|thieboudiene|ceebu jen|riz au poisson)\b/],
