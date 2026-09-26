@@ -1,9 +1,11 @@
 import {
   buildFeedbackPrompt,
   buildRecommendationAcceptanceReply,
+  buildRecommendationEnjoyReply,
   buildSpontaneousFeedbackInvitation,
   buildFeedbackRatingQuestion,
   buildPositiveFeedbackQuestion,
+  hasFeedbackDetail,
   isFeedbackRatingQuestion,
   isExplicitRecommendationChoice,
   isRecommendationSearchRequest,
@@ -89,6 +91,12 @@ if (!buildSpontaneousFeedbackInvitation("fr").includes("dis-moi après")) {
 }
 if (!buildRecommendationAcceptanceReply("nl", "Pizzammore").includes("Pizzammore")) {
   throw new Error("An accepted place must receive a named, warm feedback invitation.");
+}
+if (buildRecommendationEnjoyReply("nl", "Prieto").toLowerCase().includes("feedback")) {
+  throw new Error("An accepted recommendation must not repeat a feedback request already shown in the flow.");
+}
+if (!hasFeedbackDetail("Er werd niet gedanst bij Prieto", "Prieto")) {
+  throw new Error("A missing advertised activity is already a concrete feedback reason.");
 }
 for (const choice of ["Perfect, we gaan naar Pizzammore", "We kiezen 11 Players", "On va chez Pizzammore", "We'll go to Pizzammore"]) {
   if (!isExplicitRecommendationChoice(choice)) throw new Error(`${choice} must be recognized as a concrete choice.`);

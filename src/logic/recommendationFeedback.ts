@@ -98,6 +98,13 @@ export function buildRecommendationAcceptanceReply(language: string, placeName: 
   return `Profite bien ! 😊 Et dis-moi après ce que tu as pensé de ${placeName} — ça aide TUUTI à trouver de mieux en mieux les bonnes adresses.`;
 }
 
+export function buildRecommendationEnjoyReply(language: string, placeName: string): string {
+  if (language.startsWith("nl")) return `Geniet ervan! 😊 Veel plezier bij ${placeName}.`;
+  if (language.startsWith("en")) return `Enjoy! 😊 Have a great time at ${placeName}.`;
+  if (language.startsWith("de")) return `Viel Spaß! 😊 Hab eine schöne Zeit bei ${placeName}.`;
+  return `Profite bien ! 😊 Passe un bon moment chez ${placeName}.`;
+}
+
 export function isExplicitRecommendationChoice(message: string): boolean {
   const value = normalize(message);
   return /\b(?:we gaan|wij gaan|ik ga|we kiezen|ik kies|we boeken|ik boek|we ll go|we will go|i ll go|i will go|we choose|i choose|on va|je vais|on choisit|je choisis|wir gehen|ich gehe|wir nehmen|ich nehme)\b/.test(value);
@@ -145,7 +152,9 @@ export const emptyFeedbackAspects = (): FeedbackAspects => ({ food: "unknown", a
 /** Conservative fallback when semantic interpretation is unavailable. */
 export function hasFeedbackDetail(message: string, placeName = ""): boolean {
   const value = normalize(message).replace(normalize(placeName) || /^$/, "");
-  return /\b(?:omdat|because|parce que|weil|pizza|eten|food|nourriture|essen|sfeer|ambiance|atmosphere|stimmung|service|bediening|personnel|prijs|price|prix|preis|duur|expensive|cher|teuer|gezellig|cosy|cozy|buiten|outside|terrasse|terras|spicy|pikant|piment|toeristisch|touristy|touristique)\b/.test(value);
+  const concreteTopic = /\b(?:omdat|because|parce que|weil|pizza|eten|food|nourriture|essen|sfeer|ambiance|atmosphere|stimmung|service|bediening|personnel|prijs|price|prix|preis|duur|expensive|cher|teuer|gezellig|cosy|cozy|buiten|outside|terrasse|terras|spicy|pikant|piment|toeristisch|touristy|touristique|dans|dansen|gedanst|dance|dancing|danser|danse|tanzen|musik|music|muziek|musique|dj|concert|live band|activiteit|activity|activite)\b/.test(value);
+  const missingExpectedActivity = /\b(?:er werd niet|er was geen|geen|didn t|did not|there was no|no|on ne pouvait pas|il n y avait pas|pas de|kein|nicht)\b.{0,35}\b(?:dans|dansen|gedanst|dance|dancing|danser|danse|tanzen|music|muziek|musique|musik|dj|concert|activiteit|activity|activite)\b/.test(value);
+  return concreteTopic || missingExpectedActivity;
 }
 
 /** Clear discovery wording must never be routed into the feedback flow. */

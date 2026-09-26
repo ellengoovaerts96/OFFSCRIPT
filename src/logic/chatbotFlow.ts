@@ -65,6 +65,7 @@ import {
   buildFeedbackRatingQuestion,
   buildFeedbackDetailQuestion,
   buildRecommendationAcceptanceReply,
+  buildRecommendationEnjoyReply,
   buildSavedFeedbackThanks,
   buildSpontaneousFeedbackInvitation,
   hasFeedbackDetail,
@@ -987,6 +988,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
 
   if (activeRecommendation && isRecommendationFeedbackOnly(message)) {
     const chosePlace = isExplicitRecommendationChoice(message);
+    const invitationAlreadyShown = Boolean(previousContext?.feedbackInvitationShown);
     const context: UserContext = {
       ...(previousContext ?? activeRecommendation.contextSnapshot ?? { clarificationCount: 0 }),
       language: storyLanguage,
@@ -998,7 +1000,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       type: "clarification",
       context,
       message: chosePlace
-        ? buildRecommendationAcceptanceReply(context.language, activeRecommendation.placeName)
+        ? invitationAlreadyShown
+          ? buildRecommendationEnjoyReply(context.language, activeRecommendation.placeName)
+          : buildRecommendationAcceptanceReply(context.language, activeRecommendation.placeName)
         : (storyLanguage.startsWith("fr") ? "Avec plaisir 😊" : storyLanguage.startsWith("de") ? "Sehr gern 😊" : storyLanguage.startsWith("en") ? "You’re welcome 😊" : "Graag gedaan 😊")
     };
   }
@@ -1121,6 +1125,7 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     !continuesProposedSearch
   ) {
     const alreadyAcknowledged = context.feedbackAcceptedPlaceId === activeRecommendation.placeId;
+    const invitationAlreadyShown = Boolean(context.feedbackInvitationShown);
     const feedbackContext = {
       ...context,
       language: storyLanguage,
@@ -1133,7 +1138,9 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
       context: feedbackContext,
       message: alreadyAcknowledged
         ? (storyLanguage.startsWith("fr") ? "Avec plaisir 😊" : storyLanguage.startsWith("de") ? "Sehr gern 😊" : storyLanguage.startsWith("en") ? "You’re welcome 😊" : "Graag gedaan 😊")
-        : buildRecommendationAcceptanceReply(storyLanguage, activeRecommendation.placeName)
+        : invitationAlreadyShown
+          ? buildRecommendationEnjoyReply(storyLanguage, activeRecommendation.placeName)
+          : buildRecommendationAcceptanceReply(storyLanguage, activeRecommendation.placeName)
     };
   }
 
