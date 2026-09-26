@@ -64,9 +64,12 @@ import { preferredSocialUrl } from "./preferredSocialUrl.js";
 import {
   buildFeedbackRatingQuestion,
   buildFeedbackDetailQuestion,
+  buildRecommendationAcceptanceReply,
   buildSavedFeedbackThanks,
+  buildSpontaneousFeedbackInvitation,
   hasFeedbackDetail,
   isFeedbackDeparture,
+  isExplicitRecommendationChoice,
   isRecommendationSearchRequest,
   isFeedbackRatingQuestion,
   isRecommendationExperienceSignal,
@@ -456,22 +459,6 @@ function buildContactInfoResponse(
   if (context.language.startsWith("fr")) return `Je n’ai pas encore de numéro de téléphone pour ${placeName}.`;
   if (context.language.startsWith("de")) return `Ich habe noch keine Telefonnummer für ${placeName}.`;
   return `I do not have a phone number for ${placeName} yet.`;
-}
-
-function buildRecommendationFeedbackReply(context: UserContext): string {
-  if (context.language.startsWith("nl")) {
-    return "Graag gedaan 😊";
-  }
-
-  if (context.language.startsWith("fr")) {
-    return "Avec plaisir 😊";
-  }
-
-  if (context.language.startsWith("de")) {
-    return "Sehr gern 😊";
-  }
-
-  return "You’re welcome 😊";
 }
 
 function hasAnyEmoji(message: string, emojis: string[]): boolean {
@@ -999,15 +986,20 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
   const storyLanguage = resolveConversationLanguage(message, previousContext?.language, "fr");
 
   if (activeRecommendation && isRecommendationFeedbackOnly(message)) {
+    const chosePlace = isExplicitRecommendationChoice(message);
     const context: UserContext = {
       ...(previousContext ?? activeRecommendation.contextSnapshot ?? { clarificationCount: 0 }),
-      language: storyLanguage
+      language: storyLanguage,
+      feedbackInvitationShown: chosePlace ? true : previousContext?.feedbackInvitationShown,
+      feedbackAcceptedPlaceId: chosePlace ? activeRecommendation.placeId ?? undefined : previousContext?.feedbackAcceptedPlaceId
     };
     await upsertConversationContext(userPhone, context);
     return {
       type: "clarification",
       context,
-      message: buildRecommendationFeedbackReply(context)
+      message: chosePlace
+        ? buildRecommendationAcceptanceReply(context.language, activeRecommendation.placeName)
+        : (storyLanguage.startsWith("fr") ? "Avec plaisir 😊" : storyLanguage.startsWith("de") ? "Sehr gern 😊" : storyLanguage.startsWith("en") ? "You’re welcome 😊" : "Graag gedaan 😊")
     };
   }
 
@@ -1128,12 +1120,20 @@ export async function runChatbotFlow(userPhone: string, message: string): Promis
     interpretation.recommendationAction === "accept_recommendation" &&
     !continuesProposedSearch
   ) {
-    const feedbackContext = { ...context, language: storyLanguage };
+    const alreadyAcknowledged = context.feedbackAcceptedPlaceId === activeRecommendation.placeId;
+    const feedbackContext = {
+      ...context,
+      language: storyLanguage,
+      feedbackInvitationShown: true,
+      feedbackAcceptedPlaceId: activeRecommendation.placeId ?? undefined
+    };
     await upsertConversationContext(userPhone, feedbackContext);
     return {
       type: "clarification",
       context: feedbackContext,
-      message: buildRecommendationFeedbackReply(feedbackContext)
+      message: alreadyAcknowledged
+        ? (storyLanguage.startsWith("fr") ? "Avec plaisir 😊" : storyLanguage.startsWith("de") ? "Sehr gern 😊" : storyLanguage.startsWith("en") ? "You’re welcome 😊" : "Graag gedaan 😊")
+        : buildRecommendationAcceptanceReply(storyLanguage, activeRecommendation.placeName)
     };
   }
 
@@ -1467,6 +1467,11 @@ export async function handleChatMessage(input: {
   const afterMediaMessages: string[] = [];
 
   if (result.type === "recommendation") {
+    if (!result.context.feedbackInvitationShown) {
+      afterMediaMessages.push(buildSpontaneousFeedbackInvitation(result.context.language));
+      result.context.feedbackInvitationShown = true;
+      await upsertConversationContext(input.userPhone, result.context);
+    }
     await recordPlaceRecommendation({
       userPhone: input.userPhone,
       placeId: result.placeId,

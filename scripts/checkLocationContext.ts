@@ -88,3 +88,10 @@ assert.equal(outsideLocationNotice({ language: 'en' }, 'Ngor'), undefined);
 
 const withoutPreviousReply = await buildUserContext({message: 'padel in Ngor', previousAssistantMessage: null});
 assert.equal(locationPolicy(withoutPreviousReply.context).requiredRegion, 'Ngor');
+
+const invitedContext: UserContext={...location.context,feedbackInvitationShown:true,feedbackAcceptedPlaceId:'00000000-0000-4000-8000-000000000001'};
+const sameFlow=await buildUserContext({message:'iets rustiger graag',previousContext:invitedContext});
+assert.equal(sameFlow.context.feedbackInvitationShown,true,'Feedback invitation state survives within a recommendation flow');
+const freshFlow=await buildUserContext({message:'ik wil nu padel spelen',previousContext:invitedContext});
+assert.equal(freshFlow.recommendationAction,'new_search');
+assert.equal(freshFlow.context.feedbackInvitationShown,undefined,'A genuinely new search may show one new invitation');

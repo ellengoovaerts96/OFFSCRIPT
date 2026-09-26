@@ -84,6 +84,25 @@ export function buildFeedbackPrompt(language: string): string {
   return "Si tu y vas, dis-moi simplement après : 👍 adoré · 😐 correct · 👎 pas pour moi · 🚫 pas allé.";
 }
 
+export function buildSpontaneousFeedbackInvitation(language: string): string {
+  if (language.startsWith("nl")) return "Ga je erheen? Laat me achteraf weten wat je ervan vond 💛";
+  if (language.startsWith("en")) return "Going there? Let me know afterwards what you thought 💛";
+  if (language.startsWith("de")) return "Gehst du hin? Sag mir danach, wie du es fandest 💛";
+  return "Si tu y vas, dis-moi après ce que tu en as pensé 💛";
+}
+
+export function buildRecommendationAcceptanceReply(language: string, placeName: string): string {
+  if (language.startsWith("nl")) return `Geniet ervan! 😊 Laat me achteraf weten wat je van ${placeName} vond — zo kan TUUTI steeds beter de juiste plekken vinden.`;
+  if (language.startsWith("en")) return `Enjoy! 😊 And let me know afterwards what you thought of ${placeName} — it helps TUUTI get better at finding the right places.`;
+  if (language.startsWith("de")) return `Viel Spaß! 😊 Sag mir danach, wie dir ${placeName} gefallen hat — so findet TUUTI immer besser die richtigen Orte.`;
+  return `Profite bien ! 😊 Et dis-moi après ce que tu as pensé de ${placeName} — ça aide TUUTI à trouver de mieux en mieux les bonnes adresses.`;
+}
+
+export function isExplicitRecommendationChoice(message: string): boolean {
+  const value = normalize(message);
+  return /\b(?:we gaan|wij gaan|ik ga|we kiezen|ik kies|we boeken|ik boek|we ll go|we will go|i ll go|i will go|we choose|i choose|on va|je vais|on choisit|je choisis|wir gehen|ich gehe|wir nehmen|ich nehme)\b/.test(value);
+}
+
 export function buildFeedbackReasonQuestion(language: string): string {
   if (language.startsWith("nl")) return "Wat klopte er niet? Te toeristisch · te duur · verkeerde sfeer · te ver · eten/drinken · iets anders";
   if (language.startsWith("en")) return "What was off? Too touristy · too expensive · wrong vibe · too far · food/drinks · something else";

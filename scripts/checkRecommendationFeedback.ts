@@ -1,8 +1,11 @@
 import {
   buildFeedbackPrompt,
+  buildRecommendationAcceptanceReply,
+  buildSpontaneousFeedbackInvitation,
   buildFeedbackRatingQuestion,
   buildPositiveFeedbackQuestion,
   isFeedbackRatingQuestion,
+  isExplicitRecommendationChoice,
   isRecommendationSearchRequest,
   isRecommendationExperienceSignal,
   parseRecommendationFeedbackRating,
@@ -77,6 +80,21 @@ for (const prematureReaction of ["Top", "Parfait", "👍", "J’adore cette sugg
 }
 if (!buildFeedbackPrompt("fr").includes("🚫")) {
   throw new Error("The feedback prompt must include a did-not-go option.");
+}
+if (buildSpontaneousFeedbackInvitation("nl") !== "Ga je erheen? Laat me achteraf weten wat je ervan vond 💛") {
+  throw new Error("The Dutch recommendation invitation must stay subtle and conversational.");
+}
+if (!buildSpontaneousFeedbackInvitation("fr").includes("dis-moi après")) {
+  throw new Error("The spontaneous feedback invitation must be localized.");
+}
+if (!buildRecommendationAcceptanceReply("nl", "Pizzammore").includes("Pizzammore")) {
+  throw new Error("An accepted place must receive a named, warm feedback invitation.");
+}
+for (const choice of ["Perfect, we gaan naar Pizzammore", "We kiezen 11 Players", "On va chez Pizzammore", "We'll go to Pizzammore"]) {
+  if (!isExplicitRecommendationChoice(choice)) throw new Error(`${choice} must be recognized as a concrete choice.`);
+}
+for (const acknowledgement of ["Dank je", "Ziet er goed uit", "Perfecte suggestie"]) {
+  if (isExplicitRecommendationChoice(acknowledgement)) throw new Error(`${acknowledgement} is not yet a concrete choice.`);
 }
 if (!buildPositiveFeedbackQuestion("fr").includes("rapport qualité-prix")) {
   throw new Error("Positive feedback must get one natural, useful follow-up question.");

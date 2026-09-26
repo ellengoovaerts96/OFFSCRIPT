@@ -1150,8 +1150,17 @@ Also extract searchProfileSignals independently from the legacy context:
 /** Enforce location provenance after either AI interpretation or deterministic fallback. */
 export async function buildUserContext(input: BuildUserContextInput): Promise<BuildUserContextResult> {
   const result = await interpretUserContext(input);
-  return { ...result, context: applyLocationPolicy(
+  const newSearch = result.recommendationAction === "new_search";
+  const context = applyLocationPolicy(
     input.message, result.context, input.previousContext, input.previousAssistantMessage,
-    result.recommendationAction === "new_search"
-  ) };
+    newSearch
+  );
+  return {
+    ...result,
+    context: {
+      ...context,
+      feedbackInvitationShown: newSearch ? undefined : input.previousContext?.feedbackInvitationShown,
+      feedbackAcceptedPlaceId: newSearch ? undefined : input.previousContext?.feedbackAcceptedPlaceId
+    }
+  };
 }

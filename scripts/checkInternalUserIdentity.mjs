@@ -98,7 +98,8 @@ try {
     '038_conversation_clarification_count.sql', '041_conversation_semantic_preferences.sql',
     '045_conversation_search_profile.sql', '048_sources_whatsapp_acquisition.sql',
     '049_recommendation_context_snapshot.sql', '050_recommendation_feedback.sql',
-    '051_positive_feedback_detail.sql', '059_feedback_conversation_reset.sql', '064_feedback_detail_aspects.sql'];
+    '051_positive_feedback_detail.sql', '059_feedback_conversation_reset.sql', '064_feedback_detail_aspects.sql',
+    '065_feedback_invitation_state.sql'];
   if (!staging) {
     for (const file of migrations) {
       const sql = (await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8'))
@@ -147,9 +148,12 @@ try {
   // Do not merge legacy format variants in the foundation phase.
   if (!staging) assert.notEqual((await users.resolveUserIdentity('whatsapp:+10000000000')).userId,
     (await users.resolveUserIdentity('+10000000000')).userId);
-  await ctx.upsertConversationContext(fresh, { language: 'nl', currentLocation: 'Yoff', budget: 'low' });
+  const acceptedPlaceId = randomUUID();
+  await ctx.upsertConversationContext(fresh, { language: 'nl', currentLocation: 'Yoff', budget: 'low', feedbackInvitationShown: true, feedbackAcceptedPlaceId: acceptedPlaceId });
   await ctx.upsertConversationLanguage(fresh, 'en');
   assert.equal((await ctx.getConversationContext(fresh)).budget, 'low');
+  assert.equal((await ctx.getConversationContext(fresh)).feedbackInvitationShown, true);
+  assert.equal((await ctx.getConversationContext(fresh)).feedbackAcceptedPlaceId, acceptedPlaceId);
   await messages.createChatMessage({ userPhone: fresh, direction: 'outgoing', message: 'fictional reply' });
   assert.equal(await messages.getLastOutgoingMessage(fresh), 'fictional reply');
   await query("INSERT INTO places(id,name,region,short_description,google_maps_url) VALUES($1,'Fictional place','Dakar','Fixture','https://example.test/map')", [fixturePlace.id]);

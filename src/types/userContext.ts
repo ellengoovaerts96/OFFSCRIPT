@@ -45,4 +45,6 @@ export type UserContext = {
   searchProfile?: SearchProfile;
   requestedDish?: string;
   dishAvailabilityUnconfirmed?: boolean;
+  feedbackInvitationShown?: boolean;
+  feedbackAcceptedPlaceId?: string;
 };
