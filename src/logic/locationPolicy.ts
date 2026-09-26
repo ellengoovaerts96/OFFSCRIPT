@@ -4,14 +4,15 @@ import { findKnownRegion, normalizeSupportedRegion } from "../utils/normalizeReg
 
 const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[’']/g, " ");
 
-/** Older context has no provenance for location: treat it as context, not a restriction. */
+/** Legacy currentLocation is accommodation context; legacy targetRegion is an explicit destination. */
 export function locationPolicy(context: UserContext): LocationPolicy {
   const stored = context.searchProfile?.locationPolicy;
-  const currentRegion = normalizeSupportedRegion(stored ? stored.currentRegion : context.currentLocation ?? context.targetRegion);
+  const currentRegion = normalizeSupportedRegion(stored ? stored.currentRegion : context.currentLocation);
+  const legacyTarget = normalizeSupportedRegion(context.targetRegion);
   return {
     currentRegion,
     preferredRegion: normalizeSupportedRegion(stored?.preferredRegion ?? currentRegion),
-    requiredRegion: normalizeSupportedRegion(stored?.requiredRegion),
+    requiredRegion: normalizeSupportedRegion(stored?.requiredRegion ?? (!stored && legacyTarget !== "Dakar" ? legacyTarget : undefined)),
     willingToTravel: stored?.willingToTravel ?? "unknown",
     proximityRequired: stored?.proximityRequired ?? false
   };
@@ -25,8 +26,12 @@ export function applyLocationPolicy(
   const prior = locationPolicy(previous ?? { language: context.language });
   const policy: LocationPolicy = { ...prior };
   if (newSearch) {
-    policy.requiredRegion = prior.willingToTravel === "no" ? prior.currentRegion : undefined;
+    // Proximity belongs to the request that expressed it. A new activity is
+    // Dakar-wide again unless the traveller repeats a nearby constraint.
+    policy.requiredRegion = undefined;
     policy.preferredRegion = prior.currentRegion;
+    policy.proximityRequired = false;
+    policy.willingToTravel = "unknown";
   }
   const text = normalize(message);
   const region = normalizeSupportedRegion(findKnownRegion(message));
@@ -62,18 +67,20 @@ export function applyLocationPolicy(
   return {
     ...context,
     currentLocation: policy.currentRegion,
-    targetRegion: policy.requiredRegion ?? (policy.willingToTravel === "yes" ? "Dakar" : policy.preferredRegion),
+    targetRegion: policy.requiredRegion ?? (policy.willingToTravel === "yes" ? "Dakar" : undefined),
     searchProfile: {
       ...(context.searchProfile ?? { products: [], locationFeatures: [], occasions: [], vibes: [], amenities: [], dietaryRequirements: [], exclusions: { products: [], categories: [], audienceTags: [], dietary: [] } }),
       locationPolicy: policy,
-      neighbourhood: policy.requiredRegion ?? policy.preferredRegion,
+      neighbourhood: policy.requiredRegion,
       mobility: policy.requiredRegion || policy.proximityRequired ? "nearby" : "dakar_wide"
     }
   };
 }
 
 export function outsideLocationNotice(context: UserContext, destination: string): string | undefined {
-  const origin = locationPolicy(context).currentRegion;
+  const policy = locationPolicy(context);
+  if (!policy.proximityRequired) return undefined;
+  const origin = policy.currentRegion;
   if (!origin || origin === "Dakar") return undefined;
   const lang = context.language.slice(0, 2);
   return ({

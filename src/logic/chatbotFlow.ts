@@ -350,29 +350,29 @@ function containsObjectifyingSocialRequest(message: string): boolean {
 }
 
 function buildRespectfulSocialResponse(context: UserContext): string {
-  const location = context.targetRegion ?? context.currentLocation;
+  const location = locationPolicy(context).requiredRegion;
 
   if (context.language.startsWith("nl")) {
     return location
       ? `Ik kan je niet helpen zoeken naar mensen op basis van uiterlijk of seksuele interesse. Wel kan ik respectvolle sociale plekken in ${location} aanraden, zoals een bar, live music of een plek om te dansen. Wil je eerder iets rustig, lokaal of nightlife?`
-      : "Ik kan je niet helpen zoeken naar mensen op basis van uiterlijk of seksuele interesse. Wel kan ik respectvolle sociale plekken aanraden, zoals een bar, live music of een plek om te dansen. In welke buurt ben je?";
+      : "Ik kan je niet helpen zoeken naar mensen op basis van uiterlijk of seksuele interesse. Wel kan ik respectvolle sociale plekken aanraden, zoals een bar, live music of een plek om te dansen. Waar heb je zin in?";
   }
 
   if (context.language.startsWith("fr")) {
     return location
       ? `Je ne peux pas t’aider à chercher des personnes selon leur apparence ou avec une intention sexuelle. Par contre, je peux te recommander des lieux sociaux et respectueux à ${location}, comme un bar, de la musique live ou un endroit pour danser. Tu préfères une ambiance calme, locale ou plutôt nightlife ?`
-      : "Je ne peux pas t’aider à chercher des personnes selon leur apparence ou avec une intention sexuelle. Par contre, je peux te recommander des lieux sociaux et respectueux, comme un bar, de la musique live ou un endroit pour danser. Tu es dans quel quartier ?";
+      : "Je ne peux pas t’aider à chercher des personnes selon leur apparence ou avec une intention sexuelle. Par contre, je peux te recommander des lieux sociaux et respectueux, comme un bar, de la musique live ou un endroit pour danser. Tu préfères une ambiance calme, locale ou plutôt nightlife ?";
   }
 
   if (context.language.startsWith("de")) {
     return location
       ? `Ich kann dir nicht dabei helfen, Menschen nach Aussehen oder mit sexueller Absicht zu suchen. Ich kann dir aber respektvolle soziale Orte in ${location} empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. Suchst du eher ruhig, lokal oder Nightlife?`
-      : "Ich kann dir nicht dabei helfen, Menschen nach Aussehen oder mit sexueller Absicht zu suchen. Ich kann dir aber respektvolle soziale Orte empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. In welchem Viertel bist du?";
+      : "Ich kann dir nicht dabei helfen, Menschen nach Aussehen oder mit sexueller Absicht zu suchen. Ich kann dir aber respektvolle soziale Orte empfehlen, zum Beispiel eine Bar, Live-Musik oder einen Ort zum Tanzen. Suchst du eher ruhig, lokal oder Nightlife?";
   }
 
   return location
     ? `I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places in ${location}, like a bar, live music or somewhere to dance. Do you want something calm, local or more nightlife?`
-    : "I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places, like a bar, live music or somewhere to dance. Which neighbourhood are you in?";
+    : "I cannot help you look for people based on appearance or sexual interest. I can help with respectful social places, like a bar, live music or somewhere to dance. What are you in the mood for?";
 }
 
 export function isRecommendationFeedbackOnly(message: string): boolean {
@@ -534,13 +534,6 @@ function withEmojiAcknowledgement(message: string, context: UserContext, respons
   return `${acknowledgement} ${response}`;
 }
 
-function hasSpecificContextLocation(context: UserContext): boolean {
-  const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
-  if (!location) return false;
-  if (location !== "Dakar") return true;
-  return hasActionableMoodOrIntent(context);
-}
-
 function hasActionableMoodOrIntent(context: UserContext): boolean {
   return Boolean((context.intent && context.intent !== "unknown") || context.vibe);
 }
@@ -550,14 +543,6 @@ function chooseClarificationFieldForMessage(
   context: UserContext,
   missingField: MissingContextField
 ): MissingContextField {
-  if (
-    missingField === "travellerType" &&
-    (buildEmojiAcknowledgement(message, context) || hasActionableMoodOrIntent(context)) &&
-    !hasSpecificContextLocation(context)
-  ) {
-    return "location";
-  }
-
   return missingField;
 }
 

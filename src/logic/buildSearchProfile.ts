@@ -1,6 +1,7 @@
 import type { SearchActivity, SearchProfile } from "../types/searchProfile.js";
 import type { UserContext, UserIntent } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
+import { locationPolicy } from "./locationPolicy.js";
 import { hydrateSearchProfile } from "./searchProfileCompatibility.js";
 import { normalizeActivityIntent } from "./activityIntent.js";
 
@@ -393,11 +394,11 @@ export function buildSearchProfile(
     audienceTags: mergeUnique(compatiblePreviousProfile.exclusions.audienceTags, signals.exclusions.audienceTags),
     dietary: mergeUnique(compatiblePreviousProfile.exclusions.dietary, signals.exclusions.dietary)
   };
-  const targetLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const targetLocation = normalizeRegion(locationPolicy(context).requiredRegion);
   const neighbourhood =
     targetLocation && targetLocation !== "Dakar"
       ? targetLocation
-      : compatiblePreviousProfile.neighbourhood;
+      : undefined;
   const dietaryRequirements = unique([
     ...compatiblePreviousProfile.dietaryRequirements,
     ...(["vegan", "vegetarian"].includes(normalizeText(context.requestedSubcategory ?? ""))

@@ -22,7 +22,8 @@ let first=await buildUserContext({message:'I am looking for a romantic Italian r
 let location=await buildUserContext({message:'Yoff',previousContext:first.context,previousAssistantMessage:'Which neighbourhood are you in right now?'});
 assert.equal(location.context.currentLocation,'Yoff');
 assert.equal(locationPolicy(location.context).requiredRegion,undefined);
-assert.equal(selectBestPlace(restaurants,location.context)?.place.name,'Romantic Italian');
+assert.equal(location.context.targetRegion,undefined,'A known hotel neighbourhood is not a default search target');
+assert.equal(location.context.searchProfile?.neighbourhood,undefined);
 const thanks=await buildUserContext({message:'Dank je',previousContext:location.context});
 const next=await buildUserContext({message:'ik wil daarvoor padel spelen maar waar?',previousContext:thanks.context,previousAssistantMessage:'Graag gedaan 😊'});
 assert.equal(next.context.currentLocation,'Yoff');
@@ -60,10 +61,12 @@ assert.equal(selectBestPlace([padel],qrSearch.context)?.place.id,padel.id);
 const unknown=await buildUserContext({message:'I want to play padel'});
 assert.equal(needsClarification(unknown.context,[padel]),null,'One strong match does not require a location form');
 const nearbyUnknown=await buildUserContext({message:'padel near me'});
-assert.equal(needsClarification(nearbyUnknown.context,[padel]),'location');
+assert.equal(needsClarification(nearbyUnknown.context,[padel]),null,'TUUTI never asks for a neighbourhood');
 assert.equal(findMatchingCandidates([padel],nearbyUnknown.context).length,0);
 const nearby=place('Nearby padel','Yoff','padel');
-assert.equal(selectBestPlace([padel,nearby],next.context)?.place.id,nearby.id,'Nearby boosts comparable matches');
+assert.equal(selectBestPlace([padel,nearby],next.context)?.place.id,padel.id,'Stored neighbourhood does not affect an ordinary search');
+const explicitNearby=await buildUserContext({message:'padel near me',previousContext:location.context});
+assert.equal(selectBestPlace([padel,nearby],explicitNearby.context)?.place.id,nearby.id,'Explicit nearby requests use the stored neighbourhood');
 const wrongLocal=place('Nearby restaurant','Yoff','italian_food');
 assert.equal(selectBestPlace([wrongLocal,padel],next.context)?.place.id,padel.id,'Locality never substitutes cuisine for sport');
 console.log('Location context checks passed: restaurant → thanks → padel; QR; stored policy; nearby ranking; explicit limits; origin vs destination; relocation; broadening; unknown location.');
@@ -79,7 +82,8 @@ for (const answer of ['zeker!', 'geen probleem', 'no problem', 'bien sûr']) {
  assert.equal(locationPolicy(widened).requiredRegion, undefined, answer);
 }
 
-assert.match(outsideLocationNotice(next.context, 'Ngor') ?? '', /Ngor.*Yoff/);
+assert.equal(outsideLocationNotice(next.context, 'Ngor'),undefined,'Ordinary travel across Dakar needs no warning');
+assert.match(outsideLocationNotice(explicitNearby.context, 'Ngor') ?? '', /Ngor.*Yoff/);
 assert.equal(outsideLocationNotice({ language: 'en' }, 'Ngor'), undefined);
 
 const withoutPreviousReply = await buildUserContext({message: 'padel in Ngor', previousAssistantMessage: null});

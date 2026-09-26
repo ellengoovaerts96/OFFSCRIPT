@@ -1,7 +1,5 @@
-import { locationPolicy } from "./locationPolicy.js";
 import type { UserContext } from "../types/userContext.js";
 import type { Place } from "../types/place.js";
-import { normalizeRegion } from "../utils/normalizeRegion.js";
 import {
   isSpecificDirectRequest,
   MAX_CLARIFICATION_QUESTIONS,
@@ -9,7 +7,7 @@ import {
 } from "./recommendationReadiness.js";
 import { findClarificationCandidates } from "./selectBestPlace.js";
 
-export type MissingContextField = "location" | "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing" | "budget";
+export type MissingContextField = "travellerType" | "children" | "intent" | "subcategory" | "vibe" | "timing" | "budget";
 
 const VIBE_RELEVANT_INTENTS = new Set([
   "food",
@@ -38,16 +36,6 @@ function hasSpecificDishProduct(context: UserContext): boolean {
   );
 }
 
-function hasSpecificLocation(context: UserContext): boolean {
-  const location = normalizeRegion(context.currentLocation ?? context.targetRegion);
-
-  if (locationPolicy(context).currentRegion) return true;
-  if (!location) return false;
-  if (location !== "Dakar") return true;
-
-  return hasActionableMoodOrIntent(context);
-}
-
 function hasActionableMoodOrIntent(context: UserContext): boolean {
   return Boolean((context.intent && context.intent !== "unknown") || context.vibe);
 }
@@ -56,8 +44,7 @@ function canRecommendWithoutTravellerType(context: UserContext): boolean {
   if (isSpecificDirectRequest(context)) return true;
 
   return Boolean(
-    hasSpecificLocation(context) &&
-      context.intent &&
+    context.intent &&
       context.intent !== "unknown" &&
       (
         context.timing ||
@@ -144,10 +131,6 @@ function distinctCount(values: Array<string | number | boolean | undefined>): nu
   return new Set(values.filter((value) => value !== undefined && value !== "")).size;
 }
 
-function candidateLocation(place: Place): string | undefined {
-  return normalizeRegion(place.neighbourhood ?? place.area ?? place.region);
-}
-
 function candidateVibeSignature(place: Place): string {
   return [place.vibe, ...place.vibeTags]
     .filter(Boolean)
@@ -169,14 +152,6 @@ function mostInformativeCandidateField(
     context.requestedSubcategory || context.requestedStyle || context.vibe
   );
   const childSuitabilityVaries = distinctCount(candidates.map((place) => place.childFriendly)) > 1;
-
-  if (!hasSpecificLocation(context)) {
-    // Even when all candidates happen to share a neighbourhood, location still
-    // determines whether getting there is realistic. Skip it only for a single
-    // clear match, handled before this function is called.
-    const spansNeighbourhoods = distinctCount(candidates.map(candidateLocation)) > 1;
-    options.push({ field: "location", score: spansNeighbourhoods ? 100 : 95 });
-  }
 
   if (
     context.travellerType === "family" &&
@@ -224,10 +199,6 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
   if (places) {
     const candidates = findClarificationCandidates(places, context);
 
-    // Ask for location when it separates options or the user requires proximity.
-    // A single clear match can be recommended without collecting an address.
-    if (!hasSpecificLocation(context) && (candidates.length > 1 || locationPolicy(context).proximityRequired)) return "location";
-
     // Once mobility is known, ask only about a field that actually separates
     // the remaining database candidates.
     if (candidates.length <= 1) return null;
@@ -246,7 +217,6 @@ export function needsClarification(context: UserContext, places?: Place[]): Miss
     return "travellerType";
   }
   if (context.travellerType === "family" && context.hasChildren === undefined) return "children";
-  if (!hasSpecificLocation(context)) return "location";
   if (!places && needsVibeForBroadIntent(context)) return "vibe";
   if (
     (!context.timing || context.timing === "unknown") &&

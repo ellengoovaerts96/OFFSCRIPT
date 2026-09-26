@@ -154,7 +154,8 @@ function compareRankedPlaces(
     return right.place.offscriptPriority - left.place.offscriptPriority;
   }
 
-  const preferredRegion = locationPolicy(context).preferredRegion;
+  const policy = locationPolicy(context);
+  const preferredRegion = policy.proximityRequired ? policy.currentRegion : undefined;
   const proximityDifference = Number(placeMatchesLocation(right.place, preferredRegion)) - Number(placeMatchesLocation(left.place, preferredRegion));
   if (preferredRegion && proximityDifference) return proximityDifference;
 

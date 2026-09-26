@@ -3,7 +3,6 @@ import type { UserContext } from "../types/userContext.js";
 
 const questions: Record<string, Record<MissingContextField, string>> = {
   nl: {
-    location: "In welke buurt ben je nu?",
     travellerType: "Voor wie zoek je iets: voor jezelf, voor jou en je partner, voor vrienden of voor familie?",
     children: "Zijn er kinderen bij, en zo ja welke leeftijden ongeveer?",
     intent: "Waar ben je vandaag naar op zoek? Bijvoorbeeld eten, cultuur, sport, strand, natuur, iets drinken of iets anders?",
@@ -13,7 +12,6 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     budget: "Welk budget past het best: budgetvriendelijk, betaalbaar, gemiddeld, chic of luxe?"
   },
   fr: {
-    location: "Tu es dans quel quartier en ce moment ?",
     travellerType: "Pour qui cherches-tu quelque chose : pour toi, pour toi et ton/ta partenaire, pour des amis ou pour la famille ?",
     children: "Il y a des enfants avec toi, et si oui quel âge environ ?",
     intent: "Qu’est-ce que tu cherches aujourd’hui ? Par exemple manger, culture, sport, plage, nature, boire un verre ou autre chose ?",
@@ -23,7 +21,6 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     budget: "Quel budget te convient le mieux : petit budget, abordable, moyen, chic ou luxe ?"
   },
   de: {
-    location: "In welchem Viertel bist du gerade?",
     travellerType: "Für wen suchst du etwas: für dich, für dich und deinen Partner oder deine Partnerin, für Freunde oder für die Familie?",
     children: "Sind Kinder dabei, und wenn ja, ungefähr wie alt?",
     intent: "Was suchst du heute? Zum Beispiel Essen, Kultur, Sport, Strand, Natur, etwas trinken oder etwas anderes?",
@@ -33,7 +30,6 @@ const questions: Record<string, Record<MissingContextField, string>> = {
     budget: "Welches Budget passt am besten: sehr günstig, günstig, mittel, gehoben oder luxuriös?"
   },
   en: {
-    location: "Which neighbourhood are you in right now?",
     travellerType: "Who should the suggestion be for: just you, you and your partner, friends, or family?",
     children: "Are there children with you, and roughly how old are they?",
     intent: "What are you looking for today? For example food, culture, sport, beach, nature, drinks, or something else?",
@@ -63,10 +59,10 @@ export function buildClarifyingQuestion(field: MissingContextField, context: Use
 export function buildLocalDishLocationQuestion(context: UserContext): string {
   const language = languageKey(context.language);
 
-  if (language === "nl") return "In welke buurt wil je eten, of mag het overal in Dakar zijn?";
-  if (language === "fr") return "Dans quel quartier veux-tu manger, ou ça peut être n’importe où à Dakar ?";
-  if (language === "de") return "In welchem Viertel möchtest du essen, oder kann es überall in Dakar sein?";
-  return "Which neighbourhood would you like to eat in, or can it be anywhere in Dakar?";
+  if (language === "nl") return "Heb je zin in een specifiek Senegalees gerecht, of mag ik je verrassen?";
+  if (language === "fr") return "Tu as envie d’un plat sénégalais précis, ou tu veux que je te surprenne ?";
+  if (language === "de") return "Möchtest du ein bestimmtes senegalesisches Gericht, oder soll ich dich überraschen?";
+  return "Do you want a specific Senegalese dish, or should I surprise you?";
 }
 
 function buildSubcategoryQuestion(language: "nl" | "fr" | "de" | "en", context: UserContext): string {

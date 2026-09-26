@@ -19,9 +19,6 @@ export async function generateClarifyingQuestion(input: {
   candidates: Place[];
 }): Promise<string> {
   const fallback = buildClarifyingQuestion(input.missingField, input.context);
-  // Location is a logistical fact, not a creative choice. Keep this neutral
-  // so the model can never invent unsupported areas or neighbourhood types.
-  if (input.missingField === "location") return fallback;
   if (!hasOpenAIKey()) return fallback;
 
   const subcategories = [...new Set(

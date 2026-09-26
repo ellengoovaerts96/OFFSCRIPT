@@ -1,6 +1,7 @@
 import { placeOffersPadel, italianCuisineAliases } from "./searchProfileMatching.js";
 import type { Place } from "../types/place.js";
 import type { UserContext } from "../types/userContext.js";
+import { locationPolicy } from "./locationPolicy.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
 import { vibeTagAliases } from "./vibeTags.js";
 
@@ -273,7 +274,7 @@ export function isSpecificFocus(focus: string | undefined): boolean {
 export function scorePlace(place: Place, context: UserContext): number {
   let score = 0;
 
-  const targetRegion = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const targetRegion = normalizeRegion(locationPolicy(context).requiredRegion);
   const matchesRequestedFocus = Boolean(
     context.requestedSubcategory &&
     placeMatchesSpecificFocus(place, context.requestedSubcategory)

@@ -7,6 +7,7 @@ import type {
 } from "../types/searchProfile.js";
 import type { UserContext, UserIntent } from "../types/userContext.js";
 import { normalizeRegion } from "../utils/normalizeRegion.js";
+import { locationPolicy as resolveLocationPolicy } from "./locationPolicy.js";
 
 const ACTIVITIES = new Set<SearchActivity>([
   "eat",
@@ -140,7 +141,8 @@ export function hydrateSearchProfile(
   const profile = record(value);
   const exclusions = record(profile.exclusions);
   const requestedSubcategory = normalized(context.requestedSubcategory ?? "");
-  const targetLocation = normalizeRegion(context.targetRegion ?? context.currentLocation);
+  const resolvedPolicy = resolveLocationPolicy(context);
+  const targetLocation = normalizeRegion(resolvedPolicy.requiredRegion);
   const storedNeighbourhood =
     typeof profile.neighbourhood === "string" && profile.neighbourhood.trim()
       ? profile.neighbourhood.trim()
@@ -148,7 +150,7 @@ export function hydrateSearchProfile(
   const neighbourhood =
     targetLocation && targetLocation !== "Dakar"
       ? targetLocation
-      : storedNeighbourhood;
+      : undefined;
   const products = stringArray(profile.products).filter(value =>
     !["restaurant", "restaurants", "romantic"].includes(normalized(value))
   );
