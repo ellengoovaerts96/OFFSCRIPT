@@ -37,5 +37,12 @@ try {
   const page=renderEventsList(events);for(const fixture of fixtures)assert.ok(page.includes(fixture.title));
   const published=await listPublishedEvents(today,today);
   assert.equal(published.length,2);assert.ok(published.every(event=>event.eventDate===today));
+  const daily={...logic.emptyEvent(),title:'Daily exhibition',eventDate:'2020-01-01',status:'published',venueName:'Gallery',recurrenceFrequency:'daily',recurrenceUntil:today,openingTime:'10:00',closingTime:'18:00'};
+  await db.query('INSERT INTO public.events(title,event_date,status,details,created_by) VALUES($1,$2,$3,$4::jsonb,$5)',[daily.title,daily.eventDate,daily.status,JSON.stringify(daily),'test']);
+  const dailyResult=(await listPublishedEvents(today,today)).find(event=>event.title===daily.title);
+  assert.equal(dailyResult?.eventDate,today);assert.equal(dailyResult?.openingTime,'10:00');assert.equal(dailyResult?.closingTime,'18:00');
+  const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  assert.ok(!(await listPublishedEvents(tomorrow,tomorrow)).some(event=>event.title===daily.title));
+  console.log('Daily events SQL: stored opening hours, active series, inclusive end date and expired series passed.');
   console.log('PostgreSQL event overview regression passed: empty list, ordering, dates, drafts, detail pages and weekly occurrences.');
 }finally{await db.close()}

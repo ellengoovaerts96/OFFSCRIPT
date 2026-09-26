@@ -16,7 +16,7 @@ export function selectPublishedEvents(events: EventData[], message: string, now 
   const requestedAreas = areas.filter(area => query.includes(area));
   const namedVenues = events.map(event => normalize(event.venueName)).filter(name => name.length > 2 && query.includes(name));
   return events.filter(event => event.status === 'published' && event.eventDate && event.eventDate >= today &&
-    !(event.eventDate === today && (event.endTime || event.startTime) && !(event.endTime && event.startTime && event.endTime < event.startTime) && (event.endTime || event.startTime)! < currentTime) &&
+    !hasFinishedToday(event, today, currentTime) &&
     (!namedVenues.length || namedVenues.includes(normalize(event.venueName))) &&
     (!children || event.childFriendly === 'yes') &&
     (!workshops || /workshop|atelier/.test(normalize(event.category+' '+event.title+' '+event.description))) &&
@@ -24,11 +24,19 @@ export function selectPublishedEvents(events: EventData[], message: string, now 
     (!requestedAreas.length || requestedAreas.some(area => normalize(event.neighbourhood+' '+event.area).includes(area))))
     .sort((a,b)=>(a.eventDate!+(a.startTime||'')).localeCompare(b.eventDate!+(b.startTime||''))).slice(0,3);
 }
+function hasFinishedToday(event: EventData, today: string, currentTime: string): boolean {
+  if (event.eventDate !== today) return false;
+  // Visiting hours take precedence over a reception's start/end time.
+  const hasHours = Boolean(event.openingTime || event.closingTime);
+  const start = hasHours ? event.openingTime : event.startTime;
+  const end = hasHours ? event.closingTime : event.endTime || event.startTime;
+  return Boolean(end && !(start && end < start) && end < currentTime);
+}
 const translations = {
-  nl:{intro:'Dit staat op de agenda:',price:'Prijs',conditions:'Voorwaarden',children:'Kindvriendelijk',reservation:'Reserveren verplicht',maps:'Locatie',source:'Meer info',phone:'Telefoon',weekly:'Wekelijks',fallback:'Vertaling tijdelijk niet beschikbaar; hieronder staat de oorspronkelijke tekst.'},
-  fr:{intro:'Voici les événements à venir :',price:'Tarif',conditions:'Conditions',children:'Adapté aux enfants',reservation:'Réservation obligatoire',maps:'Lieu',source:'Plus d’infos',phone:'Téléphone',weekly:'Chaque semaine',fallback:'Traduction temporairement indisponible ; voici le texte original.'},
-  en:{intro:'Upcoming events:',price:'Price',conditions:'Conditions',children:'Child friendly',reservation:'Reservation required',maps:'Location',source:'More info',phone:'Phone',weekly:'Weekly',fallback:'Translation temporarily unavailable; the original text follows.'},
-  de:{intro:'Das steht auf dem Programm:',price:'Preis',conditions:'Bedingungen',children:'Kinderfreundlich',reservation:'Reservierung erforderlich',maps:'Standort',source:'Mehr Infos',phone:'Telefon',weekly:'Wöchentlich',fallback:'Die Übersetzung ist vorübergehend nicht verfügbar; hier ist der Originaltext.'}
+  nl:{intro:'Dit staat op de agenda:',price:'Prijs',conditions:'Voorwaarden',children:'Kindvriendelijk',reservation:'Reserveren verplicht',maps:'Locatie',source:'Meer info',phone:'Telefoon',weekly:'Wekelijks',daily:'Dagelijks',hours:'Openingsuren',fallback:'Vertaling tijdelijk niet beschikbaar; hieronder staat de oorspronkelijke tekst.'},
+  fr:{intro:'Voici les événements à venir :',price:'Tarif',conditions:'Conditions',children:'Adapté aux enfants',reservation:'Réservation obligatoire',maps:'Lieu',source:'Plus d’infos',phone:'Téléphone',weekly:'Chaque semaine',daily:'Tous les jours',hours:'Horaires d’ouverture',fallback:'Traduction temporairement indisponible ; voici le texte original.'},
+  en:{intro:'Upcoming events:',price:'Price',conditions:'Conditions',children:'Child friendly',reservation:'Reservation required',maps:'Location',source:'More info',phone:'Phone',weekly:'Weekly',daily:'Daily',hours:'Opening hours',fallback:'Translation temporarily unavailable; the original text follows.'},
+  de:{intro:'Das steht auf dem Programm:',price:'Preis',conditions:'Bedingungen',children:'Kinderfreundlich',reservation:'Reservierung erforderlich',maps:'Standort',source:'Mehr Infos',phone:'Telefon',weekly:'Wöchentlich',daily:'Täglich',hours:'Öffnungszeiten',fallback:'Die Übersetzung ist vorübergehend nicht verfügbar; hier ist der Originaltext.'}
 };
 export function eventWhatsAppUrl(phone:string): string | null {
   try {
@@ -53,8 +61,9 @@ export function formatPublishedEventMessages(events:EventData[], language:string
     const info=[event.price?'💰 '+words.price+': '+event.price:'',event.conditions?words.conditions+': '+event.conditions:'',event.childFriendly==='yes'?'👨‍👩‍👧 '+words.children:'',event.reservationRequired==='yes'?'🎟 '+words.reservation:''].filter(Boolean).join('\n');
     const links=[event.googleMapsUrl?'📍 '+words.maps+': '+event.googleMapsUrl:'',whatsapp?'💬 WhatsApp: '+whatsapp:event.contactPhone?'📞 '+words.phone+': '+event.contactPhone:'',event.sourceUrl?words.source+': '+cleanEventSourceUrl(event.sourceUrl):''].filter(Boolean).join('\n');
     return [index===0?words.intro:'',unavailable?words.fallback:'',`*${event.title}*`,
-      ['📅 '+date, event.startTime?'🕒 '+event.startTime+(event.endTime?'–'+event.endTime:''):'',event.recurrenceFrequency==='weekly'?'↻ '+words.weekly:''].filter(Boolean).join('\n'),
+      ['📅 '+date, event.startTime?'🕒 '+event.startTime+(event.endTime?'–'+event.endTime:''):'',event.recurrenceFrequency==='weekly'?'↻ '+words.weekly:event.recurrenceFrequency==='daily'?'↻ '+words.daily:''].filter(Boolean).join('\n'),
       '📍 '+[...new Set([event.venueName,event.neighbourhood,event.area].filter(Boolean))].join(' — '),
+      event.openingTime || event.closingTime ? '🕒 '+words.hours+': '+(event.openingTime || '?')+'–'+(event.closingTime || '?') : '',
       event.description,info,links].filter(Boolean).join('\n\n');
   });
 }

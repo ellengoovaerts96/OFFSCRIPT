@@ -17,22 +17,29 @@ export function inferWeeklyWeekday(text: string): string | null {
   return explicit && matches.length === 1 ? String(matches[0]) : null;
 }
 
-/** Expand a reviewed weekly series into actual dates in a bounded request window (Dakar/UTC). */
+/** A date range alone does not prove that an event opens every day. */
+export function inferDailyRecurrence(text: string): boolean {
+  const value = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(daily|every day|each day|dagelijks|elke dag|iedere dag|tous les jours|chaque jour|quotidien|taglich|jeden tag)\b/.test(value) &&
+    !/\b(except|excluding|closed|sauf|ferme|behalve|gesloten|ausser|geschlossen|weekdays|werkdagen)\b/.test(value);
+}
+
+/** Expand a reviewed daily or weekly series into actual dates in a bounded request window (Dakar/UTC). */
 export function eventOccurrences(event: EventData, start: string, end: string, today: string): EventData[] {
   if (!event.eventDate || event.status !== 'published') return [];
   const lower = [start, today, event.eventDate].sort().at(-1)!;
-  const upper = event.recurrenceFrequency === 'weekly' && event.recurrenceUntil && event.recurrenceUntil < end ? event.recurrenceUntil : end;
+  const upper = event.recurrenceFrequency !== 'none' && event.recurrenceUntil && event.recurrenceUntil < end ? event.recurrenceUntil : end;
   if (lower > upper) return [];
-  if (event.recurrenceFrequency !== 'weekly') return event.eventDate >= lower && event.eventDate <= upper ? [event] : [];
-  if (!/^[0-6]$/.test(event.recurrenceWeekday ?? '')) return [];
+  if (event.recurrenceFrequency !== 'weekly' && event.recurrenceFrequency !== 'daily') return event.eventDate >= lower && event.eventDate <= upper ? [event] : [];
+  if (event.recurrenceFrequency === 'weekly' && !/^[0-6]$/.test(event.recurrenceWeekday ?? '')) return [];
   const first = new Date(`${lower}T00:00:00Z`);
   if (!Number.isFinite(first.getTime())) return [];
-  first.setUTCDate(first.getUTCDate() + (Number(event.recurrenceWeekday) - first.getUTCDay() + 7) % 7);
+  if (event.recurrenceFrequency === 'weekly') first.setUTCDate(first.getUTCDate() + (Number(event.recurrenceWeekday) - first.getUTCDay() + 7) % 7);
   const occurrences: EventData[] = [];
   // Chat windows are at most a week; cap expansion defensively for other callers.
   for (let count = 0; count < 53 && first.toISOString().slice(0,10) <= upper; count++) {
     occurrences.push({...event, eventDate:first.toISOString().slice(0,10)});
-    first.setUTCDate(first.getUTCDate() + 7);
+    first.setUTCDate(first.getUTCDate() + (event.recurrenceFrequency === 'daily' ? 1 : 7));
   }
   return occurrences;
 }

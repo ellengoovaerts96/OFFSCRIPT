@@ -53,3 +53,9 @@ Reviewed events are translated in one bounded OpenAI request into the conversati
 Each event is a separate message with a localized weekday/date, time, location, description, price/conditions and contact links. Standard tracking parameters are stripped from source links. International phone numbers become `wa.me` links; local numbers without a known country code remain plain phone numbers rather than guessing a destination. No guarantee is made that a venue has enabled WhatsApp for that number. Checks: `npm run published-events:check` and `npm run event-translation:check` (mocked AI).
 
 Event replies also persist the resolved conversation language, including the live-search fallback. Only the language and update timestamp change; existing location/budget/search preferences remain intact. Short follow-ups such as “Top!” inherit that stored language. Regression: run `scripts/checkEventConversationLanguage.mjs` with the same temporary PGlite setup and Node flags described above; it checks French → Dutch event → “Top!”, explicit language switches, new users and preserved preferences.
+
+## Daily events and visiting hours
+
+Choose **Daily** under Repeat for an exhibition or other event that runs every day. Set the active-from date and optionally Repeat until (inclusive). Daily events do not need a weekday. Explicit daily source wording can preselect Daily for review; a date range alone does not prove daily opening.
+
+**Opening time** and **Closing time** describe visiting hours on each occurrence. They are separate from Start time and End time, for example an opening reception. Leave unknown hours empty; document split hours and exceptions in the description. Visiting hours are shown in chatbot replies and a known closing time determines when today's occurrence stops being recommended. These fields use the existing details JSONB, so no migration is required.

@@ -60,7 +60,7 @@ queries=[];
 publishedRows=[{...publishedRows[0],event_date_iso:'2020-01-01',details:{...logic.emptyEvent(),recurrenceFrequency:'weekly',recurrenceWeekday:String(new Date().getUTCDay())}}];
 const recurring=await listPublishedEvents(today,today);
 assert.equal(recurring[0].eventDate,today);
-assert.ok(queries[0][0].includes("e.details->>'recurrenceFrequency' = 'weekly'"));
+assert.ok(queries[0][0].includes("e.details->>'recurrenceFrequency' IN ('daily','weekly')"));
 assert.ok(queries[0][0].includes("recurrenceUntil"));
 console.log('Recurring event database selection and expansion passed.');
 
@@ -69,3 +69,12 @@ await saveAdminEvent({data:{...data,recurrenceFrequency:'weekly',recurrenceWeekd
 const stored=JSON.parse(queries.find(([sql])=>sql.startsWith('INSERT INTO public.events'))[1][3]);
 assert.equal(stored.recurrenceFrequency,'weekly');assert.equal(stored.recurrenceWeekday,'4');assert.equal(stored.recurrenceUntil,'2026-12-31');
 console.log('Weekly schedule persistence passed.');
+
+queries=[];
+await saveAdminEvent({data:{...data,recurrenceFrequency:'daily',openingTime:'10:00',closingTime:'18:00'},draft,admin:'test'});
+const storedDaily=JSON.parse(queries.find(([sql])=>sql.startsWith('INSERT INTO public.events'))[1][3]);
+assert.equal(storedDaily.recurrenceFrequency,'daily');
+assert.equal(storedDaily.openingTime,'10:00');assert.equal(storedDaily.closingTime,'18:00');
+publishedRows=[{...publishedRows[0],details:storedDaily}];
+assert.equal((await listPublishedEvents(today,today))[0].openingTime,'10:00');
+console.log('Daily schedule and opening hours persistence passed.');

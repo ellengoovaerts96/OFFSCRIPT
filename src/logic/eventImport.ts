@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { inferWeeklyWeekday } from "./eventRecurrence.js";
+import { inferDailyRecurrence, inferWeeklyWeekday } from "./eventRecurrence.js";
 
 export const sourceTypes = ["unknown", "instagram", "facebook", "whatsapp", "flyer", "other"] as const;
-export const eventFields = ["title", "venueName", "neighbourhood", "area", "googleMapsUrl", "eventDate", "dateText", "startTime", "endTime", "category", "description", "price", "conditions", "reservationRequired", "childFriendly", "contactPhone", "instagramAccount", "recurrence", "sourceType"] as const;
+export const eventFields = ["title", "venueName", "neighbourhood", "area", "googleMapsUrl", "eventDate", "dateText", "startTime", "endTime", "openingTime", "closingTime", "category", "description", "price", "conditions", "reservationRequired", "childFriendly", "contactPhone", "instagramAccount", "recurrence", "sourceType"] as const;
 const text = z.string().max(3000).nullable();
 export const extractedEventSchema = z.object({
   readable: z.boolean(),
   title: text, venueName: text, neighbourhood: text, area: text, googleMapsUrl: text, eventDate: text, dateText: text,
-  startTime: text, endTime: text, category: text, description: text,
+  startTime: text, endTime: text, openingTime: text, closingTime: text, category: text, description: text,
   price: text, conditions: text,
   reservationRequired: z.enum(["yes", "no", "unknown"]),
   childFriendly: z.enum(["yes", "no", "unknown"]),
@@ -22,10 +22,10 @@ export type EventVenue = { id: string; name: string; neighbourhood: string | nul
 export type EventSource = { originalUrl: string; previewUrl: string; publicId: string; filename: string; format: string };
 export type EventData = {
   title: string; venueName: string; neighbourhood: string; area: string; googleMapsUrl: string; placeId: string | null; eventVenueId: string | null; status: "draft" | "published"; eventDate: string | null;
-  dateText: string; startTime: string | null; endTime: string | null;
+  dateText: string; startTime: string | null; endTime: string | null; openingTime: string | null; closingTime: string | null;
   category: string; description: string; price: string; conditions: string;
   reservationRequired: "yes" | "no" | "unknown"; childFriendly: "yes" | "no" | "unknown"; contactPhone: string;
-  instagramAccount: string; recurrence: string; recurrenceFrequency: "none" | "weekly"; recurrenceWeekday: string | null; recurrenceUntil: string | null; sourceType: typeof sourceTypes[number];
+  instagramAccount: string; recurrence: string; recurrenceFrequency: "none" | "daily" | "weekly"; recurrenceWeekday: string | null; recurrenceUntil: string | null; sourceType: typeof sourceTypes[number];
   sourceUrl: string; verificationNotes: string;
 };
 export function validDate(value: string): boolean {
@@ -55,7 +55,7 @@ export function safeSourceUrl(value: unknown): string {
   } catch { throw new Error("Use a valid http or https source URL."); }
 }
 export function emptyEvent(): EventData {
-  return { title: "", venueName: "", neighbourhood: "", area: "", googleMapsUrl: "", placeId: null, eventVenueId: null, status: "draft", eventDate: null, dateText: "", startTime: null, endTime: null,
+  return { title: "", venueName: "", neighbourhood: "", area: "", googleMapsUrl: "", placeId: null, eventVenueId: null, status: "draft", eventDate: null, dateText: "", startTime: null, endTime: null, openingTime: null, closingTime: null,
     category: "", description: "", price: "", conditions: "", reservationRequired: "unknown", childFriendly: "unknown", contactPhone: "",
     instagramAccount: "", recurrence: "", recurrenceFrequency: "none", recurrenceWeekday: null, recurrenceUntil: null, sourceType: "unknown", sourceUrl: "", verificationNotes: "" };
 }
@@ -77,7 +77,7 @@ export function validateEvent(body: Record<string, unknown>): EventData {
   data.googleMapsUrl = safeSourceUrl(data.googleMapsUrl);
   data.eventDate = data.eventDate || null;
   if (data.eventDate && !validDate(data.eventDate)) throw new Error("Enter a complete, valid event date or leave it empty.");
-  for (const key of ["startTime", "endTime"] as const) {
+  for (const key of ["startTime", "endTime", "openingTime", "closingTime"] as const) {
     data[key] = data[key] || null;
     if (data[key] && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(data[key])) throw new Error(`Invalid ${key}; use HH:MM.`);
   }
@@ -87,15 +87,16 @@ export function validateEvent(body: Record<string, unknown>): EventData {
   if (data.eventVenueId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.eventVenueId)) throw new Error("Invalid event venue selection.");
   if (data.placeId && data.eventVenueId) throw new Error("Select either a place or an event venue, not both.");
   data.recurrenceFrequency = data.recurrenceFrequency || "none";
-  if (!["none", "weekly"].includes(data.recurrenceFrequency)) throw new Error("Choose one-time or weekly recurrence.");
+  if (!["none", "daily", "weekly"].includes(data.recurrenceFrequency)) throw new Error("Choose one-time, daily or weekly recurrence.");
   data.recurrenceWeekday = data.recurrenceWeekday || null;
   data.recurrenceUntil = data.recurrenceUntil || null;
   if (data.recurrenceFrequency === "none") { data.recurrenceWeekday = null; data.recurrenceUntil = null; }
   else {
+    if (data.recurrenceFrequency === "daily") data.recurrenceWeekday = null;
     if (data.recurrenceWeekday !== null && !/^[0-6]$/.test(data.recurrenceWeekday)) throw new Error("Select a valid weekday.");
     if (data.recurrenceUntil && !validDate(data.recurrenceUntil)) throw new Error("Enter a valid recurrence end date.");
     if (data.eventDate && data.recurrenceUntil && data.recurrenceUntil < data.eventDate) throw new Error("The recurrence end date must be on or after the start date.");
-    if (data.status === "published" && data.recurrenceWeekday === null) throw new Error("Select the weekly event's weekday before publishing.");
+    if (data.status === "published" && data.recurrenceFrequency === "weekly" && data.recurrenceWeekday === null) throw new Error("Select the weekly event's weekday before publishing.");
     if (data.eventDate && data.recurrenceUntil && data.recurrenceWeekday !== null) {
       const first = new Date(data.eventDate + "T00:00:00Z");
       first.setUTCDate(first.getUTCDate() + (Number(data.recurrenceWeekday) - first.getUTCDay() + 7) % 7);
@@ -144,7 +145,7 @@ export function reviewExtraction(raw: unknown, context: EventContext): Extracted
       data.eventDate = null; warn("eventDate", "The weekday does not match the calendar date. Check month and year.");
     }
   }
-  for (const field of ["startTime", "endTime"] as const) {
+  for (const field of ["startTime", "endTime", "openingTime", "closingTime"] as const) {
     if (data[field] && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(data[field])) {
       data[field] = null; warn(field, "Time could not be reliably interpreted.");
     }
@@ -173,7 +174,8 @@ export function extractionToEvent(extracted: ExtractedEvent, sourceUrl: string):
   for (const field of eventFields) Object.assign(data, { [field]: extracted[field] ?? data[field] });
   data.sourceUrl = sourceUrl;
   const weekday = inferWeeklyWeekday(extracted.recurrence ?? "");
-  if (weekday !== null) { data.recurrenceFrequency = "weekly"; data.recurrenceWeekday = weekday; }
+  if (inferDailyRecurrence(extracted.recurrence ?? "")) data.recurrenceFrequency = "daily";
+  else if (weekday !== null) { data.recurrenceFrequency = "weekly"; data.recurrenceWeekday = weekday; }
   return data;
 }
 export function screenshotFormat(buffer: Buffer): "png" | "jpg" | "heic" {

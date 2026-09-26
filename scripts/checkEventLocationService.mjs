@@ -67,6 +67,7 @@ class Element {
 }
 const form={elements:{}};
 for(const name of [...Object.keys(eventLogic.emptyEvent()),'_csrf','reviewed'])form.elements[name]=new Element();
+const weekdayLabel=new Element();form.elements.recurrenceWeekday.closest=()=>weekdayLabel;
 form.elements.venueName.value='Boma';form.elements.area.value='Existing area';form.elements._csrf.value='test';
 const select=new Element();select.selectedOptions=[new Element()];select.closest=()=>form;
 const button=new Element(),results=new Element();
@@ -79,6 +80,11 @@ let search=async options=>{sent=JSON.parse(options.body);return {ok:true,json:as
 const rendered=html.renderEventReview({csrf:'test',source:null,extraction:null,context:{month:null,year:null,publicationDate:null},venues:[]});
 const script=[...rendered.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 vm.runInNewContext(script,{document:{getElementById:id=>elements[id],createElement:()=>new Element()},fetch:async(_url,options)=>search(options),AbortController,setTimeout,clearTimeout});
+assert.equal(weekdayLabel.hidden,true);
+form.elements.recurrenceFrequency.value='weekly';await form.elements.recurrenceFrequency.trigger('change');
+assert.equal(weekdayLabel.hidden,false);assert.equal(form.elements.recurrenceWeekday.disabled,false);
+form.elements.recurrenceFrequency.value='daily';await form.elements.recurrenceFrequency.trigger('change');
+assert.equal(weekdayLabel.hidden,true);assert.equal(form.elements.recurrenceWeekday.disabled,true);
 await button.trigger('click');
 assert.ok(!sent.missingFields.includes('area'));
 assert.equal(form.elements.neighbourhood.value,'');

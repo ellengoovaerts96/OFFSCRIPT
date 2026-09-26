@@ -4,7 +4,7 @@ import { newEventDraft, signEventDraft, readEventDraft } from '../src/logic/even
 import { renderEventImport, renderEventReview } from '../src/logic/eventsAdminHtml.js';
 const blank = parseEventContext({});
 const context = parseEventContext({month:'9',year:'2026'});
-const fixture: ExtractedEvent = {readable:true,title:'Latine Mix x Afro',venueName:'Prieto',neighbourhood:null,area:null,googleMapsUrl:null,eventDate:'2026-09-19',dateText:'samedi 19',startTime:'20:00',endTime:null,category:'Music',description:'Latin rhythms, Afro vibes, DJ Mirado',price:'Free entry',conditions:'Consumption required',reservationRequired:'unknown',childFriendly:'unknown',contactPhone:'78 731 18 18',instagramAccount:'@prietodakar',recurrence:null,sourceType:'instagram',dateBasis:'provided_context',uncertainFields:[]};
+const fixture: ExtractedEvent = {readable:true,title:'Latine Mix x Afro',venueName:'Prieto',neighbourhood:null,area:null,googleMapsUrl:null,eventDate:'2026-09-19',dateText:'samedi 19',startTime:'20:00',endTime:null,openingTime:null,closingTime:null,category:'Music',description:'Latin rhythms, Afro vibes, DJ Mirado',price:'Free entry',conditions:'Consumption required',reservationRequired:'unknown',childFriendly:'unknown',contactPhone:'78 731 18 18',instagramAccount:'@prietodakar',recurrence:null,sourceType:'instagram',dateBasis:'provided_context',uncertainFields:[]};
 assert.equal(reviewExtraction(fixture,blank).eventDate,null);
 const extracted = reviewExtraction(fixture,context);
 assert.equal(extracted.eventDate,'2026-09-19');

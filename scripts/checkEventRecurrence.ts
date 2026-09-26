@@ -32,3 +32,28 @@ const extraction={...emptyEvent(),readable:true,recurrence:'Jeudis soir 20h',eve
 const draft=extractionToEvent(extraction,'');
 assert.equal(draft.recurrenceFrequency,'weekly');assert.equal(draft.recurrenceWeekday,'4');assert.equal(draft.eventDate,null);assert.equal(draft.status,'draft');
 console.log('Weekly recurrence: explicit detection, date windows, bounds, validation, review and chatbot timing passed.');
+
+const daily = {...series, recurrenceFrequency:'daily' as const, recurrenceWeekday:null,
+  openingTime:'10:00', closingTime:'18:00', recurrenceUntil:'2026-09-26'};
+assert.equal(validateEvent(daily).recurrenceFrequency,'daily');
+assert.equal(validateEvent({...daily,recurrenceWeekday:'4'}).recurrenceWeekday,null);
+assert.deepEqual(eventOccurrences(daily,'2026-09-24','2026-09-28','2026-09-25').map(e=>e.eventDate),['2026-09-25','2026-09-26']);
+assert.deepEqual(eventOccurrences({...daily,eventDate:'2028-02-28',recurrenceUntil:'2028-03-01'},'2028-02-28','2028-03-01','2028-02-28').map(e=>e.eventDate),['2028-02-28','2028-02-29','2028-03-01']);
+assert.equal(eventOccurrences({...daily,status:'draft'},'2026-09-24','2026-09-28','2026-09-24').length,0);
+for(const change of [{openingTime:'25:00'},{closingTime:'18:99'},{recurrenceUntil:'2026-08-01'},{recurrenceUntil:'2026-02-30'}]) assert.throws(()=>validateEvent({...daily,...change}));
+const dailyToday=eventOccurrences(daily,'2026-09-25','2026-09-25','2026-09-25');
+assert.equal(selectPublishedEvents(dailyToday,'events',new Date('2026-09-25T15:00:00Z')).length,1);
+assert.equal(selectPublishedEvents(dailyToday,'events',new Date('2026-09-25T19:00:00Z')).length,0);
+assert.equal(selectPublishedEvents([{...dailyToday[0],closingTime:null}],'events',new Date('2026-09-25T21:00:00Z')).length,1,'Unknown closing time must not be guessed from opening/reception time');
+const dailyHtml=renderEventReview({csrf:'test',data:daily,source:null,extraction:null,context:{month:null,year:null,publicationDate:null},venues:[]});
+assert.match(dailyHtml,/<option value="daily" selected>Daily<\/option>/);
+for(const name of ['openingTime','closingTime']) assert.ok(dailyHtml.includes(`name="${name}"`));
+const dailyDraft=extractionToEvent({...extraction,recurrence:'Tous les jours',openingTime:'10:00',closingTime:'18:00'},'');
+assert.equal(dailyDraft.recurrenceFrequency,'daily');
+assert.equal(dailyDraft.openingTime,'10:00');
+assert.equal(extractionToEvent({...extraction,recurrence:'Daily except Monday'},'').recurrenceFrequency,'none');
+assert.equal(extractionToEvent({...extraction,recurrence:'September 1 to October 15'},'').recurrenceFrequency,'none');
+const {formatPublishedEvents}=await import('../src/logic/publishedEvents.js');
+assert.match(formatPublishedEvents(dailyToday,'nl'),/Dagelijks/);
+assert.match(formatPublishedEvents(dailyToday,'nl'),/Openingsuren: 10:00–18:00/);
+console.log('Daily events: inclusive date range, leap day, validation, opening hours, review form, extraction and chatbot output passed.');

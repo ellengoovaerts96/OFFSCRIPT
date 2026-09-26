@@ -77,9 +77,9 @@ export async function listPublishedEvents(start: string, end: string): Promise<E
     COALESCE(p.reservation_phone,v.contact_phone) AS venue_phone
     FROM public.events e LEFT JOIN public.places p ON p.id=e.place_id LEFT JOIN public.event_venues v ON v.id=e.event_venue_id
     WHERE e.status='published' AND (
-      (COALESCE(e.details->>'recurrenceFrequency','none') <> 'weekly' AND e.event_date BETWEEN $1::date AND $2::date
+      (COALESCE(e.details->>'recurrenceFrequency','none') NOT IN ('daily','weekly') AND e.event_date BETWEEN $1::date AND $2::date
         AND e.event_date >= (NOW() AT TIME ZONE 'Africa/Dakar')::date)
-      OR (e.details->>'recurrenceFrequency' = 'weekly' AND e.event_date <= $2::date
+      OR (e.details->>'recurrenceFrequency' IN ('daily','weekly') AND e.event_date <= $2::date
         AND (NULLIF(e.details->>'recurrenceUntil','') IS NULL OR e.details->>'recurrenceUntil' >= GREATEST($1::date, (NOW() AT TIME ZONE 'Africa/Dakar')::date)::text))
     )
     ORDER BY e.event_date, e.details->>'startTime', e.id LIMIT 100`, [start,end]);
