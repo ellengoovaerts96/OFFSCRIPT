@@ -20,7 +20,7 @@ export function locationPolicy(context: UserContext): LocationPolicy {
 /** Only user evidence, never an AI-inferred destination, may create a hard boundary. */
 export function applyLocationPolicy(
   message: string, context: UserContext, previous?: UserContext | null,
-  previousAssistantMessage?: string, newSearch = false
+  previousAssistantMessage?: string | null, newSearch = false
 ): UserContext {
   const prior = locationPolicy(previous ?? { language: context.language });
   const policy: LocationPolicy = { ...prior };

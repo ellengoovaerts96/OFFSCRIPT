@@ -81,3 +81,6 @@ for (const answer of ['zeker!', 'geen probleem', 'no problem', 'bien sûr']) {
 
 assert.match(outsideLocationNotice(next.context, 'Ngor') ?? '', /Ngor.*Yoff/);
 assert.equal(outsideLocationNotice({ language: 'en' }, 'Ngor'), undefined);
+
+const withoutPreviousReply = await buildUserContext({message: 'padel in Ngor', previousAssistantMessage: null});
+assert.equal(locationPolicy(withoutPreviousReply.context).requiredRegion, 'Ngor');
