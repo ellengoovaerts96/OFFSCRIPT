@@ -93,4 +93,36 @@ for (const [message, focus, recommendationType] of activityCases) {
   assert(normalized.recommendationType === recommendationType, `Recommendation type mismatch for: ${message}`);
 }
 
+const eveningSurfProfile = buildSearchProfile(
+  "Waar kan ik vanavond surfen?",
+  { language: "nl", intent: "sports", requestedSubcategory: "surfing", timing: "tonight" },
+  undefined,
+  {
+    activity: "eat",
+    products: [],
+    locationFeatures: [],
+    occasions: ["dinner"],
+    vibes: [],
+    exclusions: { products: [], categories: [], audienceTags: [], dietary: [] }
+  }
+);
+assert(eveningSurfProfile.activity === "surf", "Surfing must override an AI dinner interpretation of 'vanavond'.");
+assert(eveningSurfProfile.recommendationType === "activity", "An evening surf request must remain an activity search.");
+assert(
+  !placePassesSearchProfileHardConstraints(beachRestaurant, eveningSurfProfile),
+  "A beachfront cafe must never pass as a surf recommendation merely because the request says 'vanavond'."
+);
+const surfSchool = {
+  ...beachRestaurant,
+  id: "surf-school",
+  name: "Dakar Surf School",
+  categories: ["sports"],
+  subcategories: [{ id: "surf-lessons", name: "Surf lessons", displayOrder: 1, images: [] }],
+  shortDescription: "Surf lessons and board rental with local instructors."
+} as Place;
+assert(
+  placePassesSearchProfileHardConstraints(surfSchool, eveningSurfProfile),
+  "A documented surf school must remain eligible for the same request."
+);
+
 console.log("Activity intent checks passed.");

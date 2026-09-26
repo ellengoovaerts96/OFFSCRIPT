@@ -187,6 +187,7 @@ function withSearchProfile(
   semanticSignals?: SearchProfileSignals | null,
   subcategoryTaxonomy: SubcategoryTaxonomyEntry[] = []
 ): BuildUserContextResult {
+  const explicitActivity = normalizeActivityIntent(message);
   const taxonomyMatch = matchKnownSubcategory(message, subcategoryTaxonomy);
   const deterministicMatch = findTaxonomySubcategory(
     preventSoftSignalAsHardSubcategory(inferRequestedSubcategory(message)),
@@ -200,6 +201,7 @@ function withSearchProfile(
     subcategoryTaxonomy
   );
   const requestedSubcategory = preventSoftSignalAsHardSubcategory(
+    explicitActivity?.focus ??
     deterministicMatch?.name ??
     taxonomyMatch?.name ??
     validatedCandidate?.name ??
@@ -209,12 +211,13 @@ function withSearchProfile(
   const taxonomyContext: UserContext = {
     ...result.context,
     intent:
-      result.context.intent && result.context.intent !== "unknown"
+      explicitActivity?.intent ??
+      (result.context.intent && result.context.intent !== "unknown"
         ? result.context.intent
         : deterministicMatch?.intent ??
           taxonomyMatch?.intent ??
           validatedCandidate?.intent ??
-          result.context.intent,
+          result.context.intent),
     requestedSubcategory,
     requestedAmenities: keepOnlyHardRequestedAmenities(
       result.context.requestedAmenities ?? []

@@ -332,8 +332,11 @@ export function buildSearchProfile(
 ): SearchProfile {
   const compatiblePreviousProfile = hydrateSearchProfile(previousProfile, context);
   const deterministicSignals = recognizeSearchProfileSignals(message, context);
+  const explicitActivity = normalizeActivityIntent(message);
   const signals: SearchProfileSignals = {
-    activity: semanticSignals?.activity ?? deterministicSignals.activity,
+    activity: explicitActivity
+      ? deterministicSignals.activity
+      : semanticSignals?.activity ?? deterministicSignals.activity,
     products: mergeUnique(
       deterministicSignals.products,
       supportedSemanticProducts(
